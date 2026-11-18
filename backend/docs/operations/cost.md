@@ -66,7 +66,7 @@
 | --- | --- | --- | --- | --- |
 | DEV | 앱 | `yesulin-backend-dev2` (`yesulin-backend-asg` 소속) | t4g.micro · 루트 8GiB · swap 512MiB | 2026-10-09 ASG로 교체(Launch Template 버전 4). 옛 small은 2026-10-10 종료. 버전 5(2026-10-14)에서 CPU 크레딧 standard |
 | DEV | DB | `yesulin-db-dev` | t4g.micro · 루트 12GiB · 데이터 20GiB | 분리 전 staging 데이터의 유일한 사본. ASG 소속 아님 |
-| PROD | 앱 | `yesulin-backend-prod` 1대 (블루/그린 배포가 복사한 `CodeDeploy_yesulin-backend-prod_<배포 ID>` ASG 소속) | t4g.small · 루트 20GiB · swap 512MiB | 2026-10-19 micro로 교체(Launch Template 버전 2), 2026-10-21 2대로 증설. 버전 3(2026-11-13) 루트 20GiB, 버전 4(2026-11-16) Bedrock 인스턴스 프로필. 2026-11-18 버전 5(t4g.small)로 1대 전환 |
+| PROD | 앱 | `yesulin-backend-prod` 1대 | t4g.small · 루트 20GiB · swap 512MiB | 2026-10-19 micro로 교체(Launch Template 버전 2), 2026-10-21 2대로 증설. 버전 3(2026-11-13) 루트 20GiB, 버전 4(2026-11-16) Bedrock 인스턴스 프로필. 2026-11-18 버전 5(t4g.small)로 1대 전환, 버전 6에서 needrestart의 앱 재시작 차단 |
 | PROD | DB | `yesulin-db-prod` | t4g.small · 루트 12GiB · 데이터 20GiB | t4g.micro에서 증설 |
 | 공유 | API 입구 | `yesulin-backend-alb` | | Host 규칙으로 DEV/PROD 분기 |
 | 공유 | 파일 전달 | CloudFront 배포 1개 | | `/dev`, `/prod` 경로로 분기 |
@@ -130,8 +130,8 @@
 
 | 항목 | `yesulin-backend-asg` (DEV) | `yesulin-backend-prod-asg` (PROD) |
 | --- | --- | --- |
-| 원하는 용량 / 최소-최대 | 1 / 1-1 (2026-10-10부터) | 1 / 1-2 (2026-11-18 기준. 배포마다 복사한 ASG로 바뀐다) |
-| Launch Template | `yesulin-backend-lt` 버전 4 (t4g.micro, 사용자 데이터에 swap 512MiB·CodeDeploy 배포본 2개 설정) | `yesulin-backend-prod-lt` 버전 5 (t4g.small, 버전 4와 같은 swap·배포본 설정·Bedrock 프로필. 크레딧 사양 미지정이라 t4g 기본 무제한) |
+| 원하는 용량 / 최소-최대 | 1 / 1-1 (2026-10-10부터) | 1 / 1-2 (2026-11-18 기준) |
+| Launch Template | `yesulin-backend-lt` 버전 4 (t4g.micro, 사용자 데이터에 swap 512MiB·CodeDeploy 배포본 2개 설정) | `yesulin-backend-prod-lt` 버전 6 (t4g.small, 버전 4와 같은 swap·배포본 설정·Bedrock 프로필, needrestart 앱 재시작 차단. 크레딧 사양 미지정이라 t4g 기본 무제한) |
 | AMI | 2026-09-13 sops 기반 AMI | DEV와 같은 AMI |
 | 상태 확인 유형 | EC2, EBS, ELB (유예 300초) | EC2 (유예 300초) |
 | 일시 중지된 프로세스 | 없음 | 없음 |
@@ -190,7 +190,7 @@ CloudShell은 콘솔에서 열리지 않았다.
 - CloudWatch Agent만 빼고 micro를 유지하는 안은 계산으로 제외했다. Agent는 약 94~101MiB인데, PROD 관찰값으로 계산한 필요
   메모리(904 - 최소 가용 약 150 + swap 약 256 = 약 1,010MiB)에서 빼도 904MiB를 넘는다. 새 인스턴스 부팅 직후 자동 업데이트도
   150~210MiB를 잠깐 더 쓴다. micro에서는 SerialGC도 그대로이고, 이 문제를 찾은 지표도 잃는다.
-- 2026-11-18 PROD를 t4g.small 1대로 바꿨다. 블루/그린 트래픽 전환 중 공개 헬스 요청 24회는 모두 200이었다.
+- 2026-11-18 PROD를 t4g.small 1대로 바꿨다. 새 서버로 트래픽을 옮기는 동안 공개 헬스 요청 24회는 모두 200이었다.
   전환 직후 swap 사용 0, 가용 메모리 862MiB다. 전환 뒤 1~3일 동안 swap 사용과 2초 초과 GC 멈춤이 0인지 확인한다.
 
 ## 미확인 항목

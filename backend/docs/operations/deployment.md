@@ -128,15 +128,10 @@ PR CI의 `deploy/scripts/check_flyway_contract_changes.sh`는 새 마이그레�
 이때는 고친 마이그레이션을 dev에 먼저 머지하고 대기 중인 배포가 없을 때 반쯤 적용된 변경과 `flyway_schema_history`의 실패 행을
 지운 뒤 다시 배포한다(2026-10-28 사례: [트러블슈팅 기록](../../../design/deploy-troubleshooting-record.md)).
 
-PROD 배포 그룹 `yesulin-backend-prod`는 블루/그린(Auto Scaling 그룹 자동 복사, 로드 밸런서 연동)이다. 배포마다 CodeDeploy가
-현재 ASG를 시작 템플릿 버전까지 복사해 `CodeDeploy_yesulin-backend-prod_<배포 ID>` ASG와 새 인스턴스를 만들고 앱을 검증한다.
-검증 뒤 배포 화면에서 "트래픽 다시 라우팅"을 눌러야(최대 1시간 대기) 대상 그룹이 새 인스턴스로 바뀐다. 전환 동안 옛·새 서버가
-함께 요청을 받으므로 끊기지 않는다. 원본 인스턴스는 전환 30분 뒤 종료한다(2026-11-18에 "계속 실행"에서 변경). 2026-11-18 기준
-앱은 1대(ASG 1-2)다. 배포가 실패하거나 배포 경보가 울리면 원본으로 자동 롤백한다.
-원본 종료가 "건너뜀"으로 끝난 옛 ASG가 남으면 그 ASG의 원하는·최소 용량을 0으로 내려 ASG가 인스턴스를 종료하게 한다.
-새 인스턴스는 부팅 뒤 자동 업데이트(`unattended-upgrade`)가 라이브러리를 올리고 needrestart가 `yesulin.service`를 재시작한다.
-2026-11-18에는 이 재시작이 트래픽 전환 뒤에 일어나 앱 1대 운영에서 약 1분 502가 났다. 트래픽을 넘기기 전에 새 인스턴스에서
-`pgrep -f unattended-upgrade`가 비어 있는지 확인한다.
+PROD는 앱 2대(ASG 2-2)이고 배포 그룹 `yesulin-backend-prod`는 로드 밸런서 연동을 켠 `CodeDeployDefault.OneAtATime`이다.
+CodeDeploy가 한 대를 대상 그룹에서 빼고(드레이닝 60초) 배포·검증한 뒤 다시 넣고, 다음 대로 넘어간다. 그동안 다른 한 대가
+요청을 받으므로 배포 중 끊기지 않는다. 한 대만 있을 때는 이 첫 단계에서 유일한 서버가 빠져 배포 시간 내내 503이 난다.
+배포가 실패하면 그 서버에서 멈추고 마지막 성공 리비전으로 자동 롤백한다.
 
 앱 서버 루트 디스크가 차면 `DownloadBundle`에서 `No space left on device`로 실패하고, 그 서버에는 Session Manager도 붙지 않는다.
 EC2를 직접 종료할 수 없으므로 남길 서버에 축소 보호를 걸고 ASG 원하는 용량을 한 대 늘렸다가 되돌려 그 서버만 교체한 뒤 보호를
@@ -147,7 +142,7 @@ EC2를 직접 종료할 수 없으므로 남길 서버에 축소 보호를 걸�
 
 1. 배포 그룹 `yesulin-backend-prod`의 배포 내역에서 되돌아갈 직전 성공 배포를 열고 "배포 복사"를 누른다.
 2. 개정 위치는 그대로 두고 파일 형식 `.zip`, 배포 설명에 이유를 적는다. "배포 그룹 재정의"의 배포 구성이 `OneAtATime`인지 본다.
-3. 새 서버 검증이 끝나면 트래픽을 다시 라우팅하고, `/api/v1/health`가 200이면 완료다. 시작·완료 시각을 남긴다.
+3. 두 서버가 차례로 성공하고 `/api/v1/health`가 200이면 완료다. 시작·완료 시각을 남긴다.
 
 되돌아갈 버전 이후에 컬럼·테이블 삭제 마이그레이션이 나갔다면 그 버전은 시작하지 못한다. 서버 안의 `ops/recover/rollback-release.sh`는
 한 대만 바꾸고 ASG가 새로 띄우는 서버에는 반영되지 않으므로 여러 대 운영에서는 쓰지 않는다. 배포 중 실패 요청과 응답 서버는
@@ -253,8 +248,11 @@ CodeDeploy 시작 후크가 마지막 성공 리비전을 배포한다. 2026-09-
 2026-10-09에는 용량을 늘려 띄운 t4g.micro 인스턴스가 배포까지 성공했다. PROD ASG(`yesulin-backend-prod-asg`)도
 2026-10-19에 같은 방식으로 t4g.micro를 띄워 배포 그룹 `yesulin-backend-prod`의 배포까지 성공했다.
 PROD Launch Template(`yesulin-backend-prod-lt` 버전 2 이후)도 아래와 같은 swap·배포본 설정을 쓴다. 2026-11-18 기준
-PROD는 버전 5(t4g.small)다. PROD 인스턴스 유형은 현재 배포 그룹 ASG의 시작 템플릿을 새 버전 **번호**로 바꾼 뒤 다음 블루/그린
-배포에서 바뀐다. 복사된 ASG가 그 버전을 이어받기 때문이다. "Latest"로 두면 교체 중 새 버전을 만들 때 의도치 않게 바뀐다.
+PROD는 버전 6(t4g.small)이다. ASG는 시작 템플릿을 "Latest"가 아니라 버전 번호로 지정한다. "Latest"면 새 버전을 만드는 순간
+교체 중인 ASG가 그 버전으로 다시 바뀔 수 있다.
+새 인스턴스는 부팅 뒤 자동 보안 업데이트가 라이브러리를 올리면 needrestart가 `yesulin.service`를 재시작한다. 2026-11-18 PROD
+앱 1대에서 이 재시작으로 약 1분 502가 났다. 그래서 PROD 버전 6의 사용자 데이터는 `/etc/needrestart/conf.d/yesulin.conf`로
+앱 재시작만 막는다. 보안 업데이트는 계속 설치되고, 바뀐 라이브러리는 다음 배포의 앱 재기동 때 반영된다.
 DEV Launch Template(`yesulin-backend-lt` 버전 4)은 t4g.micro이며, 사용자 데이터가 512MiB swap 파일을 만들고
 CodeDeploy 에이전트의 배포본 보관 수(`:max_revisions:`)를 2로 줄인다. 루트 디스크가 8GiB라 배포본을 5개씩 쌓으면
 여유가 부족하다. 계정 정책상 인스턴스를 직접 정지할 수 없으므로 인스턴스 유형은 Launch Template 새 버전으로
