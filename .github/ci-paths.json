@@ -41,6 +41,8 @@
         "ops/monitor/cloudwatch/systemd/**",
         "ops/monitor/database.sh",
         "ops/pdf-extraction-lambda/**",
+        "ops/poster-thumbnails/README.md",
+        "ops/poster-thumbnails/home-2026-11-17.json",
         "ops/recover/**",
         "output/pdf/**",
         "scripts/config/compare-env-keys.sh",

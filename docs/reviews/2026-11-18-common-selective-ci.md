@@ -54,3 +54,26 @@
 [실행별 CSV](./2026-11-18-common-selective-ci-pr-runs.csv)에 실행·잡 링크, 변경 경로, 비교 기준 SHA, 실제 checkout SHA, 실행 시각, 생략된 단계와 캐시 관측 결과를 기록했다. 별도 `workflow_dispatch` 및 보호 브랜치의 push 동작은 이번 PR 실측 범위 밖이다.
 
 원격 검증 독립 평가 1회에서 PR 변경 범위, 각 작업의 실행·생략, 실제 checkout SHA와 검증 브랜치 격리를 재확인했다. 원격 검증에서 신규 확정 문제 발견·해결·미해결은 각각 0건이다.
+
+## 최신 dev의 운영 파일 분류
+
+- 작업 ID `2026-11-18-common-selective-ci-dev-sync`, 평가일 2026-11-18 (Asia/Seoul), 평가표 v1
+
+| 항목 | 실패 조건 | 기대 결과와 확인 방법 | 필수 |
+| --- | --- | --- | --- |
+| D01 | 최신 dev의 #605 파일 두 개가 미분류된다 | dev 반영 후 전체 Git 추적 경로 검사 통과 | 예 |
+| D02 | 운영 문서와 입력 목록 변경이 불필요한 빌드를 실행한다 | 두 파일을 각각 분류했을 때 실행 대상 없음 | 예 |
+| D03 | 같은 폴더의 신규 파일이 함께 생략된다 | 예시 신규 파일이 미분류 오류를 일으킴 | 예 |
+| D04 | 최신 커밋의 필수 검사가 실패하거나 이전 커밋 결과를 사용한다 | #607의 최신 Frontend·Backend GitHub Actions 실행 결과 확인 | 예 |
+
+[#605](https://github.com/woowacourse-teams/2026-yesulin/pull/605)의 운영 문서와 JSON 목록은 운영자가 직접 사용하는 입력이다. 두 파일을 추가하기 전에 전체 추적 경로 검사가 정확히 이 두 파일을 미분류로 보고했다.
+
+- 독립 평가 1회 완료. 추가된 경로의 용도와 범위, 새 파일에 대한 실패 테스트를 확인했다. 독립 평가 신규 발견은 0건이다.
+- 로컬 필수 항목 PASS 3 / FAIL 0 / UNVERIFIED 1 / N/A 0. 단위 테스트 18개 통과. D04의 원격 결과는 [#607 본문](https://github.com/woowacourse-teams/2026-yesulin/pull/607)에 기록한다.
+- 신규 확정 문제 발견 1 / 해결 1 / 미해결 0, P0 0 / P1 0 / P2 1 / P3 0
+- 발견 경로 PRECHECK 1 / INDEPENDENT_REVIEW 0 / POST_FIX_CHECK 0 / EXTERNAL 0, 오탐 0
+
+| 문제 ID | 사건 | 시각 (+09:00) | 근거와 조치 |
+| --- | --- | --- | --- |
+| `2026-11-18-common-selective-ci-dev-sync-F01` | CONFIRMED | 2026-11-18T18:02:54+09:00 | P2/CODE/EXISTING, PRECHECK, 최초 기록 PR #607. dev 반영 후 추적 파일 검사에서 #605의 두 파일이 미분류로 실패했다. |
+| `2026-11-18-common-selective-ci-dev-sync-F01` | FIXED | 2026-11-18T18:04:29+09:00 | POST_FIX_CHECK. 확인한 두 파일만 생략하고 같은 폴더의 새 파일은 미분류로 남겼다. 전체 테스트 통과와 PR 변경 경로가 양쪽 검사를 선택하는 것을 확인했다. |

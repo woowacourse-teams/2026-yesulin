@@ -33,6 +33,8 @@ class PathRulesTest(unittest.TestCase):
             "ops/monitor/cloudwatch/queries.json": {"backend"},
             "ops/monitor/cloudwatch/tests/test_future_metric.py": {"backend"},
             "ops/pdf-extraction-lambda/src/s3_handler.py": set(),
+            "ops/poster-thumbnails/README.md": set(),
+            "ops/poster-thumbnails/home-2026-11-17.json": set(),
             "config-version.txt": set(),
             "buildspec.yml": set(),
             "docs/domain.md": set(),
@@ -56,6 +58,10 @@ class PathRulesTest(unittest.TestCase):
 
     def test_all_tracked_paths_have_a_rule(self):
         ci.classify(ci.decode_paths(ci.git("ls-files", "-z")), self.rules)
+
+    def test_new_poster_operations_path_requires_a_rule(self):
+        with self.assertRaisesRegex(ValueError, "ops/poster-thumbnails/backfill.py"):
+            ci.classify(["ops/poster-thumbnails/backfill.py"], self.rules)
 
 
 class GitComparisonTest(unittest.TestCase):
