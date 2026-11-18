@@ -15,6 +15,7 @@
         ".env.example",
         ".github/ISSUE_TEMPLATE/**",
         ".github/pull_request_template.md",
+        ".github/workflows/ci-before-comparison.yml",
         ".github/workflows/slack-notification.yml",
         ".gitmodules",
         ".husky/**",

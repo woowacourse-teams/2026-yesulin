@@ -6,6 +6,7 @@ on:
     branches:
       - dev
       - main
+      - test/ci-routing-base
   push:
     branches:
       - dev

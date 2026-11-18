@@ -1,0 +1,87 @@
+name: CI baseline on validation branch
+
+on:
+  pull_request:
+    branches:
+      - test/ci-routing-base
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Baseline Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run frontend lint
+        run: npm run lint
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+  backend:
+    name: Baseline Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check Flyway migration order
+        if: github.event_name == 'pull_request'
+        run: sh deploy/scripts/check_flyway_migration_order.sh "${{ github.event.pull_request.base.sha }}"
+
+      - name: Check Flyway contract changes
+        if: github.event_name == 'pull_request'
+        run: sh deploy/scripts/check_flyway_contract_changes.sh "${{ github.event.pull_request.base.sha }}"
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build backend
+        run: ./gradlew build --no-daemon
+
+      - name: Test deployment scripts
+        run: |
+          sh deploy/tests/check_flyway_migration_order_test.sh
+          sh deploy/tests/check_flyway_contract_changes_test.sh
+          sh deploy/tests/validate_service_test.sh
+          sh deploy/tests/cleanup_releases_test.sh
+          sh deploy/tests/install_env_test.sh
+          sh deploy/tests/after_install_monitoring_test.sh
+          sh ../scripts/config/tests/deploy_env_test.sh
+          python3 -m unittest discover -s ../ops/monitor/cloudwatch/tests -v
