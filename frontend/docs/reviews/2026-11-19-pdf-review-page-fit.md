@@ -26,11 +26,11 @@ PDF 지원자 심사의 원본 보기를 쪽 모양에 맞춰 묶어 보여 주�
 
 | 문제 ID | 심각도 | 유형 | 유입 | 발견 경로 | 최초 확정 | 해결 | 최초 PR | 상태 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-11-19-pdf-review-page-fit-F01 | P3 | CODE | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-19T00:53:00+09:00 | 2026-11-19T00:56:19+09:00 | PENDING | FIXED |
-| 2026-11-19-pdf-review-page-fit-F02 | P2 | FLOW | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-19T00:53:00+09:00 | 2026-11-19T00:56:19+09:00 | PENDING | FIXED |
-| 2026-11-19-pdf-review-page-fit-F03 | P3 | CODE | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-19T00:53:00+09:00 | - | PENDING | OPEN |
-| 2026-11-19-pdf-review-page-fit-F04 | P3 | UNUSED | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-19T00:53:00+09:00 | 2026-11-19T00:56:19+09:00 | PENDING | FIXED |
-| 2026-11-19-pdf-review-page-fit-F05 | P3 | UNUSED | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-19T00:53:00+09:00 | 2026-11-19T00:56:19+09:00 | PENDING | FIXED |
+| 2026-11-19-pdf-review-page-fit-F01 | P3 | CODE | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-19T00:53:00+09:00 | 2026-11-19T00:56:19+09:00 | #616 | FIXED |
+| 2026-11-19-pdf-review-page-fit-F02 | P2 | FLOW | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-19T00:53:00+09:00 | 2026-11-19T00:56:19+09:00 | #616 | FIXED |
+| 2026-11-19-pdf-review-page-fit-F03 | P3 | CODE | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-19T00:53:00+09:00 | - | #616 | OPEN |
+| 2026-11-19-pdf-review-page-fit-F04 | P3 | UNUSED | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-19T00:53:00+09:00 | 2026-11-19T00:56:19+09:00 | #616 | FIXED |
+| 2026-11-19-pdf-review-page-fit-F05 | P3 | UNUSED | INTRODUCED | INDEPENDENT_REVIEW | 2026-11-19T00:53:00+09:00 | 2026-11-19T00:56:19+09:00 | #616 | FIXED |
 
 - F01: 높이를 아직 못 잰 순간에는 좌우 여백을 빼지 않은 폭을 써 잠깐 가로로 넘칠 수 있었다. → 미측정도 여백을 뺀 폭을 쓴다.
 - F02: 기본 보기와 전체화면이 같은 맞춤이 되어, 확대한 배율이 전체화면을 오갈 때 남았다(관련: 2026-11-08-pdf-review-fullscreen-F02와 같은 증상의 재발, 원인은 맞춤 값 통일). → 뷰어에 보기 범위(`zoomScope`)를 넘겨 바뀌면 배율을 1로 되돌린다. 테스트 `같은 맞춤이어도 보기 범위가 바뀌면…`.
