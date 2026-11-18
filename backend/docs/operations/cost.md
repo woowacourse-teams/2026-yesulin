@@ -9,6 +9,7 @@
 > t4g.micro가 지금처럼 RI로 0원이면 월 약 13.8이 줄어 약 59.2가 된다. 2026-10-17쯤 Cost Explorer로 확인해 표를 갱신한다.
 > 2026-10-19에 PROD 앱도 t4g.micro로 바꿨다. 같은 조건이면 small 1대분(월 약 13.8)이 더 줄어든다.
 > 2026-10-21에 무중단 배포를 위해 PROD 앱 micro를 2대로 늘렸다. micro 1대분(정가 월 약 7.6 + EBS 약 0.7)이 늘 수 있다.
+> 2026-11-18에 PROD 앱을 t4g.small 1대로 바꿨다([아래](#앱-micro-장기-메모리-관찰-결과-2026-11-17)). 정가 기준 micro 2대와 같은 월 약 15.2다.
 
 ## 예산
 
@@ -65,7 +66,7 @@
 | --- | --- | --- | --- | --- |
 | DEV | 앱 | `yesulin-backend-dev2` (`yesulin-backend-asg` 소속) | t4g.micro · 루트 8GiB · swap 512MiB | 2026-10-09 ASG로 교체(Launch Template 버전 4). 옛 small은 2026-10-10 종료. 버전 5(2026-10-14)에서 CPU 크레딧 standard |
 | DEV | DB | `yesulin-db-dev` | t4g.micro · 루트 12GiB · 데이터 20GiB | 분리 전 staging 데이터의 유일한 사본. ASG 소속 아님 |
-| PROD | 앱 | `yesulin-backend-prod` 2대 (`yesulin-backend-prod-asg` 소속) | t4g.micro · swap 512MiB | 2026-10-19 ASG로 교체(Launch Template 버전 2). 2026-10-21 무중단 배포를 위해 2대로 증설. 버전 3(2026-11-13)에서 루트 20GiB, 버전 4(2026-11-16)에서 Bedrock 인스턴스 프로필 추가 |
+| PROD | 앱 | `yesulin-backend-prod` 1대 (블루/그린 배포가 복사한 `CodeDeploy_yesulin-backend-prod_<배포 ID>` ASG 소속) | t4g.small · 루트 20GiB · swap 512MiB | 2026-10-19 micro로 교체(Launch Template 버전 2), 2026-10-21 2대로 증설. 버전 3(2026-11-13) 루트 20GiB, 버전 4(2026-11-16) Bedrock 인스턴스 프로필. 2026-11-18 버전 5(t4g.small)로 1대 전환 |
 | PROD | DB | `yesulin-db-prod` | t4g.small · 루트 12GiB · 데이터 20GiB | t4g.micro에서 증설 |
 | 공유 | API 입구 | `yesulin-backend-alb` | | Host 규칙으로 DEV/PROD 분기 |
 | 공유 | 파일 전달 | CloudFront 배포 1개 | | `/dev`, `/prod` 경로로 분기 |
@@ -105,8 +106,8 @@
   버퍼 풀 256MiB) 때문에 627MiB(상한의 90%)까지 늘었다. 2026-10-22에 `performance_schema=OFF`, 버퍼 풀 128MiB로 바꿔
   235MiB로 줄였다(DEV도 같게). 자세한 내용은 [MySQL 메모리 조정 기록](../../../design/db-memory-tuning-record.md)을 본다.
 - 앱 서버의 systemd `ExecStart`에는 `-Xmx`가 없다. DEV(2026-10-09)와 PROD(2026-10-19) 모두 환경 파일의
-  `JAVA_TOOL_OPTIONS=-Xmx384m`으로 힙 상한을 둔다. 두 환경 모두 micro라 메모리가 작아 기본 GC가 SerialGC다
-  (DEV는 서버에서 `UseSerialGC=true` 확인, PROD는 같은 사양이라 추정). 앱은 기동할 때 `JVM_STARTUP_INFO` 로그로
+  `JAVA_TOOL_OPTIONS=-Xmx384m`으로 힙 상한을 둔다. JVM은 메모리 1792MiB 미만이면 SerialGC, 이상이면 G1을 고른다.
+  DEV(micro)는 `UseSerialGC=true`, PROD(2026-11-18부터 small)는 `UseG1GC=true`를 서버에서 확인했다. 앱은 기동할 때 `JVM_STARTUP_INFO` 로그로
   실제 GC·힙 상한·메모리·swap 크기를 남긴다([모니터링](monitoring.md#런타임-값)).
 - 스냅샷은 9개다. Launch Template AMI용 `yesulin-backend-base-20260913-sops-v2` 1개와 DEV DB 주간 스냅샷
   `yesulin-db-staging-weekly` 8개(2026-08 말~2026-10-04)다. 주간 스냅샷 1개의 크기는 645~704MiB다.
@@ -129,8 +130,8 @@
 
 | 항목 | `yesulin-backend-asg` (DEV) | `yesulin-backend-prod-asg` (PROD) |
 | --- | --- | --- |
-| 원하는 용량 / 최소-최대 | 1 / 1-1 (2026-10-10부터) | 2 / 2-2 (2026-10-21부터) |
-| Launch Template | `yesulin-backend-lt` 버전 4 (t4g.micro, 사용자 데이터에 swap 512MiB·CodeDeploy 배포본 2개 설정) | `yesulin-backend-prod-lt` 버전 2 (t4g.micro, 같은 swap·배포본 설정. 기존 `yesulin` 서비스 비활성 줄 유지). 2026-11-18 기준 최신은 버전 4 |
+| 원하는 용량 / 최소-최대 | 1 / 1-1 (2026-10-10부터) | 1 / 1-2 (2026-11-18 기준. 배포마다 복사한 ASG로 바뀐다) |
+| Launch Template | `yesulin-backend-lt` 버전 4 (t4g.micro, 사용자 데이터에 swap 512MiB·CodeDeploy 배포본 2개 설정) | `yesulin-backend-prod-lt` 버전 5 (t4g.small, 버전 4와 같은 swap·배포본 설정·Bedrock 프로필. 크레딧 사양 미지정이라 t4g 기본 무제한) |
 | AMI | 2026-09-13 sops 기반 AMI | DEV와 같은 AMI |
 | 상태 확인 유형 | EC2, EBS, ELB (유예 300초) | EC2 (유예 300초) |
 | 일시 중지된 프로세스 | 없음 | 없음 |
@@ -183,7 +184,14 @@ CloudShell은 콘솔에서 열리지 않았다.
 - DEV 앱도 swap을 쓴다. 2026-11-17 부하 없는 상태에서 swap 511MiB 중 269MiB를 썼고, java 프로세스 힙 일부가 swap에 있었다.
   기동 후 약 34일 누적 swap-in 약 29GB, swap-out 약 41GB였다. DEV의 긴 GC 멈춤 건수는 집계하지 않았다.
 - 필요한 메모리 합(java 약 512MiB + CloudWatch Agent 약 89MiB + SSM 에이전트 약 65MiB + OS)이 micro의 904MiB를 넘는다.
-- 결론: 평균 지연은 괜찮지만 며칠에 한 번 사용자 요청이 10~19초 멈춘다. PROD 앱 사양 상향을 검토한다(결정 전).
+- 결론: 평균 지연은 괜찮지만 며칠에 한 번 사용자 요청이 10~19초 멈춘다.
+- 재현 실험(2026-11-18, 부하 테스트 EC2): 같은 jar·초당 20건·350MiB 메모리 압박 3회에서 micro(SerialGC)는 swap-in이 생기고
+  Full GC가 최대 20.3초 멈췄다. small(G1)은 swap-in 0, GC 멈춤 최대 44ms였다. 부하를 같은 서버에서 만든 한계가 있다.
+- CloudWatch Agent만 빼고 micro를 유지하는 안은 계산으로 제외했다. Agent는 약 94~101MiB인데, PROD 관찰값으로 계산한 필요
+  메모리(904 - 최소 가용 약 150 + swap 약 256 = 약 1,010MiB)에서 빼도 904MiB를 넘는다. 새 인스턴스 부팅 직후 자동 업데이트도
+  150~210MiB를 잠깐 더 쓴다. micro에서는 SerialGC도 그대로이고, 이 문제를 찾은 지표도 잃는다.
+- 2026-11-18 PROD를 t4g.small 1대로 바꿨다. 블루/그린 트래픽 전환 중 공개 헬스 요청 24회는 모두 200이었다.
+  전환 직후 swap 사용 0, 가용 메모리 862MiB다. 전환 뒤 1~3일 동안 swap 사용과 2초 초과 GC 멈춤이 0인지 확인한다.
 
 ## 미확인 항목
 
