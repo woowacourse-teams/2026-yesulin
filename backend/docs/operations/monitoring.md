@@ -196,25 +196,6 @@ python3 ops/monitor/cloudwatch/update_dashboards.py --loadtest
 `--loadtest`는 통합 대시보드 이름(`DASHBOARD-yesulin`)에는 쓰지 못하고, 두 대시보드는 서로의 위젯을 지우지 않는다.
 1초 구간은 조회 범위가 길수록 검색량이 커지므로 테스트 구간만 조회한다. 대시보드 수에 따른 요금은 청구 내역에서 확인한다.
 
-### 운영 경보 (2026-11-19 기준)
-
-PROD 경보는 SNS `yesulin-prod-slack-alerts`로 Slack에 보낸다. PROD는 배포마다 ASG 이름과 인스턴스 ID가 바뀌므로,
-그 값에 고정되지 않아 배포 뒤 갱신이 필요 없는 경보만 둔다.
-
-| 경보 | 조건 | 지표 출처 |
-| --- | --- | --- |
-| `yesulin-prod-high-process-cpu` | 앱 프로세스 CPU 5분 평균 80% 초과, 2회 연속 | `RUNTIME_METRICS` 로그 필터 |
-| `yesulin-prod-low-available-memory` | 서버 가용 메모리 100MiB 미만, 1분 표본 5회 연속 | `RUNTIME_METRICS` 로그 필터 |
-| `yesulin-prod-high-host-swap` | swap 사용 256MiB 이상, 1분 표본 5회 연속 | `RUNTIME_METRICS` 로그 필터 |
-| `yesulin-prod-no-healthy-host` | PROD 대상 그룹 정상 대상 1 미만, 1분 표본 3회 연속 | ALB 대상 그룹 |
-
-CPU 크레딧처럼 EC2가 만드는 지표는 인스턴스 ID나 ASG 이름으로만 조회되고, Metrics Insights 조건도 `=`·`!=`만 지원해
-이름 앞부분으로 따라갈 수 없다. 그래서 ASG에 고정한 CPU 초과 크레딧 경보와 인스턴스에 고정한 EC2 상태 경보는 지웠다.
-서버 장애는 대상 그룹 경보가, 비정상 CPU 사용은 프로세스 CPU 경보가 먼저 알린다.
-
-대신 매월 Cost Explorer(`ProjectTeam = yesulin`)에서 `CPUCredits` 사용 유형이 생겼는지 확인한다. 이 요금이 한 번이라도
-청구되거나, 실사용자 유입·대량 알림 발송처럼 트래픽이 크게 늘기 전에는 CPU 크레딧 경보를 다시 두고 배포 뒤 대상 갱신 절차를 함께 정한다.
-
 ### 권한·비용·배포 확인
 
 - 이번 앱/호스트/DB 수집은 **새 CloudWatch custom metric 0개**다. 앞서 계산한 18개 × 환경별 metric 비용은 적용되지 않는다.

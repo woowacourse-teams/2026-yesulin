@@ -103,7 +103,7 @@ Slack 웹훅(OTR 공고 `YESULIN_SLACK_WEBHOOK_URL` 포함)은 `src/main/resourc
    복호화가 실패하면 `current`는 이전 릴리스를 계속 가리킨다. 롤백하면 이전 JAR와 환경 파일이 함께 선택된다.
 4. systemd가 `yesulin` 사용자로 Spring을 `0.0.0.0:80`에서 실행한다. 비특권 사용자에게는
    `CAP_NET_BIND_SERVICE`만 부여한다. JVM 옵션은 환경 파일의 `JAVA_TOOL_OPTIONS`로 준다.
-   DEV와 PROD 모두 `-Xmx384m`으로 힙 상한을 둔다(DEV t4g.micro, PROD t4g.small).
+   DEV와 PROD 모두 `-Xmx384m`으로 힙 상한을 둔다(t4g.micro).
    `AfterInstall`의 후속 hook은 CloudWatch Agent 수집 설정을 설치한다. 권한·검증·DB 별도 설치는
    [모니터링 문서](monitoring.md)를 따른다.
 5. CodeDeploy가 `http://127.0.0.1:80/actuator/health/readiness`의 HTTP 200을 확인한다.
@@ -247,12 +247,7 @@ DEV ASG(`yesulin-backend-asg`)는 이 경로를 확인했다. 새 인스턴스�
 CodeDeploy 시작 후크가 마지막 성공 리비전을 배포한다. 2026-09-22에는 ELB 상태 확인 실패로 인스턴스가 자동 교체됐고,
 2026-10-09에는 용량을 늘려 띄운 t4g.micro 인스턴스가 배포까지 성공했다. PROD ASG(`yesulin-backend-prod-asg`)도
 2026-10-19에 같은 방식으로 t4g.micro를 띄워 배포 그룹 `yesulin-backend-prod`의 배포까지 성공했다.
-PROD Launch Template(`yesulin-backend-prod-lt` 버전 2 이후)도 아래와 같은 swap·배포본 설정을 쓴다. 2026-11-18 기준
-PROD는 버전 6(t4g.small)이다. ASG는 시작 템플릿을 "Latest"가 아니라 버전 번호로 지정한다. "Latest"면 새 버전을 만드는 순간
-교체 중인 ASG가 그 버전으로 다시 바뀔 수 있다.
-새 인스턴스는 부팅 뒤 자동 보안 업데이트가 라이브러리를 올리면 needrestart가 `yesulin.service`를 재시작한다. 2026-11-18 PROD
-앱 1대에서 이 재시작으로 약 1분 502가 났다. 그래서 PROD 버전 6의 사용자 데이터는 `/etc/needrestart/conf.d/yesulin.conf`로
-앱 재시작만 막는다. 보안 업데이트는 계속 설치되고, 바뀐 라이브러리는 다음 배포의 앱 재기동 때 반영된다.
+PROD Launch Template(`yesulin-backend-prod-lt` 버전 2)도 아래와 같은 swap·배포본 설정을 쓴다.
 DEV Launch Template(`yesulin-backend-lt` 버전 4)은 t4g.micro이며, 사용자 데이터가 512MiB swap 파일을 만들고
 CodeDeploy 에이전트의 배포본 보관 수(`:max_revisions:`)를 2로 줄인다. 루트 디스크가 8GiB라 배포본을 5개씩 쌓으면
 여유가 부족하다. 계정 정책상 인스턴스를 직접 정지할 수 없으므로 인스턴스 유형은 Launch Template 새 버전으로
