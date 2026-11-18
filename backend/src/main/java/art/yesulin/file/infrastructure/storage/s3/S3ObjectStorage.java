@@ -5,6 +5,7 @@ import art.yesulin.file.application.storage.ObjectUpload;
 import art.yesulin.file.application.storage.PresignedUpload;
 import art.yesulin.file.application.storage.StoredObjectContent;
 import art.yesulin.file.application.storage.StoredObjectMetadata;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -57,12 +58,20 @@ public class S3ObjectStorage implements ObjectStorage {
 
     @Override
     public void put(String objectKey, ObjectUpload upload) {
+        put(objectKey, upload, null);
+    }
+
+    @Override
+    public void put(String objectKey, ObjectUpload upload, Duration timeout) {
         PutObjectRequest.Builder request = PutObjectRequest.builder()
                 .bucket(properties.bucket())
                 .key(toPhysicalKey(objectKey))
                 .contentType(upload.contentType())
                 .contentLength(upload.size())
-                .cacheControl(IMMUTABLE_CACHE_CONTROL);
+                .cacheControl(upload.cacheControl());
+        if (timeout != null) {
+            request.overrideConfiguration(config -> config.apiCallTimeout(timeout));
+        }
         if (upload.contentDisposition() != null) {
             request.contentDisposition(upload.contentDisposition());
         }
@@ -125,6 +134,32 @@ public class S3ObjectStorage implements ObjectStorage {
         try {
             var response = s3Client.getObjectAsBytes(request);
             return Optional.of(new StoredObjectContent(response.response().contentType(), response.asByteArray()));
+        } catch (S3Exception exception) {
+            if (exception.statusCode() == 404) {
+                return Optional.empty();
+            }
+            throw exception;
+        }
+    }
+
+    @Override
+    public Optional<StoredObjectContent> read(String objectKey, int maxBytes, Duration timeout) {
+        GetObjectRequest request = GetObjectRequest.builder()
+                .bucket(properties.bucket()).key(toPhysicalKey(objectKey))
+                .overrideConfiguration(config -> config.apiCallTimeout(timeout)).build();
+        try {
+            return s3Client.getObject(request, (response, input) -> {
+                if (response.contentLength() != null && response.contentLength() > maxBytes) {
+                    input.abort();
+                    return Optional.empty();
+                }
+                byte[] bytes = input.readNBytes(maxBytes + 1);
+                if (bytes.length > maxBytes) {
+                    input.abort();
+                    return Optional.empty();
+                }
+                return Optional.of(new StoredObjectContent(response.contentType(), bytes));
+            });
         } catch (S3Exception exception) {
             if (exception.statusCode() == 404) {
                 return Optional.empty();

@@ -6,6 +6,7 @@ import art.yesulin.file.application.storage.ObjectStorage;
 import art.yesulin.file.application.storage.ObjectUpload;
 import art.yesulin.file.application.storage.PresignedUpload;
 import art.yesulin.file.application.storage.StoredObjectMetadata;
+import art.yesulin.file.application.thumbnail.PosterThumbnails;
 import java.io.InputStream;
 import java.time.Clock;
 import java.time.ZoneOffset;
@@ -38,6 +39,20 @@ public class AuditionPostFileStorage {
 
     private final ObjectStorage storage;
     private final Clock clock;
+    private final PosterThumbnails thumbnails;
+
+    public void enqueueCard(List<AuditionPostFile> images) {
+        firstImageKey(images).ifPresent(thumbnails::enqueue);
+    }
+
+    public void enqueueReplacedCard(List<AuditionPostFile> before, List<AuditionPostFile> after) {
+        Optional<String> previous = firstImageKey(before);
+        firstImageKey(after).filter(key -> !previous.equals(Optional.of(key))).ifPresent(thumbnails::enqueue);
+    }
+
+    private Optional<String> firstImageKey(List<AuditionPostFile> images) {
+        return images.stream().findFirst().map(AuditionPostFile::getObjectKey);
+    }
 
     /**
      * 서버가 받은 파일을 그대로 올린다. 첨부는 브라우저가 열지 않고 원래 이름으로 내려받게 한다.
@@ -106,6 +121,7 @@ public class AuditionPostFileStorage {
      */
     public boolean tryDelete(String objectKey) {
         try {
+            thumbnails.retire(objectKey);
             storage.delete(objectKey);
             return true;
         } catch (RuntimeException exception) {

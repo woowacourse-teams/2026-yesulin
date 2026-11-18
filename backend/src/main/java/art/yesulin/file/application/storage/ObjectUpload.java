@@ -7,7 +7,13 @@ import java.io.InputStream;
  *
  * @param contentDisposition 내려받기 파일 이름이 필요할 때만 값을 넣는다. null이면 설정하지 않는다.
  */
-public record ObjectUpload(String contentType, String contentDisposition, long size, InputStream content) {
+public record ObjectUpload(
+        String contentType, String contentDisposition, long size, InputStream content, String cacheControl
+) {
+
+    public ObjectUpload(String contentType, String contentDisposition, long size, InputStream content) {
+        this(contentType, contentDisposition, size, content, ObjectStorage.IMMUTABLE_CACHE_CONTROL);
+    }
 
     public ObjectUpload {
         if (contentType == null || contentType.isBlank()) {

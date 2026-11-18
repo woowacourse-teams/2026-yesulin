@@ -1,12 +1,17 @@
 package art.yesulin.show.presentation.api;
 
 import art.yesulin.file.application.FileService;
+import art.yesulin.file.application.thumbnail.PosterThumbnails;
 import art.yesulin.show.application.PublicShowResult;
 import art.yesulin.show.application.PublicShowService;
+import art.yesulin.show.application.PublicShowSummaryResult;
 import art.yesulin.show.application.reservation.ReservationReceiptResult;
 import art.yesulin.show.application.reservation.ReservationService;
 import jakarta.validation.Valid;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,12 +31,18 @@ public class PublicShowController {
     private final PublicShowService publicShowService;
     private final ReservationService reservationService;
     private final FileService fileService;
+    private final PosterThumbnails thumbnails;
 
     @GetMapping
     public ResponseEntity<PublicShowListResponse> findAll() {
-        return ResponseEntity.ok(PublicShowListResponse.from(
-                publicShowService.findPublicShows(), fileService::readPublicUrl
+        List<PublicShowSummaryResult> shows = publicShowService.findPublicShows();
+        Map<Long, String> keys = shows.stream().collect(Collectors.toMap(
+                PublicShowSummaryResult::posterFileId,
+                show -> fileService.readPublicObjectKey(show.ownerId(), show.posterFileId()),
+                (first, second) -> first
         ));
+        var urls = thumbnails.publicUrls(keys.values());
+        return ResponseEntity.ok(PublicShowListResponse.from(shows, (owner, id) -> urls.apply(keys.get(id))));
     }
 
     @GetMapping("/{showId}")

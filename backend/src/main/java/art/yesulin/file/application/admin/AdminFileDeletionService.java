@@ -2,6 +2,7 @@ package art.yesulin.file.application.admin;
 
 import art.yesulin.auth.application.admin.AdminDeletionConfirmation;
 import art.yesulin.file.application.storage.ObjectStorage;
+import art.yesulin.file.application.thumbnail.PosterThumbnails;
 import art.yesulin.global.exception.BusinessException;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +21,7 @@ public class AdminFileDeletionService {
     private final AdminDeletionConfirmation deletionConfirmation;
     private final AdminFileDeletionStateService stateService;
     private final ObjectStorage objectStorage;
+    private final PosterThumbnails thumbnails;
 
     public void delete(long actorMemberId, long fileId, String confirmationPassword) {
         deletionConfirmation.verify(actorMemberId, confirmationPassword);
@@ -27,7 +29,7 @@ public class AdminFileDeletionService {
         if (target.isEmpty()) {
             return;
         }
-        objectStorage.delete(target.orElseThrow().objectKey());
+        deleteObject(target.orElseThrow().objectKey());
         stateService.finish(actorMemberId, fileId);
     }
 
@@ -46,7 +48,7 @@ public class AdminFileDeletionService {
             if (target.isEmpty()) {
                 return new BatchFileDeletionResult.Item(fileId, BatchFileDeletionResult.Status.ALREADY_DELETED, null);
             }
-            objectStorage.delete(target.orElseThrow().objectKey());
+            deleteObject(target.orElseThrow().objectKey());
             stateService.finish(actorMemberId, fileId);
             return new BatchFileDeletionResult.Item(fileId, BatchFileDeletionResult.Status.DELETED, null);
         } catch (BusinessException exception) {
@@ -58,5 +60,10 @@ public class AdminFileDeletionService {
             return new BatchFileDeletionResult.Item(fileId, BatchFileDeletionResult.Status.FAILED,
                     "FILE_DELETION_FAILED");
         }
+    }
+
+    private void deleteObject(String objectKey) {
+        thumbnails.retire(objectKey);
+        objectStorage.delete(objectKey);
     }
 }

@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 import art.yesulin.auditionpost.domain.AuditionPostFile;
 import art.yesulin.auditionpost.domain.AuditionPostFileKind;
 import art.yesulin.file.application.storage.ObjectUpload;
+import art.yesulin.file.application.thumbnail.PosterThumbnails;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.support.FakeObjectStorage;
 import java.io.ByteArrayInputStream;
@@ -28,7 +30,9 @@ class AuditionPostFileStorageTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-11T23:30:00Z"), ZoneOffset.UTC);
 
     private final RecordingObjectStorage objectStorage = new RecordingObjectStorage();
-    private final AuditionPostFileStorage fileStorage = new AuditionPostFileStorage(objectStorage, CLOCK);
+    private final AuditionPostFileStorage fileStorage = new AuditionPostFileStorage(
+            objectStorage, CLOCK, mock(PosterThumbnails.class)
+    );
 
     @Test
     void storesImageUnderAuditionPostPathWithoutDownloadName() {

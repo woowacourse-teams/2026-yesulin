@@ -7,3 +7,4 @@
 - HTTP 계약: [백엔드 API](../../../../../../../docs/api.md)
 - 원문 크게 보기 평가: [2026-11-05 원문 크게 보기](reviews/2026-11-05-auditionpost-original-view.md)
 - 글씨 카드 반짝이 애니메이션 평가: [2026-11-05 반짝이](reviews/2026-11-05-poster-sparkle.md)
+- 공개 카드 썸네일 생성·백필 평가: [2026-11-17 공개 카드 썸네일](reviews/2026-11-17-public-poster-thumbnails.md)
