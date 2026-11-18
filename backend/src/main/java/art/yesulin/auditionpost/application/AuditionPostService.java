@@ -13,6 +13,7 @@ import art.yesulin.auditionpost.domain.alertchat.AlertChatMembers;
 import art.yesulin.company.application.CompanyService;
 import art.yesulin.company.domain.CompanyErrorCode;
 import art.yesulin.file.application.storage.ObjectStorage;
+import art.yesulin.file.application.thumbnail.PosterThumbnails;
 import art.yesulin.global.audit.AdminAction;
 import art.yesulin.global.audit.AdminAuditLog;
 import art.yesulin.global.audit.AdminAuditLogRepository;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -49,6 +51,8 @@ public class AuditionPostService {
     private final CompanyService companies;
     private final AlertChatMemberService alertChatMemberService;
     private final Clock clock;
+    private final PosterThumbnails thumbnails;
+    private final AuditionPostFileStorage fileStorage;
 
     /** 정렬을 생략한 기존 호출은 원문 작성 최신순을 유지한다. */
     @Transactional(readOnly = true)
@@ -78,14 +82,7 @@ public class AuditionPostService {
                     PUBLISHED, today, includeClosed, selectedCategory, pageable
             );
         };
-        Map<Long, String> ownerNames = owners.namesOf(result);
-        AlertChatMembers alertChatMembers = alertChatMemberService.members();
-        List<PublicAuditionPostSummaryResult> posts = result.stream()
-                .map(post -> PublicAuditionPostSummaryResult.from(
-                        post, AuditionPostOwners.authorOf(post, AuditionPostOwners.nameIn(ownerNames, post)),
-                        today, KOREA, alertChatMembers, storage::toPublicUrl
-                ))
-                .toList();
+        List<PublicAuditionPostSummaryResult> posts = publicSummaries(result, today);
         long totalElements = includeClosed ? counts.allCount() : counts.openCount();
         int totalPages = (int) Math.ceil((double) totalElements / size);
         return new PublicAuditionPostPageResult(
@@ -122,12 +119,20 @@ public class AuditionPostService {
         List<AuditionPost> result = repository.findByCompany(
                 companyId, PUBLISHED, PageRequest.of(0, COMPANY_POST_LIMIT)
         );
-        Map<Long, String> ownerNames = owners.namesOf(result);
+        return publicSummaries(result, today);
+    }
+
+    private List<PublicAuditionPostSummaryResult> publicSummaries(List<AuditionPost> posts, LocalDate today) {
+        Map<Long, String> ownerNames = owners.namesOf(posts);
         AlertChatMembers alertChatMembers = alertChatMemberService.members();
-        return result.stream()
+        Function<String, String> urls = thumbnails.publicUrls(posts.stream()
+                .flatMap(post -> post.images().stream().limit(1))
+                .map(image -> image.getObjectKey())
+                .toList());
+        return posts.stream()
                 .map(post -> PublicAuditionPostSummaryResult.from(
                         post, AuditionPostOwners.authorOf(post, AuditionPostOwners.nameIn(ownerNames, post)),
-                        today, KOREA, alertChatMembers, storage::toPublicUrl
+                        today, KOREA, alertChatMembers, urls
                 ))
                 .toList();
     }
@@ -176,6 +181,9 @@ public class AuditionPostService {
         AuditionPostStatus previous = post.getStatus();
         post.changeStatus(status);
         if (previous != status) {
+            if (status == PUBLISHED) {
+                fileStorage.enqueueCard(post.images());
+            }
             countQuery.invalidateAfterCommit();
             auditLogRepository.save(new AdminAuditLog(
                     adminId, AdminAction.AUDITION_POST_STATUS_CHANGED, TARGET_TYPE, post.getId(),

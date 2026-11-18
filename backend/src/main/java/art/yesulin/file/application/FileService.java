@@ -88,12 +88,17 @@ public class FileService {
 
     @Transactional(readOnly = true)
     public String readPublicUrl(long ownerId, long fileId) {
+        return objectStorage.toPublicUrl(readPublicObjectKey(ownerId, fileId));
+    }
+
+    @Transactional(readOnly = true)
+    public String readPublicObjectKey(long ownerId, long fileId) {
         FileAsset fileAsset = getOwnedFileAsset(ownerId, fileId);
         fileAsset.ensureUsable();
         if (!fileAsset.getObjectKey().startsWith("public/")) {
             throw new BusinessException(NOT_FOUND, "파일을 찾을 수 없습니다.");
         }
-        return objectStorage.toPublicUrl(fileAsset.getObjectKey());
+        return fileAsset.getObjectKey();
     }
 
     public String privateContentUrl(long fileId) {

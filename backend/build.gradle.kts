@@ -40,6 +40,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.jsoup:jsoup:1.23.2")
+    implementation("com.twelvemonkeys.imageio:imageio-webp:3.13.1")
+    implementation("com.drewnoakes:metadata-extractor:2.19.0")
     implementation("io.github.openfeign.querydsl:querydsl-jpa:$querydslVersion")
     implementation("at.favre.lib:bcrypt:0.10.2")
     implementation("software.amazon.awssdk:s3")

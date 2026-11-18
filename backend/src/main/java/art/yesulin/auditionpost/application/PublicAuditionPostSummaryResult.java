@@ -15,7 +15,7 @@ import java.util.function.Function;
  * @param authorName 화면에 보이는 작성자. 기획사에 연결된 공고는 그 기획사의 지금 이름이다.
  * @param deadline 원문 마감이 날짜일 때만 값이 있다. 화면은 {@code deadlineText}를 그대로 보여 준다.
  * @param alertChatMembers 공고를 올린 시각의 공고 알림 오픈채팅방 인원. 화면이 공개 조회수 추정치를 계산할 때 쓴다.
- * @param thumbnailUrl 본문 첫 사진. 사진이 없으면 null이다.
+ * @param thumbnailUrl 본문 첫 사진의 카드용 이미지. 변환 전에는 원본을 사용하고 사진이 없으면 null이다.
  */
 public record PublicAuditionPostSummaryResult(
         long id,

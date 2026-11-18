@@ -7,8 +7,10 @@ import static art.yesulin.show.domain.ShowErrorCode.SESSION_HAS_RESERVATIONS;
 import static art.yesulin.show.domain.ShowErrorCode.SESSION_NOT_FOUND;
 
 import art.yesulin.file.application.FileReferenceService;
+import art.yesulin.file.application.FileService;
 import art.yesulin.file.application.FileUsageService;
 import art.yesulin.file.application.LinkFileCommand;
+import art.yesulin.file.application.thumbnail.PosterThumbnails;
 import art.yesulin.file.domain.FileReferenceRepository;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.producer.domain.Producer;
@@ -55,6 +57,8 @@ public class ShowManagementService {
     private final ProducerRepository producerRepository;
     private final ExternalReservationVisitRepository visitRepository;
     private final Clock clock;
+    private final FileService files;
+    private final PosterThumbnails thumbnails;
 
     @Transactional
     public ProducerShowResult create(long ownerId, SaveShowCommand command) {
@@ -65,6 +69,7 @@ public class ShowManagementService {
     public ProducerShowResult create(Show newShow) {
         Show show = showRepository.saveAndFlush(newShow);
         linkFiles(show);
+        enqueuePoster(show);
         return result(show);
     }
 
@@ -93,10 +98,16 @@ public class ShowManagementService {
     /** 공연 정보를 바꾼 뒤 포스터·상세 이미지 참조를 새 값으로 다시 건다. */
     @Transactional(propagation = Propagation.MANDATORY)
     public ProducerShowResult relinkFiles(Show show) {
+        final boolean posterChanged = !fileReferenceRepository.existsByReferenceTypeAndReferenceIdAndFileId(
+                POSTER_REFERENCE_TYPE, show.getId(), show.getPosterFileId()
+        );
         List<Long> removedFileIds = referencedFileIds(show.getId());
         fileReferenceRepository.deleteByReferenceTypeInAndReferenceId(FILE_REFERENCE_TYPES, show.getId());
         fileUsageService.markReferencesRemoved(removedFileIds);
         linkFiles(show);
+        if (posterChanged) {
+            enqueuePoster(show);
+        }
         return result(show);
     }
 
@@ -132,6 +143,7 @@ public class ShowManagementService {
     @Transactional(propagation = Propagation.MANDATORY)
     public ProducerShowResult open(Show show) {
         show.open(clock.instant(), sessionRepository.findAllByShowIdOrderByStartsAtAscIdAsc(show.getId()));
+        enqueuePoster(show);
         return result(show);
     }
 
@@ -143,6 +155,9 @@ public class ShowManagementService {
     @Transactional(propagation = Propagation.MANDATORY)
     public ProducerShowResult changeVisibility(Show show, boolean hidden) {
         show.changeVisibility(hidden);
+        if (show.isPublic()) {
+            enqueuePoster(show);
+        }
         return result(show);
     }
 
@@ -241,6 +256,10 @@ public class ShowManagementService {
         show.getImageFileIds().forEach(fileId -> fileReferenceService.linkFile(new LinkFileCommand(
                 show.getOwnerId(), fileId, IMAGE_REFERENCE_TYPE, show.getId()
         )));
+    }
+
+    private void enqueuePoster(Show show) {
+        thumbnails.enqueue(files.readPublicObjectKey(show.getOwnerId(), show.getPosterFileId()));
     }
 
     private List<Long> referencedFileIds(long showId) {
