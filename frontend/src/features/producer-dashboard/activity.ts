@@ -54,7 +54,7 @@ function updatedPost(post: ProducerAuditionPost): DashboardRow {
 
 function createdReview(review: ReviewSummary): DashboardRow {
   return {
-    key: `pdf-${review.id}`, kind: "pdf", title: review.title, detail: `PDF 심사함 · 지원서 항목 ${review.entryCount}건`,
+    key: `pdf-${review.id}`, kind: "pdf", title: review.title, detail: `PDF 심사함, 지원서 항목 ${review.entryCount}건`,
     at: Date.parse(review.createdAt), dateTime: review.createdAt,
     href: PDF_REVIEW_LIST_PATH, action: "심사함 목록",
   };
@@ -79,8 +79,8 @@ function intakeDeadline(audition: OtrAudition): DashboardRow {
 function showSession(show: ProducerShowSummary): DashboardRow {
   const dateTime = show.nextSessionStartsAt ?? "";
   return {
-    key: `show-${show.id}`, kind: "show", title: show.title, detail: `공연 회차 · ${formatShowTime(dateTime)}`,
-    at: Date.parse(dateTime), dateTime, href: showRoutes.manageDetail(show.id), action: "회차·예매 관리",
+    key: `show-${show.id}`, kind: "show", title: show.title, detail: `공연 회차 ${formatShowTime(dateTime)}`,
+    at: Date.parse(dateTime), dateTime, href: showRoutes.manageDetail(show.id), action: "회차와 예매 관리",
   };
 }
 

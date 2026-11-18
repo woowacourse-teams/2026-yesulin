@@ -31,12 +31,13 @@ beforeEach(() => {
 });
 afterEach(() => { act(() => root.unmount()); vi.unstubAllGlobals(); });
 
-describe("PDF 심사 카드·표 목록", () => {
+describe("PDF 심사 카드와 표 목록", () => {
   it("카드는 파일 이름을 제목으로 쓰고 자리 표시와 자동 추출 이름을 보이지 않는다", async () => {
     await render(<ApplicantCards rows={rows} />);
     const titles = [...container.querySelectorAll("h3")].map(node => node.textContent);
     expect(titles).toEqual(["plain.pdf", "named.pdf", "loading.pdf"]);
-    expect(container.textContent).toContain("가람 · 남주");
+    const named = container.querySelectorAll("article")[1];
+    expect([...named.querySelectorAll("p span")].map(node => node.textContent)).toEqual(["가람", "남주"]);
     expect(container.textContent).not.toMatch(/이름 미입력|미배정|자동 추출 이름/);
     expect(container.textContent).toContain("업로드 중");
   });
@@ -53,7 +54,7 @@ describe("PDF 심사 카드·표 목록", () => {
   it("업로드 버튼은 올리는 동안 진행 표시를 보인다", async () => {
     const props = { inputRef: createRef<HTMLInputElement>(), folderInputRef: createRef<HTMLInputElement>(), disabled: false, onChoose: vi.fn() };
     await render(<ReviewUploadPanel {...props} busy />);
-    expect(container.textContent).toContain("파일 준비·업로드 중…");
+    expect(container.textContent).toContain("파일 준비하고 올리는 중…");
     expect(container.querySelector(".animate-spin")).not.toBeNull();
     await render(<ReviewUploadPanel {...props} busy={false} />);
     expect(container.querySelector(".animate-spin")).toBeNull();

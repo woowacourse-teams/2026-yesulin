@@ -100,9 +100,9 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
     {error && <p role="alert" className="mb-3 rounded-control bg-fail-bg p-3 text-sm text-fail">{error}</p>}
     <p role="status" className="sr-only">{saving ? "저장 중…" : savedMessage}</p>
     {view === "single" || focused ? <ApplicantFocusReview key={focused ?? "single"} rows={rows} initialId={focused ?? undefined} onBack={focused ? () => setFocused(null) : undefined} /> : <>
-      <div className="mb-4 flex min-h-11 flex-wrap items-center gap-3 rounded-control border border-border bg-surface px-3 py-2 text-sm">
+      <div className="mb-4 flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 rounded-control border border-border bg-surface px-4 py-2 text-sm">
         <label className="flex min-h-11 cursor-pointer items-center gap-2.5 font-medium"><input className="h-5 w-5 accent-brand" type="checkbox" checked={rows.length > 0 && rows.every(row => selected.has(row.id))} onChange={event => setSelected(new Set(event.target.checked ? rows.map(row => row.id) : []))} />전체 선택</label>
-        <span>{selected.size}명 선택</span>{review.roles.length > 0 && <ReviewRoleSelect label="선택한 지원자 배역" allowReselect roles={review.roles} value={null} disabled={!selected.size || selected.size > 300 || saving} onChange={roleId => void assignRole([...selected], roleId)} />}
+        <span className="num whitespace-nowrap text-muted-strong">{selected.size}명 선택</span>{review.roles.length > 0 && <div className="ml-auto"><ReviewRoleSelect label="선택한 지원자 배역" inline allowReselect roles={review.roles} value={null} disabled={!selected.size || selected.size > 300 || saving} onChange={roleId => void assignRole([...selected], roleId)} /></div>}
         {selected.size > 300 && <p role="alert" className="text-fail">배역은 한 번에 300명까지 설정해 주세요.</p>}
       </div>
       {view === "card" ? <ApplicantCards rows={rows} /> : <ApplicantTable rows={rows} />}

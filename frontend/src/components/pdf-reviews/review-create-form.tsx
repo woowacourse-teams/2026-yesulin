@@ -54,7 +54,7 @@ export function ReviewCreateForm({ onCreated, onUnauthorized, onBusyChange }: Pr
     {errors.title ? <p id={`${id}-title-error`} className="mt-2 px-1 text-sm text-fail">{errors.title}</p> : null}
     <label htmlFor={`${id}-roles`} className="mt-4 block px-1 text-sm font-semibold">주요 배역 <span className="font-normal text-muted">선택</span></label>
     <p className="mt-1 px-1 text-sm text-muted">심사할 주요 배역을 직접 입력해 주세요. 업로드한 지원서는 처음에 미배정으로 표시되며, 검토하면서 배역을 선택할 수 있어요.</p>
-    <FieldInput id={`${id}-roles`} value={rolesText} placeholder="예: 강하륜, 앙상블 · 쉼표로 구분" autoComplete="off" disabled={busy}
+    <FieldInput id={`${id}-roles`} value={rolesText} placeholder="예: 강하륜, 앙상블 (쉼표로 구분)" autoComplete="off" disabled={busy}
       aria-invalid={!!errors.roles} aria-describedby={errors.roles ? `${id}-roles-error` : undefined}
       onChange={event => setRolesText(event.target.value)} onBlur={() => setErrors(current => ({ ...current, roles: validate().errors.roles }))} className="mt-2 resize-y" />
     {errors.roles ? <p id={`${id}-roles-error`} className="mt-2 px-1 text-sm text-fail">{errors.roles}</p> : null}

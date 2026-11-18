@@ -58,7 +58,7 @@ it("공연 응답을 기다리는 사이 시작한 회차를 감지해 다음 �
   await act(async () => firstRequest.resolve([show(firstStart)]));
 
   expect(getProducerShows).toHaveBeenCalledTimes(2);
-  expect(container.querySelector('[aria-labelledby="dashboard-schedule"]')?.textContent).toContain("공연 회차 · 17:00");
+  expect(container.querySelector('[aria-labelledby="dashboard-schedule"]')?.textContent).toContain("공연 회차 17:00");
 });
 
 it("포커스 이동 없이 늦은 응답이 같은 회차를 다시 반환해도 지난 회차를 표시하지 않는다", async () => {

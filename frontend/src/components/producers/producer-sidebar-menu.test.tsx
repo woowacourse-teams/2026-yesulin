@@ -78,3 +78,10 @@ it("정확히 일치하는 메뉴와 하위 경로를 스크린리더에 다르�
   await renderMenu("/producers/audition-posts");
   expect(link("/producers/audition-posts")?.getAttribute("aria-current")).toBe("page");
 });
+
+it("지원서 접수 심사는 다른 메뉴처럼 펼치기 버튼 없이 접수 공고 목록을 바로 보여 준다", async () => {
+  await renderMenu("/producers");
+  expect(link("/producers/otr-auditions")?.textContent).toBe("지원서 접수 심사");
+  expect(container.querySelector("[aria-expanded]")).toBeNull();
+  expect(container.textContent).toContain("등록한 공고가 없어요.");
+});

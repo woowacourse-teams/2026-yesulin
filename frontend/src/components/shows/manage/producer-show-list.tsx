@@ -91,10 +91,10 @@ function ProducerShowRow({ show }: { readonly show: ProducerShowSummary }) {
     <li className="group relative px-5 py-5 transition-colors hover:bg-surface focus-within:bg-surface md:px-6">
       <Link
         href={href}
-        aria-label={`${show.title} 회차·예매 관리 열기`}
+        aria-label={`${show.title} 회차와 예매 관리 열기`}
         className="absolute inset-0 z-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-brand"
       >
-        <span className="sr-only">{show.title} 회차·예매 관리 열기</span>
+        <span className="sr-only">{show.title} 회차와 예매 관리 열기</span>
       </Link>
       <div className="pointer-events-none relative z-1">
         <div className="flex gap-4">
@@ -115,7 +115,7 @@ function ProducerShowRow({ show }: { readonly show: ProducerShowSummary }) {
         </dl>
         {/* 모바일은 세 버튼이 한 줄에 안 들어가 하나만 내려가므로, 주 버튼을 한 줄에 두고 링크 버튼 둘을 나란히 둔다. */}
         <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
-          <span aria-hidden="true" className="col-span-2 inline-flex min-h-11 items-center justify-center rounded-control border border-brand bg-brand px-3 text-sm font-semibold text-white">회차·예매 관리</span>
+          <span aria-hidden="true" className="col-span-2 inline-flex min-h-11 items-center justify-center rounded-control border border-brand bg-brand px-3 text-sm font-semibold text-white">회차와 예매 관리</span>
           {show.status !== "DRAFT" && !show.hidden ? (
             <>
               <Link href={showRoutes.detail(show.id)} target="_blank" className="pointer-events-auto inline-flex min-h-11 items-center justify-center rounded-control border border-brand-line px-3 text-sm font-semibold text-brand hover:bg-brand-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">공연 페이지 열기</Link>

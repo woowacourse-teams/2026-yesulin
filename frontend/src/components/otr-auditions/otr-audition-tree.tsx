@@ -2,36 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useId, useState } from "react";
-import { PiCaretDownBold } from "react-icons/pi";
-import { ProducerSidebarItem, sidebarActionClass } from "@/components/producers/producer-sidebar-item";
+import { ProducerSidebarItem } from "@/components/producers/producer-sidebar-item";
 import { otrAuditionRoutes, type OtrAudition } from "@/features/otr-auditions/types";
 import { useOtrAuditions } from "./otr-audition-context";
 
 export function OtrAuditionTreeNav({ onNavigate }: { readonly onNavigate?: () => void }) {
-  const [open, setOpen] = useState(true);
-  const listId = useId();
-
   return (
     <div>
       <ProducerSidebarItem
         href={otrAuditionRoutes.list}
-        label="지원서 접수·심사"
+        label="지원서 접수 심사"
         onNavigate={onNavigate}
         createLink={{ href: otrAuditionRoutes.create, label: "오디션 공고 만들기" }}
-      >
-        <button
-          type="button"
-          aria-label="지원서 접수·심사 목록 펼치기/접기"
-          aria-expanded={open}
-          aria-controls={listId}
-          onClick={() => setOpen((value) => !value)}
-          className={`group ${sidebarActionClass}`}
-        >
-          <PiCaretDownBold aria-hidden="true" className="size-3.5 group-aria-expanded:rotate-180" />
-        </button>
-      </ProducerSidebarItem>
-      <div id={listId} hidden={!open} className="ml-3 border-l border-sidebar-line pl-2">
+      />
+      <div className="ml-3 border-l border-sidebar-line pl-2">
         <AuditionTreeList onNavigate={onNavigate} />
       </div>
     </div>

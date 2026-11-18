@@ -50,7 +50,7 @@ describe("공연사 대시보드", () => {
     const auditions = [intake("past", "2026-11-16"), intake("today", "2026-11-17"), intake("tomorrow", "2026-11-18")];
     const rows = getUpcomingDashboardSchedule(auditions, shows, now);
     expect(rows.map((row) => row.key)).toEqual(["show-show-1", "deadline-today"]);
-    expect(rows[0]?.detail).toBe("공연 회차 · 21:00");
+    expect(rows[0]?.detail).toBe("공연 회차 21:00");
     expect(getUpcomingDashboardSchedule([auditions[1]!], [], Date.parse("2026-11-17T15:00:00Z"))).toEqual([]);
   });
 

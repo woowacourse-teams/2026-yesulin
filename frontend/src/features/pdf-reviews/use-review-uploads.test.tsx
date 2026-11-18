@@ -78,7 +78,7 @@ describe("PDF 다중 업로드 접수", () => {
 
     expect(completePdfUpload).toHaveBeenCalledTimes(1);
     expect(trackPdfStep).toHaveBeenCalledTimes(1);
-    expect(uploads.message).toContain("업로드 완료 1개 · 중복 제외 1개");
+    expect(uploads.message).toContain("업로드 완료 1개, 중복 제외 1개");
     expect(uploads.notices.map(item => item.phase).sort()).toEqual(["DUPLICATE", "UPLOADED"]);
   });
   it("기존 PDF는 추가 업로드·완료·성공 분석 없이 중복 제외하고 목록만 갱신한다", async () => {

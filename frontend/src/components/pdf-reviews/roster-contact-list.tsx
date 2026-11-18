@@ -27,7 +27,7 @@ export function RosterContactList({ actors, editing, edited, disabled, onEdit, o
       <div className="grid gap-4 lg:grid-cols-[minmax(120px,1fr)_minmax(0,2fr)_auto] lg:items-center">
         <div className="min-w-0"><p className="break-words font-semibold">{actor.name}</p><p className="mt-1 text-sm text-muted-strong">{actor.roleName}</p>
           <p className="mt-1 text-sm num">{slotLabel(actor.slot)}</p>
-          {actor.sourceDecision !== "PASS" && <p className="text-sm text-warn">서류 판정 변경 · 확인 필요</p>}</div>
+          {actor.sourceDecision !== "PASS" && <p className="text-sm text-warn">서류 판정 변경, 확인 필요</p>}</div>
         <dl className="grid min-w-0 gap-2 text-sm sm:grid-cols-2">
           <div><dt className="text-muted-strong">전화번호</dt><dd className="mt-1 num">{actor.phone || "미입력"}</dd></div>
           <div className="min-w-0"><dt className="text-muted-strong">이메일</dt><dd className="mt-1 break-all">{actor.email || "미입력"}</dd></div>
