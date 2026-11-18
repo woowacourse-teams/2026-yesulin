@@ -226,6 +226,8 @@ yesulin:
     # 우형 전시회(2026-11-20) 시연 계정만 초기화한다. 전시회가 끝나면 초기화 기능과 함께 지운다.
     reset-allowed-member-ids: 59
   pdf-ai:
+    # 우형 전시회(2026-11-20) 동안 dev는 AI 정리를 끄고 원문 추출만 쓴다. 전시회가 끝나면 이 주석과 아래 enabled 줄을 지운다.
+    enabled: false
     request-interval: ${YESULIN_PDF_AI_REQUEST_INTERVAL:PT1S}
     resilience:
       escalation-enabled: ${YESULIN_PDF_AI_ESCALATION_ENABLED:true}
