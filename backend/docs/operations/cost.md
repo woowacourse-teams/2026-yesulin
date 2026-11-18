@@ -63,9 +63,9 @@
 
 | 구분 | 역할 | 리소스 | 사양 | 비고 |
 | --- | --- | --- | --- | --- |
-| DEV | 앱 | `yesulin-backend-dev2` (`yesulin-backend-asg` 소속) | t4g.micro · 루트 8GiB · swap 512MiB | 2026-10-09 ASG로 교체(Launch Template 버전 4). 옛 small은 2026-10-10 종료 |
+| DEV | 앱 | `yesulin-backend-dev2` (`yesulin-backend-asg` 소속) | t4g.micro · 루트 8GiB · swap 512MiB | 2026-10-09 ASG로 교체(Launch Template 버전 4). 옛 small은 2026-10-10 종료. 버전 5(2026-10-14)에서 CPU 크레딧 standard |
 | DEV | DB | `yesulin-db-dev` | t4g.micro · 루트 12GiB · 데이터 20GiB | 분리 전 staging 데이터의 유일한 사본. ASG 소속 아님 |
-| PROD | 앱 | `yesulin-backend-prod` 2대 (`yesulin-backend-prod-asg` 소속) | t4g.micro · 루트 8GiB · swap 512MiB | 2026-10-19 ASG로 교체(Launch Template 버전 2). 2026-10-21 무중단 배포를 위해 2대로 증설 |
+| PROD | 앱 | `yesulin-backend-prod` 2대 (`yesulin-backend-prod-asg` 소속) | t4g.micro · swap 512MiB | 2026-10-19 ASG로 교체(Launch Template 버전 2). 2026-10-21 무중단 배포를 위해 2대로 증설. 버전 3(2026-11-13)에서 루트 20GiB, 버전 4(2026-11-16)에서 Bedrock 인스턴스 프로필 추가 |
 | PROD | DB | `yesulin-db-prod` | t4g.small · 루트 12GiB · 데이터 20GiB | t4g.micro에서 증설 |
 | 공유 | API 입구 | `yesulin-backend-alb` | | Host 규칙으로 DEV/PROD 분기 |
 | 공유 | 파일 전달 | CloudFront 배포 1개 | | `/dev`, `/prod` 경로로 분기 |
@@ -105,7 +105,9 @@
   버퍼 풀 256MiB) 때문에 627MiB(상한의 90%)까지 늘었다. 2026-10-22에 `performance_schema=OFF`, 버퍼 풀 128MiB로 바꿔
   235MiB로 줄였다(DEV도 같게). 자세한 내용은 [MySQL 메모리 조정 기록](../../../design/db-memory-tuning-record.md)을 본다.
 - 앱 서버의 systemd `ExecStart`에는 `-Xmx`가 없다. DEV(2026-10-09)와 PROD(2026-10-19) 모두 환경 파일의
-  `JAVA_TOOL_OPTIONS=-Xmx384m`으로 힙 상한을 둔다. 두 환경 모두 micro라 메모리가 작아 기본 GC가 SerialGC다.
+  `JAVA_TOOL_OPTIONS=-Xmx384m`으로 힙 상한을 둔다. 두 환경 모두 micro라 메모리가 작아 기본 GC가 SerialGC다
+  (DEV는 서버에서 `UseSerialGC=true` 확인, PROD는 같은 사양이라 추정). 앱은 기동할 때 `JVM_STARTUP_INFO` 로그로
+  실제 GC·힙 상한·메모리·swap 크기를 남긴다([모니터링](monitoring.md#런타임-값)).
 - 스냅샷은 9개다. Launch Template AMI용 `yesulin-backend-base-20260913-sops-v2` 1개와 DEV DB 주간 스냅샷
   `yesulin-db-staging-weekly` 8개(2026-08 말~2026-10-04)다. 주간 스냅샷 1개의 크기는 645~704MiB다.
 - 2026-10-22부터 스냅샷 스크립트가 같은 이름의 90일 지난 스냅샷을 지우고, S3 논리 백업은 수명 주기 규칙으로 90일 뒤 만료한다([백업](backup.md)).
@@ -128,7 +130,7 @@
 | 항목 | `yesulin-backend-asg` (DEV) | `yesulin-backend-prod-asg` (PROD) |
 | --- | --- | --- |
 | 원하는 용량 / 최소-최대 | 1 / 1-1 (2026-10-10부터) | 2 / 2-2 (2026-10-21부터) |
-| Launch Template | `yesulin-backend-lt` 버전 4 (t4g.micro, 사용자 데이터에 swap 512MiB·CodeDeploy 배포본 2개 설정) | `yesulin-backend-prod-lt` 버전 2 (t4g.micro, 같은 swap·배포본 설정. 기존 `yesulin` 서비스 비활성 줄 유지) |
+| Launch Template | `yesulin-backend-lt` 버전 4 (t4g.micro, 사용자 데이터에 swap 512MiB·CodeDeploy 배포본 2개 설정) | `yesulin-backend-prod-lt` 버전 2 (t4g.micro, 같은 swap·배포본 설정. 기존 `yesulin` 서비스 비활성 줄 유지). 2026-11-18 기준 최신은 버전 4 |
 | AMI | 2026-09-13 sops 기반 AMI | DEV와 같은 AMI |
 | 상태 확인 유형 | EC2, EBS, ELB (유예 300초) | EC2 (유예 300초) |
 | 일시 중지된 프로세스 | 없음 | 없음 |
@@ -163,6 +165,26 @@ ASG 설정 변경(일시 중지 프로세스, 시작 템플릿 버전)과 Launch
 
 CloudShell은 콘솔에서 열리지 않았다.
 
+## 앱 micro 장기 메모리 관찰 결과 (2026-11-17)
+
+비용 절감 때 확인 과제로 남긴 "앱 micro 장기 메모리"를 CloudWatch Logs Insights로 확인했다.
+범위는 2026-10-20~2026-11-17 약 4주이고, `RUNTIME_METRICS`는 1분 표본이다.
+
+| 항목 | PROD 앱 2대 |
+| --- | --- |
+| swap 사용 최대 | 거의 매일 약 490~511MiB (swap 512MiB가 거의 참) |
+| 최소 가용 메모리 | 82~226MiB |
+| GC 멈춤 2초 초과 표본 | 14건, 그중 10건이 12.6~19.7초. 그 순간 힙 사용은 약 100~170MiB / 상한 371MiB |
+| HTTP 요청 | 159,558건, p50 13ms, p99 116ms, p99.9 720ms |
+| 2초 이상 / 5초 이상 요청 | 50건 / 23건, 가장 긴 요청 약 19초 |
+
+- 긴 요청은 같은 시각의 긴 GC 멈춤과 겹친다. 예: 11-15 14:19 `POST /producers` 19.0초, 같은 분 GC 멈춤 15.0초.
+- 힙은 여유가 있고 GC 횟수도 1~3회라, 힙 부족이 아니라 swap에 밀려난 힙 페이지를 SerialGC가 다시 읽느라 멈춘 것으로 본다(추정).
+- DEV 앱도 swap을 쓴다. 2026-11-17 부하 없는 상태에서 swap 511MiB 중 269MiB를 썼고, java 프로세스 힙 일부가 swap에 있었다.
+  기동 후 약 34일 누적 swap-in 약 29GB, swap-out 약 41GB였다. DEV의 긴 GC 멈춤 건수는 집계하지 않았다.
+- 필요한 메모리 합(java 약 512MiB + CloudWatch Agent 약 89MiB + SSM 에이전트 약 65MiB + OS)이 micro의 904MiB를 넘는다.
+- 결론: 평균 지연은 괜찮지만 며칠에 한 번 사용자 요청이 10~19초 멈춘다. PROD 앱 사양 상향을 검토한다(결정 전).
+
 ## 미확인 항목
 
 | 항목 | 확인 위치 | 알 수 있는 것 |
@@ -170,4 +192,3 @@ CloudShell은 콘솔에서 열리지 않았다.
 | RI 만료일 | 운영진 문의 (다른 계정 소유) | micro가 0원인 상태가 언제까지 이어지는지 |
 | 변경 작업 권한 | 실제 시도 또는 운영진 문의 | `autoscaling:SuspendProcesses`, `ec2:ModifyInstanceAttribute`, `ec2:StopInstances` 등 |
 | 로그 그룹 보관 기간 | CloudWatch · 로그 그룹 | 우리 태그 비용에 로그 요금은 없어 우선순위가 낮다 |
-| 앱 micro 장기 메모리 | DEV·PROD 앱 서버 (`free -m`, swap 사용량, OOM 로그), 대시보드 런타임 그래프 | 실제 트래픽·배포·관리자 로그 집계 때도 여유가 있는지. PROD는 전환 직후 swap 150~384MiB를 썼다 |

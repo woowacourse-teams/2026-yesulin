@@ -247,7 +247,7 @@ DEV ASG(`yesulin-backend-asg`)는 이 경로를 확인했다. 새 인스턴스�
 CodeDeploy 시작 후크가 마지막 성공 리비전을 배포한다. 2026-09-22에는 ELB 상태 확인 실패로 인스턴스가 자동 교체됐고,
 2026-10-09에는 용량을 늘려 띄운 t4g.micro 인스턴스가 배포까지 성공했다. PROD ASG(`yesulin-backend-prod-asg`)도
 2026-10-19에 같은 방식으로 t4g.micro를 띄워 배포 그룹 `yesulin-backend-prod`의 배포까지 성공했다.
-PROD Launch Template(`yesulin-backend-prod-lt` 버전 2)도 아래와 같은 swap·배포본 설정을 쓴다.
+PROD Launch Template(`yesulin-backend-prod-lt` 버전 2 이후, 2026-11-18 기준 최신 버전 4)도 아래와 같은 swap·배포본 설정을 쓴다.
 DEV Launch Template(`yesulin-backend-lt` 버전 4)은 t4g.micro이며, 사용자 데이터가 512MiB swap 파일을 만들고
 CodeDeploy 에이전트의 배포본 보관 수(`:max_revisions:`)를 2로 줄인다. 루트 디스크가 8GiB라 배포본을 5개씩 쌓으면
 여유가 부족하다. 계정 정책상 인스턴스를 직접 정지할 수 없으므로 인스턴스 유형은 Launch Template 새 버전으로
