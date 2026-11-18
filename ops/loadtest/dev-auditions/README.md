@@ -1,6 +1,6 @@
 # DEV 공고 목록 RPS 측정과 보고서
 
-PC에서 `https://dev-api.yesulin.art`의 공개 공고 GET만 호출한다. 현재 확인 범위는 **100 RPS 한 단계**이며 예매·PROD·로컬 API는 호출하지 않는다. 공고 데이터는 총 3,502건이고 실행 전 API에서 공개/진행 중 건수를 fixture로 저장한다.
+PC에서 `https://dev-api.yesulin.art`의 공개 공고 GET만 호출한다. 이 runner는 목록 GET 한 단계를 측정하며 예매·PROD·로컬 API는 호출하지 않는다. 과거100~500RPS 및 상세 진입 결과는 [측정 기록](results.md#2026-11-18-보완--micro-선택과-후속-측정-요약)을 따른다. 공고 데이터는 총 3,502건이고 실행 전 API에서 공개/진행 중 건수를 fixture로 저장한다.
 
 ## 실행 조건
 
@@ -74,4 +74,4 @@ fields @timestamp, requestId, elapsedMs, status
 - k6 요청 timeout 10초는 테스트에 명시한 클라이언트 제한 시간이며 기본값이 아니다. timeout을 포함한 p95/p99가 약 10초라는 사실은 서버가 10초에 처리를 중단했다는 뜻이 아니다. Hikari connectionTimeout은 풀에서 연결을 획득하는 대기 제한이며 SQL 실행시간 제한과 다르다. 공식 기본값은 30초이고 당시 DbConnectionTimeouts는 0건이었다.
 - 이전 서버 최대 elapsedMs 10.120초와 최신 최대 8.521초는 서버 필터 내부의 실제 경과 시간이다. 10초의 서버 deadline이 확인된 것이 아니다. 클라이언트 시간에는 필터 진입 전 대기·연결/네트워크 시간도 포함되므로 두 숫자는 동일하지 않다.
 
-다음 개선 순서와 cache/pool/thread 선택 조건은 [improvement-plan.md](./improvement-plan.md)에 정리한다. 현재는 계획이며 timeout, cache, pool, thread 설정을 추가 변경하거나 새 부하를 실행하지 않았다.
+다음 개선 순서와 cache/pool/thread 선택 조건은 [improvement-plan.md](./improvement-plan.md)에 정리한다. 이 계획은 COUNT 통합 단계에 작성했다. 이후 인덱스·캐시 실험과 제거 예정 결정은 [후속 측정 기록](results.md#2026-11-18-보완--micro-선택과-후속-측정-요약)과 구분한다.
