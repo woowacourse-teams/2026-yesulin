@@ -20,7 +20,8 @@ export function ReviewUploadPanel({ busy, disabled, onChoose, children, inputRef
     <div className={styles.uploadButtons}>
     <button type="button" disabled={busy || disabled} className={styles.uploadAction} onClick={() => { setFolderError(""); folderInput.current?.click(); }}>폴더 선택</button>
     <button type="button" disabled={busy || disabled} className={`${styles.primary} ${styles.uploadAction}`} onClick={() => input.current?.click()}>
-      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V3m-5 5 5-5 5 5M4 15v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5" /></svg>{busy ? "파일 준비·업로드 중…" : "PDF 일괄 업로드"}
+      {busy && <><span aria-hidden="true" className="inline-block h-[18px] w-[18px] shrink-0 animate-spin rounded-full border-2 border-white/40 border-t-white motion-reduce:animate-none" />파일 준비·업로드 중…</>}
+      {!busy && <><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V3m-5 5 5-5 5 5M4 15v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5" /></svg>PDF 일괄 업로드</>}
     </button>
     </div>
     <input ref={input} type="file" accept=".pdf,application/pdf" multiple disabled={busy || disabled} className={styles.hidden} aria-label="지원자 PDF 여러 개 선택" onChange={event => { setFolderError(""); onChoose(event.target.files); event.currentTarget.value = ""; }} />

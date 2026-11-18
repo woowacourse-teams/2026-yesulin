@@ -6,12 +6,10 @@ import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { ProducerAccountPanel } from "./producer-account-panel";
-import { OtrAuditionTreeNav } from "@/components/otr-auditions/otr-audition-tree";
-import { ShowManagementNav } from "@/components/shows/manage/show-management-nav";
-import { AuditionPostManagementNav } from "@/components/audition-posts/manage/audition-post-management-nav";
-import { ActorBookmarkNav } from "@/components/actor-pages/actor-bookmark-nav";
-import { PdfReviewNavigation } from "./pdf-review-navigation";
+import { ProducerSidebarHeader } from "./producer-sidebar-header";
+import { ProducerSidebarMenu } from "./producer-sidebar-menu";
 import { useRouteDisclosure } from "./use-route-disclosure";
+import { ProducerDashboardLink } from "./producer-dashboard-link";
 
 const TITLE_ID = "mobile-producer-navigation-title";
 
@@ -21,7 +19,7 @@ export function MobileProducerNavigation() {
 
   return (
     <>
-      <header className="glass-surface sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-border px-4 lg:hidden">
+      <header className="glass-surface sticky top-0 z-30 flex min-h-16 items-center gap-2 border-b border-border px-4 lg:hidden">
         <button
           type="button"
           aria-label="관리 메뉴 열기"
@@ -51,8 +49,8 @@ export function MobileProducerNavigation() {
               className="object-contain"
             />
           </span>
-          <span className="ml-2 truncate text-base font-semibold">예술in 관리</span>
         </Link>
+        <ProducerDashboardLink />
         <div className="ml-auto shrink-0">
           <LogoutButton className="min-h-11 rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-brand-soft hover:text-brand" />
         </div>
@@ -67,33 +65,8 @@ export function MobileProducerNavigation() {
         className="flex h-dvh w-[min(360px,88vw)] flex-col overflow-hidden rounded-r-modal border-r border-sidebar-line bg-sidebar text-sidebar-text shadow-[var(--shadow-modal)] lg:hidden"
       >
         <div id="mobile-producer-navigation" className="flex min-h-0 flex-1 flex-col">
-          <header className="flex min-h-16 items-center gap-3 border-b border-sidebar-line px-4">
-            <h2 id={TITLE_ID} className="text-lg font-bold text-white">
-              예술in 관리
-            </h2>
-            <button
-              type="button"
-              aria-label="관리 메뉴 닫기"
-              onClick={closeDisclosure}
-              className="ml-auto min-h-11 rounded-control px-3 text-base text-sidebar-muted transition-[background-color,color,transform] duration-150 hover:bg-sidebar-hover hover:text-white active:scale-[0.97]"
-            >
-              닫기
-            </button>
-          </header>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
-            <Link
-              href="/"
-              onNavigate={closeDisclosure}
-              className="mx-4 mb-2 flex min-h-11 items-center rounded-control border border-sidebar-line px-3 text-base font-semibold text-white hover:bg-sidebar-hover"
-            >
-              예술in 홈
-            </Link>
-            <AuditionPostManagementNav onNavigate={closeDisclosure} />
-            <PdfReviewNavigation onNavigate={closeDisclosure} />
-            <ShowManagementNav onNavigate={closeDisclosure} />
-            <ActorBookmarkNav onNavigate={closeDisclosure} />
-            <OtrAuditionTreeNav onNavigate={closeDisclosure} />
-          </div>
+          <ProducerSidebarHeader titleId={TITLE_ID} closeLabel="관리 메뉴 닫기" autoFocus onClose={closeDisclosure} />
+          <ProducerSidebarMenu onNavigate={closeDisclosure} />
           <ProducerAccountPanel />
         </div>
       </ModalShell>

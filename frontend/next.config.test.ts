@@ -76,6 +76,34 @@ describe("search exclusion outside production", () => {
   });
 });
 
+describe("browser security headers", () => {
+  it.each(["production", "preview"])("observes CSP violations in the %s build", async (vercelEnv) => {
+    vi.stubEnv("VERCEL_ENV", vercelEnv);
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_SENTRY_DSN", "https://publickey@errors.example.test/42");
+    const { default: nextConfig } = await import("./next.config");
+    const response = await unstable_getResponseFromNextConfig({ url: "https://yesulin.art/login", nextConfig });
+    const policy = response.headers.get("content-security-policy-report-only");
+
+    expect(nextConfig.poweredByHeader).toBe(false);
+    expect(response.headers.get("content-security-policy")).toBeNull();
+    expect(policy).toContain("object-src 'none'");
+    expect(policy).toContain("worker-src 'self' blob:");
+    expect(policy).toContain("https://errors.example.test");
+    expect(policy).not.toContain("publickey");
+  });
+
+  it("keeps report-only out of next dev while preserving Vercel noindex", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("VERCEL_ENV", "development");
+    const { default: nextConfig } = await import("./next.config");
+    const response = await unstable_getResponseFromNextConfig({ url: "https://dev.yesulin.art/", nextConfig });
+
+    expect(response.headers.get("content-security-policy-report-only")).toBeNull();
+    expect(response.headers.get("x-robots-tag")).toBe("noindex");
+  });
+});
+
 describe("actor page address", () => {
   const thirtyCharacters = "a".repeat(30);
 

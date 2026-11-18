@@ -35,20 +35,20 @@ describe("공개 헤더의 계정 이동", () => {
     expect(html).not.toContain('href="/producer-service"');
   });
 
-  it("기획사·제작사 세션은 내 오디션 공고로 연결한다", () => {
+  it("기획사·제작사 세션은 공연사 대시보드로 연결한다", () => {
     auth.session = { credential: "fixture", role: "PRODUCER", displayName: "공연사" };
     const html = renderToStaticMarkup(<NotebookHeader />);
-    expect(html).toContain('href="/producers/audition-posts"');
-    expect(html).toContain("내 오디션 공고");
+    expect(html).toContain('href="/producers"');
+    expect(html).toContain("공연사 대시보드");
     expect(html).not.toContain('href="/applicants/submissions"');
     expect(html).toContain("로그아웃");
     expect(html).not.toContain('href="/producer-service"');
   });
 
-  it("기획사 세션으로 서비스 소개를 볼 때 공고 관리와 예술in 홈을 함께 제공한다", () => {
+  it("기획사 세션으로 서비스 소개를 볼 때 대시보드와 예술in 홈을 함께 제공한다", () => {
     auth.session = { credential: "fixture", role: "PRODUCER", displayName: "공연사" };
     const html = renderToStaticMarkup(<NotebookHeader service="producer" />);
-    expect(html).toContain('href="/producers/audition-posts"');
+    expect(html).toContain('href="/producers"');
     expect(html).toMatch(/<a[^>]*href="\/"[^>]*>예술in 홈<\/a>/);
   });
 });

@@ -12,6 +12,7 @@ import art.yesulin.auth.domain.member.Member;
 import art.yesulin.auth.domain.member.MemberRepository;
 import art.yesulin.auth.domain.member.MemberStatus;
 import art.yesulin.auth.domain.member.MemberType;
+import art.yesulin.global.alert.ErrorAlert;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.infrastructure.mail.MailMessage;
 import java.time.Clock;
@@ -50,7 +51,7 @@ class EmailVerificationCodeServiceTest {
     @Test
     void sendsSixDigitsWithoutRedirectAndStoresOnlyHash() {
         // given, when
-        service.sendVerification(member.getEmail());
+        service.sendInitialVerification(member.getEmail());
         // then
         assertThat(mail.textContent()).contains("000123").doesNotContain("http", "redirectUri", "token=");
         assertThat(mail.htmlContent()).contains("000123").doesNotContain("href=");
@@ -60,7 +61,7 @@ class EmailVerificationCodeServiceTest {
     @Test
     void activatesOnlyTheLoggedInMemberAndConsumesCode() {
         // given
-        service.sendVerification(member.getEmail());
+        service.sendInitialVerification(member.getEmail());
         // when
         MemberPrincipal principal = service.verifyCode(1L, new VerificationCode("000123"));
         // then
@@ -71,7 +72,7 @@ class EmailVerificationCodeServiceTest {
     @Test
     void wrongCodeKeepsAccountPendingAndPersistsFailure() {
         // given
-        service.sendVerification(member.getEmail());
+        service.sendInitialVerification(member.getEmail());
         // when, then
         assertError(AuthErrorCode.INVALID_EMAIL_VERIFICATION, "999999");
         assertThat(member.getStatus()).isEqualTo(MemberStatus.PENDING);
@@ -81,7 +82,7 @@ class EmailVerificationCodeServiceTest {
     @Test
     void fifthFailureBlocksEvenTheCorrectCode() {
         // given
-        service.sendVerification(member.getEmail());
+        service.sendInitialVerification(member.getEmail());
         repository.setFailedAttempts(1L, 4);
         // when, then
         assertError(AuthErrorCode.EMAIL_VERIFICATION_ATTEMPTS_EXCEEDED, "999999");
@@ -92,7 +93,7 @@ class EmailVerificationCodeServiceTest {
     @Test
     void rejectsExpiredCodeAtExactDeadline() {
         // given
-        service.sendVerification(member.getEmail());
+        service.sendInitialVerification(member.getEmail());
         when(clock.instant()).thenReturn(NOW.plusSeconds(300));
         // when, then
         assertError(AuthErrorCode.EXPIRED_EMAIL_VERIFICATION, "000123");
@@ -101,7 +102,7 @@ class EmailVerificationCodeServiceTest {
     @Test
     void cannotUseSomeoneElsesCode() {
         // given
-        service.sendVerification(member.getEmail());
+        service.sendInitialVerification(member.getEmail());
         // when, then
         assertThatThrownBy(() -> service.verifyCode(2L, new VerificationCode("000123")))
                 .isInstanceOf(BusinessException.class);
@@ -116,8 +117,9 @@ class EmailVerificationCodeServiceTest {
 
     private EmailVerificationService createService() {
         EmailVerificationSettings settings = new EmailVerificationSettings(Duration.ofMinutes(5));
+        VerificationMailSender sender = new VerificationMailSender(message -> mail = message, mock(ErrorAlert.class));
         return new EmailVerificationService(repository, members, () -> "random-token",
-                new EmailVerificationMailFactory(),
-                message -> mail = message, clock, settings, () -> new VerificationCode("000123"), encoder);
+                new EmailVerificationMailFactory(), sender, clock, settings, () -> new VerificationCode("000123"),
+                encoder);
     }
 }

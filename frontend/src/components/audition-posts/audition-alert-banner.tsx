@@ -2,8 +2,9 @@
 
 import { getImageProps } from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore, type PointerEvent } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore, type MouseEvent, type PointerEvent } from "react";
 import { trackAnalyticsEvent } from "@/features/analytics/events";
+import { trackProductEvent } from "@/features/analytics/product-analytics";
 import { getEventBanners } from "@/features/events/api";
 import type { EventBanner } from "@/features/events/types";
 import { bannerSlideReducer, bannerSwipeDirection, homeBanners, INITIAL_BANNER_SLIDE, type HomeBanner } from "@/features/landing/home-banners";
@@ -86,7 +87,7 @@ export function AuditionAlertBanner({ initialEventBanners = null }: { readonly i
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
-  return <section className="notebook-banner" aria-label="예술in 소식" aria-roledescription="캐러셀" data-tone={active.tone}
+  return <section className="notebook-banner" aria-label="예술in 소식" aria-roledescription="캐러셀"
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onFocusCapture={() => setFocused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false); }}
     onKeyDown={(event) => { if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); move(event.key === "ArrowRight" ? 1 : -1); } }}>
@@ -164,12 +165,21 @@ function BannerArtwork({ banner, outgoing = false, entering = false, onAnimation
   readonly onAnimationEnd?: () => void;
 }) {
   const picture = banner.remote ? <RemoteBannerPicture banner={banner} /> : <OptimizedBannerPicture banner={banner} />;
+  function trackLinkActivation(event: MouseEvent<HTMLAnchorElement>) {
+    if (event.type === "auxclick" && event.button !== 1) return;
+    if (banner.id !== "audition-alert" && banner.id !== "producer-partnership") return;
+    if (event.type === "click" && banner.id === "audition-alert") {
+      trackAnalyticsEvent("kakao_openchat_click", { entry_point: "home_alert_banner" });
+    }
+    void trackProductEvent("home_banner_clicked", { banner_id: banner.id });
+  }
+
   return <div className={`notebook-banner-slide${outgoing ? " is-outgoing" : entering ? " is-entering" : ""}`}
     aria-hidden={outgoing || undefined} inert={outgoing} role="group" aria-roledescription="슬라이드" aria-label={banner.title}
     onAnimationEnd={(event) => { if (event.target === event.currentTarget) onAnimationEnd?.(); }}>
     {banner.external ? (
       <a href={banner.href} target="_blank" rel="noopener noreferrer" draggable={false} aria-label={`${banner.linkLabel} (새 창에서 열림)`}
-        onClick={() => { if (banner.id === "audition-alert") trackAnalyticsEvent("kakao_openchat_click", { entry_point: "home_alert_banner" }); }}>
+        onClick={trackLinkActivation} onAuxClick={trackLinkActivation}>
         {picture}
       </a>
     ) : <Link href={banner.href} draggable={false} aria-label={banner.linkLabel}>{picture}</Link>}

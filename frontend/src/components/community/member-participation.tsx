@@ -8,10 +8,7 @@ import { communityReturnTo } from "@/features/community/navigation";
 import { getParticipation } from "@/features/community/api";
 import type { CommunityAuthorMode, CommunityParticipation } from "@/features/community/types";
 import { CommunityPhoto, CommunityError } from "./community-ui";
-
-export function CommunityLogin({ returnTo }: { readonly returnTo: string }) {
-  return <Link className="community-pill" href={`/login?returnTo=${encodeURIComponent(returnTo)}`}>로그인하고 작성하기</Link>;
-}
+import { CommunityLogin } from "./community-login";
 
 type GateProps = { readonly postId?: number; readonly returnTo?: string; readonly children: (value: CommunityParticipation) => ReactNode };
 
@@ -46,7 +43,7 @@ export function MemberParticipation({ postId, returnTo = communityReturnTo(postI
   if (!state || state.credential !== credential) return <p role="status">참여 정보를 확인하고 있어요.</p>;
   if (state.value.memberId === null && !postId) return <div className="community-member-prompt">
     <p>사용하던 소셜 계정으로 빠르게 글쓰기를 시작하세요.</p>
-    <CommunityLogin returnTo={returnTo} /><Link className="community-back-link" href="/community">목록으로 돌아가기</Link>
+    <CommunityLogin returnTo={returnTo} intent="write" /><Link className="community-back-link" href="/community">목록으로 돌아가기</Link>
   </div>;
   if (state.value.memberId === null) return <div className="community-member-prompt"><CommunityLogin returnTo={returnTo} /></div>;
   if (!state.value.canWrite) return <p className="community-member-prompt">배우 계정으로 글과 댓글을 작성할 수 있어요.</p>;

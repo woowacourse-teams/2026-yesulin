@@ -1,13 +1,12 @@
 "use client";
 
-import { PRODUCER_LOGIN_PATH } from "@/features/auth/producer-navigation";
+import { PRODUCER_DASHBOARD_PATH, PRODUCER_LOGIN_PATH } from "@/features/auth/producer-navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PrimaryButton } from "@/components/ui/controls";
 import { useToast } from "@/components/auditions/toast";
 import { signupProducer } from "@/features/auth/api";
-import { producerAuditionPostRoutes } from "@/features/audition-posts/types";
 import { login as requestLogin } from "@/features/auth/session-api";
 import { AuthInput, PasswordInput } from "./auth-fields";
 import { ProducerSignupFields } from "./producer-signup-fields";
@@ -93,7 +92,7 @@ export function SignupForm() {
         openProducerWorkspace();
         return;
       }
-      router.replace(producerAuditionPostRoutes.list);
+      router.replace(PRODUCER_DASHBOARD_PATH);
     } catch (cause) {
       console.error("[회원가입 실패]", cause);
       toast(cause instanceof Error ? cause.message : "기획사/제작사 계정을 만들지 못했습니다.", { type: "error" });

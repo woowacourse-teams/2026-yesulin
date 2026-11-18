@@ -13,6 +13,7 @@ import type {
   MemberStatus,
 } from "@/features/admin/types";
 import { mockSessionRole } from "./auth-handlers";
+import { issueMockEmailVerification } from "./auth-email-verifications";
 import { adminShowHandlers, changeMockShowHostName, listAdminShows } from "./show-handlers";
 import {
   changeMockActorHandle,
@@ -332,6 +333,19 @@ export const adminHandlers = [
       totalElements: auditLogs.length,
       totalPages: Math.ceil(auditLogs.length / AUDIT_LOG_PAGE_SIZE),
     });
+  }),
+
+  http.post("/api/v1/admin/members/:memberId/email-verifications", async ({ params }) => {
+    if (realLoginEnabled) return passthrough();
+    const rejected = rejectNonAdmin();
+    if (rejected) return rejected;
+    const producer = producers.find((candidate) => candidate.memberId === Number(params.memberId));
+    if (!producer || producer.status !== "PENDING") {
+      return apiError(400, "AUTH_INVALID_EMAIL_VERIFICATION", "인증할 기획사·제작사 계정을 찾을 수 없습니다.");
+    }
+    const failure = issueMockEmailVerification(producer.email);
+    if (failure) return apiError(failure.status, failure.code, failure.message);
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.patch("/api/v1/admin/members/:memberId/status", async ({ params, request }) => {

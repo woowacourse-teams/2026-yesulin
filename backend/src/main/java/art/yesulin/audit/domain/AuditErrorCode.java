@@ -9,7 +9,9 @@ public enum AuditErrorCode implements ErrorCode {
 
     INVALID_PDF_REVIEW(ErrorType.BAD_REQUEST),
     PDF_REVIEW_NOT_FOUND(ErrorType.NOT_FOUND),
-    PDF_REVIEW_ENTRY_NOT_FOUND(ErrorType.NOT_FOUND);
+    PDF_REVIEW_ENTRY_NOT_FOUND(ErrorType.NOT_FOUND),
+    PDF_REVIEW_RESET_BUSY(ErrorType.CONFLICT),
+    PDF_REVIEW_RESET_FORBIDDEN(ErrorType.FORBIDDEN);
 
     private final ErrorType type;
 

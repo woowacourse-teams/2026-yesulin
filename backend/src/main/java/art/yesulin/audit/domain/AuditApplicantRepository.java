@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 public interface AuditApplicantRepository extends JpaRepository<AuditApplicant, String> {
@@ -25,4 +26,8 @@ public interface AuditApplicantRepository extends JpaRepository<AuditApplicant, 
     @Query("select new art.yesulin.audit.domain.AuditCount(item.reviewId, count(item)) "
             + "from AuditApplicant item where item.reviewId in :reviewIds group by item.reviewId")
     List<AuditCount> countByReviewIds(Collection<String> reviewIds);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("delete from AuditApplicant item where item.reviewId = :reviewId")
+    int deleteByReviewId(String reviewId);
 }

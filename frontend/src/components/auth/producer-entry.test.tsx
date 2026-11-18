@@ -2,12 +2,13 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { login } from "@/features/auth/session-api";
+import { login, SessionApiError } from "@/features/auth/session-api";
 import { signupProducer, verifyProducerEmailCode } from "@/features/auth/api";
 import { ProducerLoginForm } from "./producer-login-form";
 import { SignupForm } from "./signup-form";
 import { ProducerAccessGate } from "@/components/producers/producer-access-gate";
 import type { FrontendAuthSession } from "./auth-session";
+import { trackLoginSuccess } from "@/features/analytics/events";
 import { openProducerWorkspace } from "@/features/auth/producer-navigation";
 
 const auth = vi.hoisted(() => ({
@@ -16,10 +17,10 @@ const auth = vi.hoisted(() => ({
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: auth.push, replace: auth.replace }),
-  usePathname: () => "/producers/audition-posts",
+  usePathname: () => "/producers",
 }));
 vi.mock("./auth-session", () => ({ useAuthSession: () => auth }));
-vi.mock("@/features/auth/producer-navigation", () => ({ openProducerWorkspace: vi.fn(), PRODUCER_LOGIN_PATH: "/producer-service/login" }));
+vi.mock("@/features/auth/producer-navigation", () => ({ openProducerWorkspace: vi.fn(), PRODUCER_DASHBOARD_PATH: "/producers", PRODUCER_LOGIN_PATH: "/producer-service/login" }));
 vi.mock("@/components/auditions/toast", () => ({ useToast: () => auth.toast }));
 vi.mock("@/config/environment", () => ({ frontendEnvironment: { apiMockingEnabled: false } }));
 vi.mock("@/features/auth/session-api", async (original) => ({
@@ -49,17 +50,34 @@ function typeInto(id: string, value: string) {
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-it("기획사 로그인 후 내 오디션 공고를 바로 연다", async () => {
+it("기획사 로그인 후 대시보드를 바로 연다", async () => {
   await act(async () => root.render(<ProducerLoginForm />));
   await act(async () => { typeInto("login-identifier", "producer@example.com"); typeInto("login-password", "password123"); });
   await act(async () => container.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
   expect(login).toHaveBeenCalledWith("producer@example.com", "password123");
   expect(openProducerWorkspace).toHaveBeenCalled();
   expect(auth.push).not.toHaveBeenCalled();
+  expect(trackLoginSuccess).toHaveBeenCalledWith("/producers", undefined);
   expect(auth.setSession).toHaveBeenCalledWith(expect.objectContaining({ role: "PRODUCER", producerStatus: "ACTIVE" }));
 });
 
-it("가입 직후에도 내 공고 경로로 이동하고 이메일 인증 대기 상태를 유지한다", async () => {
+it("이메일이나 비밀번호가 맞지 않으면 화면 안내만 표시하고 다시 시도할 수 있다", async () => {
+  const message = "이메일 또는 비밀번호가 올바르지 않습니다.";
+  vi.mocked(login).mockRejectedValueOnce(new SessionApiError(401, "AUTH_INVALID_CREDENTIALS", message));
+  using errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  await act(async () => root.render(<ProducerLoginForm />));
+  await act(async () => { typeInto("login-identifier", "producer@example.com"); typeInto("login-password", "password123"); });
+  await act(async () => container.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+
+  expect(auth.toast).toHaveBeenCalledWith(message, { type: "error" });
+  expect(errorLog).not.toHaveBeenCalled();
+  expect(auth.setSession).not.toHaveBeenCalled();
+  expect(openProducerWorkspace).not.toHaveBeenCalled();
+  expect(auth.push).not.toHaveBeenCalled();
+  expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(false);
+});
+
+it("가입 직후 대시보드 진입에서 이메일 인증 대기 상태를 유지한다", async () => {
   vi.mocked(signupProducer).mockResolvedValue({ memberId: 10, email: "producer@example.com", companyName: "극단 예술", role: "PRODUCER", verificationStatus: "PENDING" });
   vi.mocked(login).mockResolvedValue({ memberId: 10, role: "PRODUCER", status: "PENDING" });
   await act(async () => root.render(<SignupForm />));

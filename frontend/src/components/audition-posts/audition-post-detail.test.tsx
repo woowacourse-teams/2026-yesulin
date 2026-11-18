@@ -77,4 +77,10 @@ describe("공고 원문 크게 보기", () => {
     await render("<p>모집 안내</p>");
     expect(openButton()).toBeUndefined();
   });
+
+  it("저장된 빈 문단을 공개 본문에 남긴다", async () => {
+    const html = "<p>모집 안내</p><p></p><p>연습 장소</p>";
+    await render(html);
+    expect(container.querySelector(".post-body")?.innerHTML).toBe(html);
+  });
 });

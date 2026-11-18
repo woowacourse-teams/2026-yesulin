@@ -1,10 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useReducer, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { AuditionRequestError } from "@/features/auditions/api-client";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { PiBell, PiChatCircle, PiPencilSimple } from "react-icons/pi";
 import { communityListMemory } from "@/features/community/list-memory";
@@ -14,15 +11,14 @@ import { useCommunityFeed, useLoadWhenVisible, useNextPageLoader } from "@/featu
 import { postUrl } from "@/features/community/share";
 import type { CommunityEntry, CommunityLikeState } from "@/features/community/types";
 import { feedAuthor } from "@/features/community/author-name";
-import { CommunityPhoto, CommunityByline, CommunityError, CommunityToast, useCommunityToast } from "./community-ui";
+import { CommunityPhoto, CommunityByline, CommunityError, CommunityStar, CommunityToast, useCommunityToast } from "./community-ui";
 import { EntryMenu } from "./entry-menu";
 import { LikeButton } from "./like-button";
 import { PopularPostsCard } from "./popular-posts-card";
 import { CommunityDeadlines } from "./community-deadlines";
 import { communityNoticeRoute } from "./notice-row";
 import { useUnreadCommentCount } from "./received-comments-context";
-
-const moreLogin = `/login?returnTo=${encodeURIComponent("/community?more=1")}`;
+import { CommunityLogin } from "./community-login";
 
 type Feed = ReturnType<typeof useCommunityFeed>;
 type Notify = (message: string) => void;
@@ -44,39 +40,21 @@ function LoungeContent({ signedIn }: { readonly signedIn: boolean }) {
   }, []);
   return <section className="community-lounge">
     <LoungeIntro />
-    <div className="community-lounge-feed"><ComposePrompt />
-      <CommunityFeed signedIn={signedIn} trackLoaded={trackLoaded} onLikeSaved={refreshRanking} />
+    <div className="community-lounge-feed"><ComposePrompt signedIn={signedIn} />
+      <CommunityFeed trackLoaded={trackLoaded} onLikeSaved={refreshRanking} />
     </div>
     <div className="community-lounge-side"><PopularPostsCard version={rankingVersion} /><CommunityDeadlines /></div>
   </section>;
 }
 
-type FeedProps = { signedIn: boolean; trackLoaded: () => void; onLikeSaved: () => void };
+type FeedProps = { trackLoaded: () => void; onLikeSaved: () => void };
 
-function CommunityFeed({ signedIn, trackLoaded, onLikeSaved }: FeedProps) {
-  const router = useRouter();
-  const loader = useCallback(async (before?: number) => {
-    try { return await getPosts(before); }
-    catch (cause) {
-      if (before && cause instanceof AuditionRequestError && cause.status === 401) router.replace(moreLogin);
-      throw cause;
-    }
-  }, [router]);
-  const feed = useCommunityFeed(loader);
-  const resumed = useRef(false);
-  const { cursor, load } = feed;
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    if (!signedIn || !cursor || resumed.current || !url.searchParams.has("more")) return;
-    resumed.current = true;
-    url.searchParams.delete("more");
-    window.history.replaceState(window.history.state, "", url);
-    void load(cursor);
-  }, [signedIn, cursor, load]);
+function CommunityFeed({ trackLoaded, onLikeSaved }: FeedProps) {
+  const feed = useCommunityFeed(getPosts);
   const toast = useCommunityToast();
   useTrackOnce(!feed.loading && !feed.error, trackLoaded);
   return <div className="community-feed-panel">
-    <FeedBody feed={feed} signedIn={signedIn} notify={toast.show} onLikeSaved={onLikeSaved} />
+    <FeedBody feed={feed} notify={toast.show} onLikeSaved={onLikeSaved} />
     <CommunityToast message={toast.message} />
   </div>;
 }
@@ -102,17 +80,21 @@ function CommunityNoticeLink() {
   </Link>;
 }
 
-function ComposePrompt() {
-  return <Link className="community-compose-prompt" href="/community/new">
-    <Image src="/images/community-star-chat.png" alt="" width={40} height={40} />
+function ComposePrompt({ signedIn }: { readonly signedIn: boolean }) {
+  const content = <>
+    <CommunityStar width={40} height={40} />
     <span>오늘 연습은 어땠어요? 가볍게 남겨 보세요</span>
     <span className="community-compose-prompt-action">글쓰기<PiPencilSimple size={15} aria-hidden="true" /></span>
-  </Link>;
+  </>;
+  if (signedIn) return <Link className="community-compose-prompt" href="/community/new">{content}</Link>;
+  return <CommunityLogin className="community-compose-prompt" returnTo="/community/new" intent="write">{content}</CommunityLogin>;
 }
 
-type FeedBodyProps = Omit<FeedProps, "trackLoaded"> & { feed: Feed; notify: Notify };
+type FeedBodyProps = Omit<FeedProps, "trackLoaded"> & {
+  feed: Feed; notify: Notify;
+};
 
-function FeedBody({ feed, signedIn, notify, onLikeSaved }: FeedBodyProps) {
+function FeedBody({ feed, notify, onLikeSaved }: FeedBodyProps) {
   function updateLike(id: number, state: CommunityLikeState) {
     feed.update(id, state);
     onLikeSaved();
@@ -123,8 +105,7 @@ function FeedBody({ feed, signedIn, notify, onLikeSaved }: FeedBodyProps) {
     <ul className="community-list" onClick={() => { communityListMemory.scroll = window.scrollY; }}>
       {feed.items.map(entry => <FeedPost key={entry.id} post={entry} notify={notify} onLiked={state => updateLike(entry.id, state)} />)}</ul>
     {feed.loading && <p className="community-status" role="status">이야기를 더 불러오고 있어요.</p>}
-    {!feed.loading && feed.cursor !== null && !signedIn && <Link className="community-more" href={moreLogin}>로그인하고 더 보기</Link>}
-    {!feed.loading && feed.cursor !== null && signedIn && <MoreStories feed={feed} />}</>;
+    {!feed.loading && feed.cursor !== null && <MoreStories feed={feed} />}</>;
 }
 
 export function FeedSkeleton() {
