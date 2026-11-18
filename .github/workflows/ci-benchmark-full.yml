@@ -1,0 +1,106 @@
+name: CI benchmark full
+
+on:
+  push:
+    tags:
+      - 'ci-check-timing-20261118-*'
+
+permissions:
+  contents: read
+
+env:
+  BENCHMARK_SHA: ${{ fromJSON('{"ci-check-timing-20261118-606":{"s":"b44cb59c8f531bc85db0ad3ca9910e0b6e1b882c","b":"550d0e63d0eb635aed2c0fa1cf65fe80fbca1a21","h":"eabf062b0dd53d92b468d71fff81a5f0cd253ab7"},"ci-check-timing-20261118-601":{"s":"e3e7655e710e290f4b790cb33bb0217030421427","b":"8b81375a612df553a81fcf3bf9111e3e829033f0","h":"e03997078e2bee7e153de52b2099df408b8f8fa4"},"ci-check-timing-20261118-600":{"s":"6576bc331ed0f752693486208a8d554e123ead29","b":"89e90881a1da0df69ffc4b2832b01ccfd93243d1","h":"628bdf29140ddae4f432ac06b156ea47bc722ea7"},"ci-check-timing-20261118-599":{"s":"b8690c7364942c1f6e01e3d3fd51cdbeec204023","b":"7f9932a600e806fafa971c26d0a966b47d5ca6dc","h":"236e1d3325d182c50891a479d22824d5cf9271f8"},"ci-check-timing-20261118-597":{"s":"392a10789e96463e9d9fe71c852a26438b2a3274","b":"343b532cd74de5e25eca405f7202fd8455fb916c","h":"8d64a1296a3a13c8f4fcd4f61cd07bd5aee1bb8a"},"ci-check-timing-20261118-596":{"s":"f81f1b6e6119302551904bd85a783e9db267ad26","b":"67c9e12db5c93ea39073967952869d6c4a482a7b","h":"faab15545fd3ddaa3098e429a877cf4f7be8f706"},"ci-check-timing-20261118-592":{"s":"83ec1022f1250acecef93e498ac6ee7cf90ad3e0","b":"c5ea84868dde5c91094806c88d38222466542871","h":"f8fb0a80323bbae81f2734912554eca54767c63f"},"ci-check-timing-20261118-591":{"s":"0560fb1fdd87636cadc76b3757108debc8b9347b","b":"471aedaff49950a6de6f25d45c2987a003d19a37","h":"2531774766d009874e3254615e37e7371636adc4"},"ci-check-timing-20261118-590":{"s":"a4907ce451380495eddcb9992174a3a55e662f5c","b":"60f0fd5435ebd39cd5b573fe47671b18ede123b7","h":"90550f9242b061f728498e74880437f31c5f90fe"},"ci-check-timing-20261118-585":{"s":"fe541e94ad71ea8d55a163582c2c56394ce13f44","b":"521689a479ecf376e1d1e6e45b55e970b8dc7e87","h":"b8bf7510a303cd7073c0a41c4f177ce61821abbf"},"ci-check-timing-20261118-578":{"s":"a6ca0cd4c45c946cc6e243b1e16c98ee6f318802","b":"e4446264eeb688f5bf002d663415e004d9708a49","h":"3e601a3264073fc2925549d4a8040d08901e4aa4"},"ci-check-timing-20261118-577":{"s":"fdd1eb36ae5ad0e1d788ef3313fdf63ebfd3f6e0","b":"26c68c5246dbcebcde88723f26cf0c77e67fa43b","h":"05c1791cef3a78e8cf501b54664cd0d63ec44b63"},"ci-check-timing-20261118-575":{"s":"5f7abeb0579a21c5feec7014e5152de2059a739c","b":"27d0bec1097d1bddd334356570db469d95193c31","h":"671076771fa56d4866c941f626f6a9cf7aacca92"},"ci-check-timing-20261118-573":{"s":"548a7d60e2efbd5a5386daf343e38847d3f801ab","b":"27d0bec1097d1bddd334356570db469d95193c31","h":"7877828f79eca2a80aa7d9d22a2e061c12d279a9"},"ci-check-timing-20261118-572":{"s":"c5cf236ce75206df7a144a5c02970f5a8a681642","b":"14f209ab490e71cede23a35a163f5aead209bb5e","h":"6118cf7860562f8c9bccb20e64b5f6319a5c16bf"},"ci-check-timing-20261118-569":{"s":"8c6eadad39f20a0945bccb6fd0267320bfedad08","b":"b59780e88e8877d88577aa3606e1917d678e8f46","h":"ba92ed057225b1d97a4a9f90df9038c874bc685b"},"ci-check-timing-20261118-556":{"s":"ba6fa9d47bd1890ebda3a4589603fd40dd18c23d","b":"fd68b5a72e45203f8daa935d84a736e6b68963dc","h":"774aa7c85a82b4e16618eadd62384b19e1122382"},"ci-check-timing-20261118-476":{"s":"538c4b0f337e1c760732d81bef77debdd6399725","b":"252415ee2c589bddd82ecd2d87d44c9426e54a6e","h":"dab7325b52b3d7a010b3e91a1494dd8a71fff21f"},"ci-check-timing-20261118-415":{"s":"2f8e73535da719ec0507d4185dfb44b234fb9f55","b":"f677f0b232d1736c373d24115abe460f9d0a413b","h":"34447b4f466068d39df19d73fb574c26fd06dd6b"},"ci-check-timing-20261118-377":{"s":"c114edd8c78ebcb122f47a07654403ed33514721","b":"5a24ba5f449862d14838a98921dba1f2a0dceddf","h":"067d5a2842e0faf52dea024b8d073c2481ac25bd"}}')[github.ref_name].s }}
+  BENCHMARK_BASE: ${{ fromJSON('{"ci-check-timing-20261118-606":{"s":"b44cb59c8f531bc85db0ad3ca9910e0b6e1b882c","b":"550d0e63d0eb635aed2c0fa1cf65fe80fbca1a21","h":"eabf062b0dd53d92b468d71fff81a5f0cd253ab7"},"ci-check-timing-20261118-601":{"s":"e3e7655e710e290f4b790cb33bb0217030421427","b":"8b81375a612df553a81fcf3bf9111e3e829033f0","h":"e03997078e2bee7e153de52b2099df408b8f8fa4"},"ci-check-timing-20261118-600":{"s":"6576bc331ed0f752693486208a8d554e123ead29","b":"89e90881a1da0df69ffc4b2832b01ccfd93243d1","h":"628bdf29140ddae4f432ac06b156ea47bc722ea7"},"ci-check-timing-20261118-599":{"s":"b8690c7364942c1f6e01e3d3fd51cdbeec204023","b":"7f9932a600e806fafa971c26d0a966b47d5ca6dc","h":"236e1d3325d182c50891a479d22824d5cf9271f8"},"ci-check-timing-20261118-597":{"s":"392a10789e96463e9d9fe71c852a26438b2a3274","b":"343b532cd74de5e25eca405f7202fd8455fb916c","h":"8d64a1296a3a13c8f4fcd4f61cd07bd5aee1bb8a"},"ci-check-timing-20261118-596":{"s":"f81f1b6e6119302551904bd85a783e9db267ad26","b":"67c9e12db5c93ea39073967952869d6c4a482a7b","h":"faab15545fd3ddaa3098e429a877cf4f7be8f706"},"ci-check-timing-20261118-592":{"s":"83ec1022f1250acecef93e498ac6ee7cf90ad3e0","b":"c5ea84868dde5c91094806c88d38222466542871","h":"f8fb0a80323bbae81f2734912554eca54767c63f"},"ci-check-timing-20261118-591":{"s":"0560fb1fdd87636cadc76b3757108debc8b9347b","b":"471aedaff49950a6de6f25d45c2987a003d19a37","h":"2531774766d009874e3254615e37e7371636adc4"},"ci-check-timing-20261118-590":{"s":"a4907ce451380495eddcb9992174a3a55e662f5c","b":"60f0fd5435ebd39cd5b573fe47671b18ede123b7","h":"90550f9242b061f728498e74880437f31c5f90fe"},"ci-check-timing-20261118-585":{"s":"fe541e94ad71ea8d55a163582c2c56394ce13f44","b":"521689a479ecf376e1d1e6e45b55e970b8dc7e87","h":"b8bf7510a303cd7073c0a41c4f177ce61821abbf"},"ci-check-timing-20261118-578":{"s":"a6ca0cd4c45c946cc6e243b1e16c98ee6f318802","b":"e4446264eeb688f5bf002d663415e004d9708a49","h":"3e601a3264073fc2925549d4a8040d08901e4aa4"},"ci-check-timing-20261118-577":{"s":"fdd1eb36ae5ad0e1d788ef3313fdf63ebfd3f6e0","b":"26c68c5246dbcebcde88723f26cf0c77e67fa43b","h":"05c1791cef3a78e8cf501b54664cd0d63ec44b63"},"ci-check-timing-20261118-575":{"s":"5f7abeb0579a21c5feec7014e5152de2059a739c","b":"27d0bec1097d1bddd334356570db469d95193c31","h":"671076771fa56d4866c941f626f6a9cf7aacca92"},"ci-check-timing-20261118-573":{"s":"548a7d60e2efbd5a5386daf343e38847d3f801ab","b":"27d0bec1097d1bddd334356570db469d95193c31","h":"7877828f79eca2a80aa7d9d22a2e061c12d279a9"},"ci-check-timing-20261118-572":{"s":"c5cf236ce75206df7a144a5c02970f5a8a681642","b":"14f209ab490e71cede23a35a163f5aead209bb5e","h":"6118cf7860562f8c9bccb20e64b5f6319a5c16bf"},"ci-check-timing-20261118-569":{"s":"8c6eadad39f20a0945bccb6fd0267320bfedad08","b":"b59780e88e8877d88577aa3606e1917d678e8f46","h":"ba92ed057225b1d97a4a9f90df9038c874bc685b"},"ci-check-timing-20261118-556":{"s":"ba6fa9d47bd1890ebda3a4589603fd40dd18c23d","b":"fd68b5a72e45203f8daa935d84a736e6b68963dc","h":"774aa7c85a82b4e16618eadd62384b19e1122382"},"ci-check-timing-20261118-476":{"s":"538c4b0f337e1c760732d81bef77debdd6399725","b":"252415ee2c589bddd82ecd2d87d44c9426e54a6e","h":"dab7325b52b3d7a010b3e91a1494dd8a71fff21f"},"ci-check-timing-20261118-415":{"s":"2f8e73535da719ec0507d4185dfb44b234fb9f55","b":"f677f0b232d1736c373d24115abe460f9d0a413b","h":"34447b4f466068d39df19d73fb574c26fd06dd6b"},"ci-check-timing-20261118-377":{"s":"c114edd8c78ebcb122f47a07654403ed33514721","b":"5a24ba5f449862d14838a98921dba1f2a0dceddf","h":"067d5a2842e0faf52dea024b8d073c2481ac25bd"}}')[github.ref_name].b }}
+  BENCHMARK_PR_HEAD: ${{ fromJSON('{"ci-check-timing-20261118-606":{"s":"b44cb59c8f531bc85db0ad3ca9910e0b6e1b882c","b":"550d0e63d0eb635aed2c0fa1cf65fe80fbca1a21","h":"eabf062b0dd53d92b468d71fff81a5f0cd253ab7"},"ci-check-timing-20261118-601":{"s":"e3e7655e710e290f4b790cb33bb0217030421427","b":"8b81375a612df553a81fcf3bf9111e3e829033f0","h":"e03997078e2bee7e153de52b2099df408b8f8fa4"},"ci-check-timing-20261118-600":{"s":"6576bc331ed0f752693486208a8d554e123ead29","b":"89e90881a1da0df69ffc4b2832b01ccfd93243d1","h":"628bdf29140ddae4f432ac06b156ea47bc722ea7"},"ci-check-timing-20261118-599":{"s":"b8690c7364942c1f6e01e3d3fd51cdbeec204023","b":"7f9932a600e806fafa971c26d0a966b47d5ca6dc","h":"236e1d3325d182c50891a479d22824d5cf9271f8"},"ci-check-timing-20261118-597":{"s":"392a10789e96463e9d9fe71c852a26438b2a3274","b":"343b532cd74de5e25eca405f7202fd8455fb916c","h":"8d64a1296a3a13c8f4fcd4f61cd07bd5aee1bb8a"},"ci-check-timing-20261118-596":{"s":"f81f1b6e6119302551904bd85a783e9db267ad26","b":"67c9e12db5c93ea39073967952869d6c4a482a7b","h":"faab15545fd3ddaa3098e429a877cf4f7be8f706"},"ci-check-timing-20261118-592":{"s":"83ec1022f1250acecef93e498ac6ee7cf90ad3e0","b":"c5ea84868dde5c91094806c88d38222466542871","h":"f8fb0a80323bbae81f2734912554eca54767c63f"},"ci-check-timing-20261118-591":{"s":"0560fb1fdd87636cadc76b3757108debc8b9347b","b":"471aedaff49950a6de6f25d45c2987a003d19a37","h":"2531774766d009874e3254615e37e7371636adc4"},"ci-check-timing-20261118-590":{"s":"a4907ce451380495eddcb9992174a3a55e662f5c","b":"60f0fd5435ebd39cd5b573fe47671b18ede123b7","h":"90550f9242b061f728498e74880437f31c5f90fe"},"ci-check-timing-20261118-585":{"s":"fe541e94ad71ea8d55a163582c2c56394ce13f44","b":"521689a479ecf376e1d1e6e45b55e970b8dc7e87","h":"b8bf7510a303cd7073c0a41c4f177ce61821abbf"},"ci-check-timing-20261118-578":{"s":"a6ca0cd4c45c946cc6e243b1e16c98ee6f318802","b":"e4446264eeb688f5bf002d663415e004d9708a49","h":"3e601a3264073fc2925549d4a8040d08901e4aa4"},"ci-check-timing-20261118-577":{"s":"fdd1eb36ae5ad0e1d788ef3313fdf63ebfd3f6e0","b":"26c68c5246dbcebcde88723f26cf0c77e67fa43b","h":"05c1791cef3a78e8cf501b54664cd0d63ec44b63"},"ci-check-timing-20261118-575":{"s":"5f7abeb0579a21c5feec7014e5152de2059a739c","b":"27d0bec1097d1bddd334356570db469d95193c31","h":"671076771fa56d4866c941f626f6a9cf7aacca92"},"ci-check-timing-20261118-573":{"s":"548a7d60e2efbd5a5386daf343e38847d3f801ab","b":"27d0bec1097d1bddd334356570db469d95193c31","h":"7877828f79eca2a80aa7d9d22a2e061c12d279a9"},"ci-check-timing-20261118-572":{"s":"c5cf236ce75206df7a144a5c02970f5a8a681642","b":"14f209ab490e71cede23a35a163f5aead209bb5e","h":"6118cf7860562f8c9bccb20e64b5f6319a5c16bf"},"ci-check-timing-20261118-569":{"s":"8c6eadad39f20a0945bccb6fd0267320bfedad08","b":"b59780e88e8877d88577aa3606e1917d678e8f46","h":"ba92ed057225b1d97a4a9f90df9038c874bc685b"},"ci-check-timing-20261118-556":{"s":"ba6fa9d47bd1890ebda3a4589603fd40dd18c23d","b":"fd68b5a72e45203f8daa935d84a736e6b68963dc","h":"774aa7c85a82b4e16618eadd62384b19e1122382"},"ci-check-timing-20261118-476":{"s":"538c4b0f337e1c760732d81bef77debdd6399725","b":"252415ee2c589bddd82ecd2d87d44c9426e54a6e","h":"dab7325b52b3d7a010b3e91a1494dd8a71fff21f"},"ci-check-timing-20261118-415":{"s":"2f8e73535da719ec0507d4185dfb44b234fb9f55","b":"f677f0b232d1736c373d24115abe460f9d0a413b","h":"34447b4f466068d39df19d73fb574c26fd06dd6b"},"ci-check-timing-20261118-377":{"s":"c114edd8c78ebcb122f47a07654403ed33514721","b":"5a24ba5f449862d14838a98921dba1f2a0dceddf","h":"067d5a2842e0faf52dea024b8d073c2481ac25bd"}}')[github.ref_name].h }}
+
+jobs:
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.BENCHMARK_SHA }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify source SHA
+        working-directory: .
+        run: |
+          test "$(git rev-parse HEAD)" = "$BENCHMARK_SHA"
+          echo "tested_sha=$BENCHMARK_SHA"
+
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run frontend lint
+        run: npm run lint
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.BENCHMARK_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify source SHA
+        working-directory: .
+        run: |
+          test "$(git rev-parse HEAD)" = "$BENCHMARK_SHA"
+          echo "tested_sha=$BENCHMARK_SHA"
+
+
+      - name: Check Flyway migration order
+        run: sh deploy/scripts/check_flyway_migration_order.sh "$BENCHMARK_BASE"
+
+      - name: Check Flyway contract changes
+        run: sh deploy/scripts/check_flyway_contract_changes.sh "$BENCHMARK_BASE"
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build backend
+        run: ./gradlew build --no-daemon
+
+      - name: Test deployment scripts
+        run: |
+          sh deploy/tests/check_flyway_migration_order_test.sh
+          sh deploy/tests/check_flyway_contract_changes_test.sh
+          sh deploy/tests/validate_service_test.sh
+          sh deploy/tests/cleanup_releases_test.sh
+          sh deploy/tests/install_env_test.sh
+          sh deploy/tests/after_install_monitoring_test.sh
+          sh ../scripts/config/tests/deploy_env_test.sh
+          python3 -m unittest discover -s ../ops/monitor/cloudwatch/tests -v
