@@ -1,0 +1,423 @@
+{
+  "recordedAtKST": "2026-11-18",
+  "source": "당시 저장한 k6 summary.json / analysis.json / metadata.json / resource-summary.json에서 선택한 값. 원본 덤프는 Git 대상 외.",
+  "listRuns": [
+    {
+      "runId": "20261014T013801Z-r100",
+      "startedAtKST": "2026-10-14T10:38:02.336619+09:00",
+      "targetRps": 100,
+      "holdSeconds": 60,
+      "httpTimeoutSeconds": 10,
+      "fixture": {
+        "open": 475,
+        "all": 2801
+      },
+      "deployedRevision": null,
+      "requests": 6001,
+      "errors": 3512,
+      "dropped": 0,
+      "unfinished": 0,
+      "p95Ms": 10001.0,
+      "p99Ms": 10002.0,
+      "cacheEnabled": null,
+      "nativeSummary": {
+        "list_errors{phase:measure}": {
+          "passes": 3512,
+          "fails": 2489,
+          "thresholds": {
+            "rate==0": true
+          },
+          "value": 0.5852357940343276
+        },
+        "list_end_to_end_ms{phase:measure}": {
+          "avg": 8000.044825862356,
+          "min": 128,
+          "med": 10000,
+          "max": 10010,
+          "p(50)": 10000,
+          "p(95)": 10001,
+          "p(99)": 10002,
+          "thresholds": {
+            "p(95)>=0": false
+          }
+        },
+        "dropped_iterations{scenario:measure}": {
+          "count": 0,
+          "rate": 0,
+          "thresholds": {
+            "count==0": false
+          }
+        }
+      }
+    },
+    {
+      "runId": "20261014T055352Z-r100",
+      "startedAtKST": "2026-10-14T14:53:53.411540+09:00",
+      "targetRps": 100,
+      "holdSeconds": 60,
+      "httpTimeoutSeconds": 10,
+      "fixture": {
+        "open": 475,
+        "all": 2801
+      },
+      "deployedRevision": "06b0a800e9c1539e0c08d5131acf8cc6ae05a5f9",
+      "requests": 6001,
+      "errors": 0,
+      "dropped": 0,
+      "unfinished": 0,
+      "p95Ms": 58.0,
+      "p99Ms": 334.0,
+      "cacheEnabled": null,
+      "nativeSummary": {
+        "list_errors{phase:measure}": {
+          "passes": 0,
+          "fails": 6001,
+          "thresholds": {
+            "rate==0": false
+          },
+          "value": 0
+        },
+        "list_end_to_end_ms{phase:measure}": {
+          "p(50)": 27,
+          "p(95)": 58,
+          "p(99)": 334,
+          "avg": 38.767372104649226,
+          "min": 22,
+          "med": 27,
+          "max": 725,
+          "thresholds": {
+            "p(95)>=0": false
+          }
+        },
+        "dropped_iterations{scenario:measure}": {
+          "count": 0,
+          "rate": 0,
+          "thresholds": {
+            "count==0": false
+          }
+        }
+      }
+    },
+    {
+      "runId": "20261014T205159Z-r400",
+      "startedAtKST": "2026-10-15T05:51:59.374903+09:00",
+      "targetRps": 400,
+      "holdSeconds": 60,
+      "httpTimeoutSeconds": 10,
+      "fixture": {
+        "open": 470,
+        "all": 2801
+      },
+      "deployedRevision": "29ff4d524fe8bb5fb1f854ab205a6fa27429ff62",
+      "requests": 24000,
+      "errors": 0,
+      "dropped": 0,
+      "unfinished": 0,
+      "p95Ms": 85.0,
+      "p99Ms": 189.0,
+      "cacheEnabled": null,
+      "nativeSummary": {
+        "list_errors{phase:measure}": {
+          "passes": 0,
+          "fails": 24000,
+          "thresholds": {
+            "rate==0": false
+          },
+          "value": 0
+        },
+        "list_end_to_end_ms{phase:measure}": {
+          "p(50)": 35,
+          "p(95)": 85,
+          "p(99)": 189,
+          "avg": 46.062916666666666,
+          "min": 23,
+          "med": 35,
+          "max": 587,
+          "thresholds": {
+            "p(95)>=0": false
+          }
+        },
+        "dropped_iterations{scenario:measure}": {
+          "count": 0,
+          "rate": 0,
+          "thresholds": {
+            "count==0": false
+          }
+        }
+      },
+      "hostSamples": {
+        "app": {
+          "samples": 60,
+          "cpuMeanPct": 67.667,
+          "cpuMaxPct": 74.11,
+          "memoryMaxPct": 71.93
+        },
+        "db": {
+          "samples": 60,
+          "cpuMeanPct": 71.29566666666666,
+          "cpuMaxPct": 79.6,
+          "memoryMaxPct": 66.88
+        }
+      }
+    },
+    {
+      "runId": "20261015T005628Z-r500",
+      "startedAtKST": "2026-10-15T09:56:28.434312+09:00",
+      "targetRps": 500,
+      "holdSeconds": 60,
+      "httpTimeoutSeconds": 10,
+      "fixture": {
+        "open": 470,
+        "all": 2801
+      },
+      "deployedRevision": "29ff4d524fe8bb5fb1f854ab205a6fa27429ff62",
+      "requests": 30000,
+      "errors": 14268,
+      "dropped": 0,
+      "unfinished": 0,
+      "p95Ms": 10001.0,
+      "p99Ms": 10002.0,
+      "cacheEnabled": null,
+      "nativeSummary": {
+        "list_errors{phase:measure}": {
+          "passes": 14268,
+          "fails": 15732,
+          "thresholds": {
+            "rate==0": true
+          },
+          "value": 0.4756
+        },
+        "list_end_to_end_ms{phase:measure}": {
+          "avg": 6417.292333333334,
+          "min": 30,
+          "med": 5885,
+          "max": 10021,
+          "p(50)": 5885,
+          "p(95)": 10001,
+          "p(99)": 10002,
+          "thresholds": {
+            "p(95)>=0": false
+          }
+        },
+        "dropped_iterations{scenario:measure}": {
+          "rate": 0,
+          "count": 0,
+          "thresholds": {
+            "count==0": false
+          }
+        }
+      },
+      "hostSamples": {
+        "app": {
+          "samples": 60,
+          "cpuMeanPct": 50.002833333333335,
+          "cpuMaxPct": 82.14,
+          "memoryMaxPct": 90.93
+        },
+        "db": {
+          "samples": 60,
+          "cpuMeanPct": 48.864666666666665,
+          "cpuMaxPct": 84.5,
+          "memoryMaxPct": 66.71
+        }
+      }
+    },
+    {
+      "runId": "20261015T034601Z-r400",
+      "startedAtKST": "2026-10-15T12:46:01.404006+09:00",
+      "targetRps": 400,
+      "holdSeconds": 60,
+      "httpTimeoutSeconds": 10,
+      "fixture": {
+        "open": 470,
+        "all": 2801
+      },
+      "deployedRevision": "19f1f9b9508b942acce40cdae2dba8db0ceb3198",
+      "requests": 24001,
+      "errors": 0,
+      "dropped": 0,
+      "unfinished": 0,
+      "p95Ms": 51.0,
+      "p99Ms": 97.0,
+      "cacheEnabled": true,
+      "nativeSummary": {
+        "list_errors{phase:measure}": {
+          "fails": 24001,
+          "passes": 0,
+          "thresholds": {
+            "rate==0": false
+          },
+          "value": 0
+        },
+        "list_end_to_end_ms{phase:measure}": {
+          "avg": 27.15128536310987,
+          "min": 13,
+          "med": 20,
+          "max": 399,
+          "p(50)": 20,
+          "p(95)": 51,
+          "p(99)": 97,
+          "thresholds": {
+            "p(95)>=0": false
+          }
+        },
+        "dropped_iterations{scenario:measure}": {
+          "count": 0,
+          "rate": 0,
+          "thresholds": {
+            "count==0": false
+          }
+        }
+      },
+      "hostSamples": {
+        "app": {
+          "samples": 60,
+          "cpuMeanPct": 63.1365,
+          "cpuMaxPct": 95.94,
+          "memoryMaxPct": 83.59
+        },
+        "db": {
+          "samples": 60,
+          "cpuMeanPct": 39.55883333333333,
+          "cpuMaxPct": 46.83,
+          "memoryMaxPct": 61.29
+        }
+      }
+    },
+    {
+      "runId": "20261015T035343Z-r400",
+      "startedAtKST": "2026-10-15T12:53:43.651801+09:00",
+      "targetRps": 400,
+      "holdSeconds": 60,
+      "httpTimeoutSeconds": 10,
+      "fixture": {
+        "open": 470,
+        "all": 2801
+      },
+      "deployedRevision": "19f1f9b9508b942acce40cdae2dba8db0ceb3198",
+      "requests": 24001,
+      "errors": 2423,
+      "dropped": 0,
+      "unfinished": 0,
+      "p95Ms": 10000.0,
+      "p99Ms": 10001.0,
+      "cacheEnabled": false,
+      "nativeSummary": {
+        "list_errors{phase:measure}": {
+          "passes": 2423,
+          "fails": 21578,
+          "thresholds": {
+            "rate==0": true
+          },
+          "value": 0.10095412691137869
+        },
+        "list_end_to_end_ms{phase:measure}": {
+          "med": 7533,
+          "max": 10010,
+          "p(50)": 7533,
+          "p(95)": 10000,
+          "p(99)": 10001,
+          "avg": 6614.395275196866,
+          "min": 27,
+          "thresholds": {
+            "p(95)>=0": false
+          }
+        },
+        "dropped_iterations{scenario:measure}": {
+          "count": 0,
+          "rate": 0,
+          "thresholds": {
+            "count==0": false
+          }
+        }
+      },
+      "hostSamples": {
+        "app": {
+          "samples": 60,
+          "cpuMeanPct": 71.08733333333333,
+          "cpuMaxPct": 95.0,
+          "memoryMaxPct": 87.62
+        },
+        "db": {
+          "samples": 60,
+          "cpuMeanPct": 61.3005,
+          "cpuMaxPct": 81.91,
+          "memoryMaxPct": 61.75
+        }
+      }
+    }
+  ],
+  "detailRun": {
+    "runId": "20261018T132738Z-detail-v100",
+    "visitsPerSecond": 100,
+    "expectedHttpRps": 300,
+    "holdSeconds": 60,
+    "visits": 6001,
+    "requests": 18003,
+    "errors": 0,
+    "dropped": 0,
+    "requestSummary": {
+      "read": {
+        "count": 6001,
+        "avgMs": 39.04,
+        "p95Ms": 75.0,
+        "p99Ms": 85.0,
+        "maxMs": 215
+      },
+      "session": {
+        "count": 6001,
+        "avgMs": 17.05,
+        "p95Ms": 26.0,
+        "p99Ms": 32.0,
+        "maxMs": 294
+      },
+      "view": {
+        "count": 6001,
+        "avgMs": 27.18,
+        "p95Ms": 38.0,
+        "p99Ms": 53.0,
+        "maxMs": 304
+      }
+    },
+    "visitP95Ms": 132
+  },
+  "interpretation": "원본 수치 발췌이며 독립 재측정은 아님. 실행별 JVM/예열/크레딧 이력이 달라 순수 변경 효과나 PROD 지속 용량을 확정하지 않음.",
+  "cacheComparison": {
+    "conditions": "400RPS x60sec, same deployed revision/instance/fixture/request mix; fresh JVM and 180sec warmup each, ON then OFF; OS/DB cache and swap history not reset",
+    "runs": [
+      {
+        "id": "20261015T034601Z-r400",
+        "cacheEnabled": true,
+        "started": 24001,
+        "errorCount": 0,
+        "errorPercent": 0.0,
+        "p95Ms": 51.0,
+        "p99Ms": 97.0,
+        "appCpuMeanPct": 63.1365,
+        "dbCpuMeanPct": 39.55883333333333,
+        "countQueryExecutions": 13,
+        "countQueryProbeSeconds": 120,
+        "gcPauseMaxMs": 22.299,
+        "swapInMiB": 0.62109375,
+        "swapOutMiB": 22.58984375
+      },
+      {
+        "id": "20261015T035343Z-r400",
+        "cacheEnabled": false,
+        "started": 24001,
+        "errorCount": 2423,
+        "errorPercent": 10.095,
+        "p95Ms": 10000.0,
+        "p99Ms": 10001.0,
+        "appCpuMeanPct": 71.08733333333333,
+        "dbCpuMeanPct": 61.3005,
+        "countQueryExecutions": 23314,
+        "countQueryProbeSeconds": 120,
+        "gcPauseMaxMs": 9095.504,
+        "swapInMiB": 181.25390625,
+        "swapOutMiB": 313.203125
+      }
+    ],
+    "interpretation": "두 조건 모두 새 JVM·동일 예열·같은 GC 로그 옵션. OFF에서만 CodeCache GC Threshold에 의한 Full GC 9.096초가 발생해 응답시간 비교에 GC 차이가 포함됩니다. COUNT 실행 감소는 확인됐지만, 이전 캐시 ON 실패 원인까지 확정한 것은 아닙니다."
+  }
+}

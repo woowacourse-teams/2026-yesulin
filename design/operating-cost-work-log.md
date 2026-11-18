@@ -557,8 +557,13 @@ DEV 앱 서버(`yesulin-backend-dev`)에서 Session Manager로 바꿨다.
 #### PROD 앱 t4g.micro 전환 (2026-10-19)
 
 팀 결정: DEV micro 부하 테스트에서 80 RPS에서 막히던 서버가 400 RPS까지 처리했고, ALB·ASG로 바로 늘릴 수 있어
-PROD 앱도 micro로 낮춘다. PROD DB는 small을 유지한다. ASG 소속이 아니라 정지 권한 없이는 유형을 바꿀 수 없고,
-micro에서 MySQL OOM 이력이 있다.
+PROD 앱도 micro로 낮춘다. **micro로 충분하다고 판단한 근거는10/15의 목록400RPS·60초 결과(24,000건 오류0, p95 85ms)다.**
+500RPS에서는 오류47.56%로 대기가 커져400RPS를 개선 비교 기준으로 잡았다. CPU 약70%는 다른API 여유를 고려한 참고값이며,
+쌓인 크레딧을 쓴 단기 시험만으로 PROD 지속·혼합API 용량을 보장한 것은 아니다.
+[실행 조건·후속 캐시/상세 측정과 한계](../ops/loadtest/dev-auditions/results.md#2026-11-18-보완--micro-선택과-후속-측정-요약)를 함께 본다.
+
+**이 판단은 PROD 앱에 한정한다.** PROD DB는 small을 유지한다. ASG 소속이 아니라 정지 권한 없이는 유형을 바꿀 수 없고,
+micro에서 MySQL OOM 이력이 있다. 이후 DB 메모리 조정·micro 전환 조건은 [별도 기록](db-memory-tuning-record.md)을 따른다.
 
 | 순서 | 작업 | 결과 |
 | --- | --- | --- |
