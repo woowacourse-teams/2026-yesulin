@@ -35,8 +35,10 @@
 - 원본 [dev CI](https://github.com/woowacourse-teams/2026-yesulin/actions/runs/44075128489)의 Frontend·Backend 모두 성공.
   Frontend는 lint·build, Backend는 Gradle build·Checkstyle·tests와 배포 스크립트를 수행했다.
 - 병합 결과의 프론트 lint 성공. 홈·Proxy·배너·대시보드·사이드바·커뮤니티·Next 설정 표적 Vitest 11파일 91개 성공.
-- 병합 결과의 프론트 운영 빌드는 sandbox에서 진행 정지해 중단 후 필요한 프로세스 권한으로 재실행 중이다.
-  이 중단은 빌드 성공으로 처리하지 않았다. 로컬 백엔드 전체 테스트는 다시 실행하지 않았으며 원본 CI 근거와 구분한다.
+- 병합 결과의 프론트 운영 빌드 성공. 출력에서 홈 `/` 재검증 주기 `5m` 확인.
+  첫 sandbox 실행은 진행 정지해 중단했고, 필요한 프로세스 권한으로 재실행한 결과만 성공 근거로 사용했다.
+- merge 커밋 `4085a010`의 pre-commit에서 Java 25 Checkstyle Main/Test 성공(캐시 재사용), commit-msg 통과.
+  로컬 백엔드 전체 테스트는 다시 실행하지 않았으며 원본 CI 근거와 구분한다.
 - config SHA는 양쪽 모두 `bab5abe1c1fa7128e89dea16f2422567b1983510`, 신규 DB migration 없음.
 - `AuditResetController`는 `@Profile({"local", "dev"})`이고 기본 reset-enabled=false다. prod에 초기화 API를 노출하지 않는다.
 - 관측 주기는 기본 PT60S이며 PT1S는 환경 변수로 명시할 때만 적용된다. 신규 필수 비밀 변수 없음.
