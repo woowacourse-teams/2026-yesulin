@@ -31,3 +31,6 @@ Claude 실행 파일을 찾지 못해 별도 에이전트로 읽기 전용 독�
 신규 확정 발견 0 / 해결 0 / 미해결 0 / P0 0 / P1 0 / P2 0 / P3 0 / 오탐 0.
 발견 경로 PRECHECK 0 / INDEPENDENT_REVIEW 0 / POST_FIX_CHECK 0 / EXTERNAL 0.
 미확인 항목 0. 확정 문제가 없어 문제 ID·상태 사건 이력은 없다. PR은 생성하지 않았다.
+
+게시 연결: 이후 릴리즈 PR [#603](https://github.com/woowacourse-teams/2026-yesulin/pull/603)에 본 기록을 포함했다.
+위 PR 없음 표시는 원래 작업 완료 시점의 이력이다. 평가와 문제 건수는 변경하지 않았다.

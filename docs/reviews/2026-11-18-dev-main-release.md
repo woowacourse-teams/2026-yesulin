@@ -1,7 +1,7 @@
 # dev 변경의 운영 릴리즈 준비
 
 작업 ID: `2026-11-18-dev-main-release` / 평가일: 2026-11-18 (Asia/Seoul) / 공통 릴리즈·프론트 / 평가표 v1.
-최초 기록 PR: `PENDING` / 작업 이슈: #602.
+최초 기록 PR: [#603](https://github.com/woowacourse-teams/2026-yesulin/pull/603) / 작업 이슈: #602.
 
 ## 대상과 범위
 
@@ -27,7 +27,7 @@
 | R02 | 병합·검증: 충돌이나 CI 미확인을 통과로 보고 | 충돌 해소와 원본 CI 상태 구분 | 유일한 충돌 `frontend/docs/architecture.md` 해결·stage, unmerged 경로 없음. dev SHA의 Frontend·Backend CI 성공. 릴리즈 PR CI는 생성 후 별도 확인 | 예 | PASS |
 | R03 | 운영 보존·설정: 운영 수정 유실·마이그레이션 누락 | main 전용 수정과 고정 유지 | main과 config/gitlink·version·DB migrations·readiness·홈 ISR/Proxy/prefetch 파일 diff 0. dev와 배너·CSP·대시보드 구현 diff 0 | 예 | PASS |
 | R04 | 로컬 작업: 미커밋 파일 포함·덮어쓰기 | 기존 작업 전체 보존 | 원본 폴더의 branch·HEAD·index·status·config와 기존 파일 내용/권한/경로 지문 전후 일치. 비밀 env 3개 포함, 값 미출력 | 예 | PASS |
-| R05 | 정리·평가·게시: 미사용 산출물·평가 누락 | 독립 평가 1회와 고정 집계를 갖춘 PR | 독립 평가와 본문 초안 검토 완료, 추가 확정 문제 없음. 실제 PR 게시 확인 대기 | 예 | UNVERIFIED |
+| R05 | 정리·평가·게시: 미사용 산출물·평가 누락 | 독립 평가 1회와 고정 집계를 갖춘 PR | 독립 평가·본문 검토 완료, 추가 문제 0건. PR #603 재조회에서 main 대상·릴리즈 head·평가 본문·이슈 연결·MERGEABLE 확인 | 예 | PASS |
 | R06 | 운영 배포·실기기: 미실행을 성공 처리 | PR 생성 범위와 배포 후 검증 구분 | 운영 병합·배포·실계정 메일·브라우저 E2E는 이번 PR 생성에서 실행하지 않음 | 아니오 | N/A |
 
 ## 실행 근거와 경계
@@ -52,7 +52,7 @@
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 최초 확정(+09:00) / 최초 PR | 해결 시각(+09:00) | 근거·조치·상태 |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-18-dev-main-release-F01 | P2·DOC·EXISTING | PRECHECK | 2026-11-18T12:32:24+09:00 / PENDING | 2026-11-18T12:33:34+09:00 | main/dev의 구조 문서 배너 문단 충돌. main의 ISR·실패 시 브라우저 재조회와 dev의 새 배너 구성을 함께 보존. stage 후 unmerged 없음·diff 검사 통과, FIXED |
+| 2026-11-18-dev-main-release-F01 | P2·DOC·EXISTING | PRECHECK | 2026-11-18T12:32:24+09:00 / #603 | 2026-11-18T12:33:34+09:00 | main/dev의 구조 문서 배너 문단 충돌. main의 ISR·실패 시 브라우저 재조회와 dev의 새 배너 구성을 함께 보존. stage 후 unmerged 없음·diff 검사 통과, FIXED |
 
 | 사건 ID | 문제 ID | 종류 | 시각(+09:00) | 근거·관련 PR |
 | --- | --- | --- | --- | --- |
@@ -66,7 +66,19 @@ Claude 실행 파일이 없어 별도 에이전트의 읽기 전용 독립 평�
 삭제 자산·옛 내비게이션 참조, 신규 의존성 소비자, 문서 링크와 PR 초안의 집계를 확인했다. 추가 확정 문제는 없다.
 평가자의 재귀 평가는 수행하지 않았다. 범위는 릴리즈 통합·충돌 해결·운영 보존이며, 원본 기능 전체를 재평가한 것으로 주장하지 않는다.
 
-필수 PASS 4 / FAIL 0 / UNVERIFIED 1 / N/A 0. 선택 N/A 1. 필수 검증률 4/5.
+필수 PASS 5 / FAIL 0 / UNVERIFIED 0 / N/A 0. 선택 N/A 1. 필수 검증률 5/5.
 신규 확정 발견 1 / 해결 1 / 미해결 0 / P0 0 / P1 0 / P2 1 / P3 0 / 오탐 0.
 발견 경로 PRECHECK 1 / INDEPENDENT_REVIEW 0 / POST_FIX_CHECK 0 / EXTERNAL 0.
-미확인 항목 1(R05). PR 생성 전이며 실제 게시 번호와 CI 결과는 후속 확인으로 추가한다.
+미확인 항목 0. 배포·브라우저 E2E와 새 PR CI 완료는 이 PR 생성 평가의 필수 통과 범위가 아니다.
+
+## 게시 후 확인
+
+2026-11-18T12:40:58+09:00에 PR #603을 재조회했다. main 대상의 일반 PR이며 병합 충돌은 없다.
+원본 dev 이력은 merge 커밋 `4085a010`의 두 번째 부모로 보존했고, main은 첫 번째 부모다.
+Frontend·Backend PR CI는 진행 중이며 Vercel 상태는 성공이었다. CI 완료·운영 배포 성공으로 확대 해석하지 않는다.
+문제 F01의 최초 기록 PR은 #603이며 위 E01·E02의 PENDING은 게시 전 사건 이력으로 그대로 보존한다.
+
+push 전에 원격 main/dev를 다시 fetch했다. 일반 rebase가 dev 병합 이력을 펼치며 같은 구조 문서에서
+충돌해 즉시 abort했고, 검증한 `ed496e30`의 tree와 merge 이력으로 복구했다.
+원격에 올라간 branch도 같은 SHA임을 확인했다. 이미 최신 main을 부모로 포함하는 릴리즈이므로
+통합 이력을 재작성하는 rebase를 반복하지 않고 양쪽 원본 이력을 유지했다. 원본 사용자 작업 폴더는 변경하지 않았다.
