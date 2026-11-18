@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
-import Image from "next/image";
+import { useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createPost, editPost } from "@/features/community/api";
 import { trackComposeStarted, trackPostCreated, useAbandonTracking, useTrackOnce } from "@/features/community/analytics";
@@ -10,8 +9,9 @@ import { useCommunityAction, useCurrentCommunityForm, useDraftGuard } from "@/fe
 import { communityReturnTo, finishCommunityEdit } from "@/features/community/navigation";
 import { useMemberDraft } from "@/features/community/use-member-draft";
 import type { CommunityEntry, CommunityParticipation } from "@/features/community/types";
-import { AuthorChoice, CommunityLogin, MemberParticipation } from "./member-participation";
-import { CommunityError } from "./community-ui";
+import { AuthorChoice, MemberParticipation } from "./member-participation";
+import { CommunityLogin } from "./community-login";
+import { CommunityError, CommunityStar } from "./community-ui";
 
 const TITLE_LIMIT = 100;
 const BODY_LIMIT = 5000;
@@ -49,9 +49,8 @@ function PostForm({ post, onSaved, onCancel, participation, memberDraft }: FormP
   useTrackOnce(!post && Boolean(participation), trackComposeStarted);
   useAbandonTracking(!post, dirty && !saved);
   const needsProfile = !post && memberDraft?.draft.authorMode === "PROFILE" && !participation?.profile?.path;
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (needsProfile) return;
+  async function submit(event: MouseEvent<HTMLButtonElement>) {
+    if (needsProfile || !event.currentTarget.form?.reportValidity()) return;
     await action.run(async () => {
       const input = normalizePost(fields.title, fields.body);
       const result = await savePost(post, input, memberDraft?.draft.requestId ?? attempt.current.idFor(input), participation, memberDraft?.draft.authorMode);
@@ -70,7 +69,7 @@ function PostForm({ post, onSaved, onCancel, participation, memberDraft }: FormP
     router.push("/community");
   }
   const ready = fields.title.trim() !== "" && fields.body.trim() !== "";
-  return <form className="community-compose" onSubmit={submit}>
+  return <form className="community-compose" onSubmit={event => event.preventDefault()}>
     <ComposeBar editing={Boolean(post)} busy={action.busy} cancel={cancel} />
     <fieldset disabled={action.busy} className="community-compose-body">
       <ComposeFields fields={fields} onChange={setFields} />
@@ -78,9 +77,9 @@ function PostForm({ post, onSaved, onCancel, participation, memberDraft }: FormP
         <p className="community-count" data-near={fields.body.length >= BODY_LIMIT * NEAR_LIMIT}>{fields.body.length.toLocaleString()} / 5,000</p>
         {!post && participation && memberDraft && <AuthorChoice preview={false} participation={participation} mode={memberDraft.draft.authorMode}
           onChange={authorMode => memberDraft.change({ authorMode })} />}
-        <button type="submit" className="community-publish" disabled={action.busy || !ready || needsProfile}
+        <button type="button" className="community-publish" onClick={submit} disabled={action.busy || !ready || needsProfile}
           aria-busy={action.busy}>
-          {!post && <Image src="/images/community-star-chat.png" width={32} height={32} alt="" />}
+          {!post && <CommunityStar width={32} height={32} />}
           <span>{submitLabel(Boolean(post), action.busy)}</span>
         </button>
       </div>
@@ -103,12 +102,20 @@ function submitLabel(editing: boolean, busy: boolean) {
 }
 
 function ComposeFields({ fields, onChange }: { readonly fields: Fields; readonly onChange: (fields: Fields) => void }) {
+  const body = useRef<HTMLTextAreaElement>(null);
+  function focusBodyOnEnter(event: KeyboardEvent<HTMLInputElement>) {
+    const { isComposing, keyCode } = event.nativeEvent;
+    if (event.key !== "Enter" || isComposing || keyCode === 229) return;
+    event.preventDefault();
+    body.current?.focus();
+  }
   return <div className="community-compose-fields">
     <label htmlFor="post-title">제목</label>
-    <input id="post-title" name="title" autoFocus required maxLength={TITLE_LIMIT} value={fields.title} placeholder="제목을 입력하세요"
-      onChange={event => onChange({ ...fields, title: event.target.value })} />
+    <input id="post-title" name="title" autoFocus required maxLength={TITLE_LIMIT} enterKeyHint="next" value={fields.title} placeholder="제목을 입력하세요"
+      onChange={event => onChange({ ...fields, title: event.target.value })} onKeyDown={focusBodyOnEnter} />
     <label htmlFor="post-body">본문</label>
-    <textarea id="post-body" name="body" required maxLength={BODY_LIMIT} rows={10} value={fields.body} placeholder="자유롭게 이야기를 적어 주세요."
+    <textarea ref={body} id="post-body" name="body" required maxLength={BODY_LIMIT} rows={10} enterKeyHint="enter"
+      value={fields.body} placeholder="자유롭게 이야기를 적어 주세요."
       onChange={event => onChange({ ...fields, body: event.target.value })} />
   </div>;
 }

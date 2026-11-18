@@ -1,6 +1,6 @@
 "use client";
 
-import { PRODUCER_LOGIN_PATH } from "@/features/auth/producer-navigation";
+import { PRODUCER_DASHBOARD_PATH, PRODUCER_LOGIN_PATH } from "@/features/auth/producer-navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { FeedbackLauncher } from "@/components/feedback/feedback-launcher";
@@ -13,7 +13,7 @@ import { actorPageRoutes } from "@/features/actor-pages/types";
 import { applicantRoutes } from "@/features/applicants/routes";
 import { TrackedLoginLink } from "@/components/analytics/tracked-login-link";
 import { PolicyLinks } from "@/components/policies/policy-links";
-import { AUDITION_ALERT_CHAT_URL, auditionPostRoutes, producerAuditionPostRoutes } from "@/features/audition-posts/types";
+import { AUDITION_ALERT_CHAT_URL, auditionPostRoutes } from "@/features/audition-posts/types";
 import { eventRoutes } from "@/features/events/types";
 import { showRoutes } from "@/features/shows/types";
 import { SiteIcon } from "@/components/ui/site-icon";
@@ -30,7 +30,10 @@ export function NotebookHeader({ service = "applicant" }: { readonly service?: "
   const pathname = usePathname() ?? "/";
   const current = currentMenu(pathname);
   return <header className="notebook-header"><div className="notebook-container notebook-header-inner">
-    <Link href="/" aria-label="예술in 홈" className="notebook-logo"><Image src="/images/yesulin-wordmark.png" alt="예술in" width={707} height={320} priority /></Link>
+    <Link href="/" aria-label="예술in 홈" className="notebook-logo">
+      <Image src="/images/yesulin-wordmark.png" alt="예술in" width={707} height={320}
+        sizes="(max-width: 760px) 76px, 88px" priority />
+    </Link>
     <nav aria-label="주요 메뉴" className="notebook-main-nav">{menuItems.map((item) => <Link key={item.key} href={item.href} aria-current={current === item.key ? "page" : undefined}>{item.label}</Link>)}</nav>
     <div className="notebook-account"><HeaderAccountLinks service={service} serviceLinkClassName="notebook-producer-link" /></div>
     <NotificationBell />
@@ -53,7 +56,7 @@ function HeaderAccountLinks({ service, serviceLinkClassName }: { readonly servic
   const homeLink = <Link href="/" className={serviceLinkClassName}>예술in 홈</Link>;
   if (session) return <>
     {session.role === "APPLICANT" && <Link href={applicantRoutes.home}>마이페이지</Link>}
-    {session.role === "PRODUCER" && <Link href={producerAuditionPostRoutes.list}>내 오디션 공고</Link>}
+    {session.role === "PRODUCER" && <Link href={PRODUCER_DASHBOARD_PATH}>공연사 대시보드</Link>}
     <LogoutButton />
     {producer && homeLink}
   </>;

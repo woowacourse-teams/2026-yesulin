@@ -4,7 +4,8 @@ import Image from "@tiptap/extension-image";
 import { TableKit } from "@tiptap/extension-table";
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { useEffect, useImperativeHandle, useRef, useState, type Ref, type KeyboardEvent } from "react";
+import DOMPurify from "dompurify";
+import { useDeferredValue, useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref, type KeyboardEvent } from "react";
 import { checkAuditionPostFile, isAuditionPostImageFile } from "@/features/audition-posts/editing";
 import { BodyEditorLoading } from "./body-editor-loading";
 
@@ -20,6 +21,7 @@ type Props = {
   readonly labelledBy: string;
   readonly describedBy?: string;
   readonly initialHtml: string;
+  readonly draftHtml: string | null;
   /** 사용자가 본문을 고칠 때마다 부른다. 처음 채운 내용으로는 부르지 않는다. */
   readonly onChange: (html: string) => void;
   /** 사진을 올리고 본문에 넣을 공개 주소를 돌려준다. 없으면 사진 업로드를 받지 않는다. */
@@ -62,13 +64,14 @@ const TOOL_CLASS =
  * 공고 본문 편집기. 공개 상세와 같은 `.post-body` 스타일로 보여 준다. 저장할 때 서버가 허용 태그만 남기고 이 공고의 사진이 아닌
  * 이미지는 지우므로, 파일 추가·붙여 넣기·끌어 놓기로 업로드한 사진만 남는다. 표는 원문 표를 잃지 않도록 읽고 고칠 수만 있게 한다.
  */
-export function AuditionPostBodyEditor({ editorRef, id, labelledBy, describedBy, initialHtml, onChange, onUploadImage, onUploadStateChange, disabled = false }: Props) {
+export function AuditionPostBodyEditor({ editorRef, id, labelledBy, describedBy, initialHtml, draftHtml, onChange, onUploadImage, onUploadStateChange, disabled = false }: Props) {
   const insertRef = useRef<((file: File, position?: number) => Promise<string | null>) | null>(null);
   const uploadingRef = useRef(false);
   /** 본문을 누른 적이 없으면 커서가 문서 맨 앞이라, 바깥에서 넣는 사진은 끝에 붙인다. */
   const touchedRef = useRef(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const receiveImages = (event: Event, files: readonly File[], position?: number) => {
     event.preventDefault();
@@ -161,8 +164,12 @@ export function AuditionPostBodyEditor({ editorRef, id, labelledBy, describedBy,
   if (!editor) return <BodyEditorLoading />;
 
   return (
-    <div className="overflow-hidden rounded-control border border-border bg-card focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
-      <div role="group" aria-label="본문 서식" className="flex flex-wrap gap-1 border-b border-border-soft bg-surface p-1.5">
+    <div data-preview-open={previewOpen} className="group/editor @container rounded-control border border-border bg-card">
+      <div role="group" aria-label="본문 보기" className="flex gap-1 rounded-t-control border-b border-border-soft p-1.5 @min-[44rem]:hidden">
+        <button type="button" aria-pressed={!previewOpen} aria-controls={`${id}-writing`} onClick={() => setPreviewOpen(false)} className={TOOL_CLASS}>작성</button>
+        <button type="button" aria-pressed={previewOpen} aria-controls={`${id}-preview`} onClick={() => setPreviewOpen(true)} className={TOOL_CLASS}>미리보기</button>
+      </div>
+      <div role="group" aria-label="본문 서식" className="flex flex-wrap items-start gap-1 rounded-t-control border-b border-border-soft bg-surface p-1.5 group-data-[preview-open=true]/editor:hidden @min-[44rem]:group-data-[preview-open=true]/editor:flex">
         {TOOLS.map((tool, index) => (
           <button
             key={tool.label}
@@ -182,14 +189,44 @@ export function AuditionPostBodyEditor({ editorRef, id, labelledBy, describedBy,
         <button type="button" disabled={!state?.canRedo} onClick={() => editor.chain().focus().redo().run()} className={TOOL_CLASS}>
           다시 하기
         </button>
+        <details className="ml-auto max-w-full px-2 text-sm text-muted-strong">
+          <summary className="min-h-11 cursor-pointer py-3 font-semibold">입력 도움말</summary>
+          <p className="pb-2 text-xs leading-5">빈 줄은 Enter 두 번. <code>### 제목</code>, <code>**굵게**</code>, <code>- 목록</code>을 입력해 서식을 넣을 수도 있어요.</p>
+        </details>
       </div>
       {imageUploading ? <p role="status" className="px-4 pt-3 text-sm text-muted-strong">사진을 올리는 중이에요.</p> : null}
       {imageError ? <p role="alert" className="px-4 pt-3 text-sm text-fail">{imageError}</p> : null}
-      <div className="relative">
-        {(state?.empty ?? editor.isEmpty) ? <p aria-hidden="true" className="pointer-events-none absolute left-4 right-4 top-4 z-10 text-base leading-[1.8] text-muted sm:left-5 sm:right-5">내용을 입력하거나 사진을 끌어 놓으세요</p> : null}
-        <EditorContent editor={editor} />
+      <div className="grid @min-[44rem]:grid-cols-2">
+        <div id={`${id}-writing`} className="min-w-0 group-data-[preview-open=true]/editor:hidden @min-[44rem]:group-data-[preview-open=true]/editor:block">
+          <p aria-hidden="true" className="hidden border-b border-border-soft px-5 py-2.5 text-sm font-bold @min-[44rem]:block">작성</p>
+          <div className="relative overflow-auto rounded-b-control focus-within:ring-2 focus-within:ring-inset focus-within:ring-brand @min-[44rem]:max-h-[min(65dvh,44rem)]">
+            {(state?.empty ?? editor.isEmpty) && <p aria-hidden="true" className="pointer-events-none absolute left-4 right-4 top-4 text-base leading-[1.8] text-muted sm:left-5 sm:right-5">내용을 입력하거나 사진을 끌어 놓으세요</p>}
+            <EditorContent editor={editor} />
+          </div>
+        </div>
+        <AuditionPostBodyPreview id={`${id}-preview`} html={draftHtml ?? initialHtml} />
       </div>
     </div>
+  );
+}
+
+function AuditionPostBodyPreview({ id, html }: { readonly id: string; readonly html: string }) {
+  const draft = useDeferredValue(html);
+  const previewHtml = useMemo(() => DOMPurify.sanitize(draft, {
+    USE_PROFILES: { html: true },
+    FORBID_TAGS: ["style"],
+    FORBID_ATTR: ["href", "style"],
+  }), [draft]);
+  const hasContent = previewHtml !== "" && previewHtml !== "<p></p>";
+
+  return (
+    <section id={id} aria-label="본문 미리보기" className="hidden min-w-0 group-data-[preview-open=true]/editor:block @min-[44rem]:block @min-[44rem]:border-l @min-[44rem]:border-border-soft">
+      <h3 className="hidden border-b border-border-soft px-5 py-2.5 text-sm font-bold @min-[44rem]:block">미리보기</h3>
+      <div className="min-h-80 overflow-auto px-4 py-4 sm:px-5 @min-[44rem]:max-h-[min(65dvh,44rem)]">
+        {hasContent && <div className="post-body" dangerouslySetInnerHTML={{ __html: previewHtml }} />}
+        {!hasContent && <p className="text-sm leading-6 text-muted">본문을 입력하면 여기에 표시돼요.</p>}
+      </div>
+    </section>
   );
 }
 

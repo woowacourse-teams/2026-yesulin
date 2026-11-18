@@ -37,6 +37,7 @@ public class ApiExceptionHandler {
             case NOT_FOUND -> HttpStatus.NOT_FOUND;
             case CONFLICT -> HttpStatus.CONFLICT;
             case TOO_MANY_REQUESTS -> HttpStatus.TOO_MANY_REQUESTS;
+            case BAD_GATEWAY -> HttpStatus.BAD_GATEWAY;
         };
         return ResponseEntity.status(status).body(response);
     }

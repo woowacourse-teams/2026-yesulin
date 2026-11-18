@@ -218,6 +218,15 @@
     margin: 0 0 0.25em;
   }
 
+  .post-body p:empty {
+    min-block-size: 1lh;
+  }
+
+  .post-body hr {
+    margin-block: 1em;
+    border-color: var(--line);
+  }
+
   .post-body h1,
   .post-body h2,
   .post-body h3,

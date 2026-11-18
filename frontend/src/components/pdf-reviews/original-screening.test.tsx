@@ -82,7 +82,7 @@ it('제목 저장이 완료될 때까지 다음 이동을 기다리고 제목·�
   let resolve!: (entry: ReviewEntry) => void;
   mocks.rename.mockReturnValue(new Promise<ReviewEntry>(r=>{resolve=r;}));
   mocks.save.mockResolvedValue({...entries[0],memo:'최신 메모'});
-  const navigate=vi.fn(); await act(async () => root.render(<Harness navigate={navigate ?? guarded} />));
+  const navigate=vi.fn(); await act(async () => root.render(<Harness navigate={navigate} />));
   await title('최신 제목');await memo('최신 메모');await button('다음 지원서');expect(navigate).not.toHaveBeenCalled();
   await act(async()=>resolve({...entries[0],title:'최신 제목'}));
   expect(navigate).toHaveBeenCalledOnce();expect(host.querySelector<HTMLInputElement>('[aria-label="배우 이름"]')?.value).toBe('최신 제목');

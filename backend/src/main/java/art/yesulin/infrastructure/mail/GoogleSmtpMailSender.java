@@ -8,6 +8,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.mail.MailPreparationException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
@@ -40,7 +41,7 @@ public class GoogleSmtpMailSender implements MailSender {
             helper.setSubject(message.subject());
             mimeMessage.setContent(alternativeContent(message));
         } catch (MessagingException | UnsupportedEncodingException exception) {
-            throw new IllegalStateException("메일을 생성하지 못했습니다.", exception);
+            throw new MailPreparationException("메일을 생성하지 못했습니다.", exception);
         }
         javaMailSender.send(mimeMessage);
     }

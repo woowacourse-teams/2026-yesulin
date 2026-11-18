@@ -189,7 +189,8 @@ status,warnings,pages[number,text,needsOcr,images[status,key]]`)다. 소유자�
 전환 전 발급된 링크는 기존 만료까지 GET으로 호환하며 같은 회원의 기존 세션만 갱신한다. 새 코드 발급 정보는
 GET 링크로 검증할 수 없다. 신규 메일에는 URL이나 `redirectUri`를 넣지 않는다.
 가입이 커밋된 뒤 최초 메일 요청이 실패해도 가입은 201로 응답한다. 미인증 계정으로 로그인한 뒤 재전송할 수 있으며,
-재전송 발송 실패는 성공 응답으로 숨기지 않는다. 메일 전송 요청 성공이 수신함 도착을 보장하지는 않는다.
+재전송 발송 실패는 `502 AUTH_EMAIL_VERIFICATION_DELIVERY_FAILED`다. DB에 이미 발급된 인증번호의 재발급 제한은 유지한다.
+메일 전송 요청 성공이 수신함 도착을 보장하지는 않는다.
 
 비밀번호 재설정 메일 요청은 계정 존재 여부를 노출하지 않고 항상 204를 반환한다. 기획사/제작사 이메일 계정에만 5분
 유효한 일회용 링크를 보내며, GET으로 링크를 확인한 뒤 PATCH에서 8~64자의 새 비밀번호와 확인 값을 받는다.
@@ -394,7 +395,8 @@ page·size 범위 오류와 지원하지 않는 category·sort는 `400 INVALID_R
 선택한 게시일 범위의 전체 공고 수와 누적 링크 방문 합계다. 음수 page는 `400 INVALID_REQUEST`다.
 브라우저 저장값 삭제·동시 탭·요청 재시도 등에 따라 중복될 수 있는 대략적인 지표다.
 
-`bodyHtml`은 서버가 Jsoup relaxed 허용 목록에서 `div`와 크기 속성을 뺀 태그만 남긴 HTML이다. 인라인 스타일과 스크립트는 없다.
+`bodyHtml`은 서버가 Jsoup relaxed 허용 목록에서 `div`와 크기 속성을 빼고 편집기의 `s`(취소선)와 `hr`(구분선)를 허용한 HTML이다.
+인라인 스타일과 스크립트는 제거한다.
 링크는 `target="_blank" rel="noopener noreferrer nofollow"`이고, 사진 `src`는 응답할 때 공개 저장소 주소로 채운다.
 첨부 `url`은 공개 저장소 주소이며 객체에 `Content-Disposition: attachment`와 원래 파일 이름이 설정돼 있다.
 
@@ -1263,6 +1265,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 | DELETE | `/api/v1/admin/files/{fileId}` | Admin | `DeleteAdminFileRequest(confirmationPassword)` | `204` |
 | POST | `/api/v1/admin/files/deletions` | Admin | `BatchDeleteAdminFilesRequest(fileIds, confirmationPassword)` | `200 BatchFileDeletionResult` |
 | PATCH | `/api/v1/admin/members/{memberId}/status` | Admin | `ChangeMemberStatusRequest(status)` | `200 MemberStatusResult` |
+| POST | `/api/v1/admin/members/{memberId}/email-verifications` | Admin | 없음 | `204` |
 | PUT | `/api/v1/admin/shows/{showId}/host-name` | Admin | `ChangeShowHostNameRequest(hostName)` | `200 AdminShowHostNameResult` |
 | POST | `/api/v1/admin/shows` | Admin | `AdminSaveShowRequest` | `201 ProducerShowResponse`, `Location` |
 | GET | `/api/v1/admin/shows/{showId}` | Admin | 없음 | `200 ProducerShowResponse` |
@@ -1279,6 +1282,11 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 | DELETE | `/api/v1/admin/submissions/{submissionId}` | Admin | `DeleteAdminSubmissionRequest(confirmationPassword)` | `204` |
 | GET | `/api/v1/admin/timetable-messages` | Admin | `status` query (`PENDING`/`SENT`, 기본 `PENDING`) | `200 AdminTimetableMessagesResult` |
 | POST | `/api/v1/admin/timetable-messages/completion` | Admin | `CompleteTimetableMessagesRequest(messageIds)` | `200 AdminTimetableMessagesResponse` |
+
+관리자 메일 재전송은 CSRF 검증을 거친 뒤 `PENDING` 기획사/제작사의 등록 주소에 새 코드를 보낸다.
+대상이 없거나 상태·유형이 다르면 `400 AUTH_INVALID_EMAIL_VERIFICATION`, 발급 후 60초 이내면
+`409 AUTH_EMAIL_VERIFICATION_RESEND_TOO_SOON`, 발송 실패는 `502 AUTH_EMAIL_VERIFICATION_DELIVERY_FAILED`다.
+유효한 대기 계정에 대한 관리자 요청은 애플리케이션 로그의 `ADMIN_VERIFICATION_RESEND_REQUESTED`로 남는다.
 
 `AdminOverview`는 회원·공연·공고·지원서, OTR 공고·지원서, 무료 공연·확정 예매 매수 집계와 최근 7일 신규 수만 담고
 개인 식별 정보를 담지 않는다. 예매 매수와 최근 7일 예매 수(`newReservationsInLastWeek`)는 현재 확정 상태인 예매만 센다.
@@ -1462,7 +1470,7 @@ POST 성공만으로 저장됐다고 판단하지 않고 GET에서 같은 이전
 | --- | --- | --- |
 | GET | `/identity` | `{ready: boolean}`. 쿠키 확인만 하며 새 키는 발급하지 않음. 이전 헤더가 있으면 해당 키와 쿠키의 일치도 확인 |
 | POST | `/identity` | 본문 없음, CSRF 필수 → 204 + HttpOnly Set-Cookie. 기존 쿠키 재사용, 기존 키 이전 또는 서버 32바이트 난수 신규 발급 |
-| GET | `/posts?topic={topic}&before={id}` | 두 파라미터 모두 선택. 해당 주제의 최신 글 5개, topic 생략 시 전체. 첫 페이지는 공개, 이전 페이지는 로그인 필요(401). `before`는 양수, 해당 ID 미포함 |
+| GET | `/posts?topic={topic}&before={id}` | 모든 페이지 공개. 두 파라미터 모두 선택. 해당 주제의 최신 글부터 5개씩, topic 생략 시 전체 주제. `before`는 양수이며 해당 ID는 미포함 |
 | GET | `/posts/popular` | 공개. 최근 7일 점수순 최대 5개. `[{id, title}]`; 없으면 빈 배열 |
 | POST | `/posts` | `{requestId: UUID, title, body, topic?, authorMode, expectedMemberId}` → 201 작성물 |
 | GET | `/posts/participation?postId={id}` | 본인 참여 상태. postId 생략 시 새 글. `{memberId, canWrite, fixedMode, profile: {name, photoUrl, path} 또는 null}`. fixedMode는 호환용으로 항상 null. 비로그인은 memberId/profile/fixedMode null·canWrite false. 회원 ID는 이 본인 응답에만 포함 |

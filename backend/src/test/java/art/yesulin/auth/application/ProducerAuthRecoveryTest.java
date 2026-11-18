@@ -3,9 +3,16 @@ package art.yesulin.auth.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import art.yesulin.auth.domain.EmailVerification;
 import art.yesulin.auth.domain.EmailVerificationRepository;
@@ -13,6 +20,7 @@ import art.yesulin.auth.domain.VerificationCode;
 import art.yesulin.auth.domain.member.Member;
 import art.yesulin.auth.domain.member.MemberRepository;
 import art.yesulin.auth.domain.member.MemberStatus;
+import art.yesulin.auth.domain.member.MemberType;
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.infrastructure.mail.MailSender;
 import art.yesulin.producer.application.ProducerResult;
@@ -33,9 +41,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.mail.MailSendException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:producer-auth-recovery;MODE=MySQL;DB_CLOSE_DELAY=-1",
@@ -44,12 +55,17 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
         "spring.flyway.enabled=false"
 })
 @Import(ObjectStorageTestConfiguration.class)
+@AutoConfigureMockMvc
 class ProducerAuthRecoveryTest {
 
     private static final String EMAIL = "recovery@yesulin.art";
     private static final String PASSWORD = "password1234";
     private static final Instant NOW = Instant.parse("2026-11-02T00:00:00Z");
+    private static final String ADMIN_RESEND = "/api/v1/admin/members/{memberId}/email-verifications";
+    private static final MemberPrincipal ADMIN = new MemberPrincipal(900L, MemberType.ADMIN, MemberStatus.ACTIVE);
 
+    @Autowired
+    private MockMvc mvc;
     @Autowired
     private ProducerSignUpService signUpService;
     @Autowired
@@ -89,11 +105,72 @@ class ProducerAuthRecoveryTest {
     private void assertResendFailureAndRecovery(long memberId) {
         when(clock.instant()).thenReturn(NOW.plusSeconds(61));
         assertThatThrownBy(() -> verificationService.resendVerification(memberId))
-                .isInstanceOf(MailSendException.class);
+                .isInstanceOfSatisfying(BusinessException.class, failure ->
+                        assertThat(failure.getErrorCode()).isEqualTo(AuthErrorCode.EMAIL_VERIFICATION_DELIVERY_FAILED));
         doNothing().when(mailSender).send(any());
         when(clock.instant()).thenReturn(NOW.plusSeconds(122));
         verificationService.resendVerification(memberId);
         assertThat(authService.findCurrent(memberId).status()).isEqualTo(MemberStatus.PENDING);
+    }
+
+    @Test
+    void adminResendIssuesNewCodeToTheRegisteredAddressAndSharesCooldown() throws Exception {
+        ProducerResult producer = signUpService.signUp(command());
+        when(clock.instant()).thenReturn(NOW.plusSeconds(61));
+        when(codeGenerator.generate()).thenReturn(new VerificationCode("456789"));
+        adminResend(producer.memberId()).andExpect(status().isNoContent());
+        verify(mailSender).send(argThat(mail ->
+                EMAIL.equals(mail.recipient()) && mail.textContent().contains("456789")));
+        assertAdminResendCodeIsCurrent(producer.memberId());
+    }
+
+    private void assertAdminResendCodeIsCurrent(long memberId) {
+        assertThatThrownBy(() -> verificationService.resendVerification(memberId))
+                .isInstanceOfSatisfying(BusinessException.class, failure ->
+                        assertThat(failure.getErrorCode()).isEqualTo(AuthErrorCode.EMAIL_VERIFICATION_RESEND_TOO_SOON));
+        assertThatThrownBy(() -> verificationService.verifyCode(memberId, new VerificationCode("000123")))
+                .isInstanceOf(BusinessException.class);
+        assertThat(verificationService.verifyCode(memberId, new VerificationCode("456789")).status())
+                .isEqualTo(MemberStatus.ACTIVE);
+    }
+
+    @Test
+    void adminResendRejectsOtherRolesAndRequestsWithoutCsrf() throws Exception {
+        ProducerResult producer = signUpService.signUp(command());
+        mvc.perform(post(ADMIN_RESEND, producer.memberId()).with(csrf()))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post(ADMIN_RESEND, producer.memberId()).with(csrf())
+                        .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, authService.login(EMAIL, PASSWORD)))
+                .andExpect(status().isForbidden());
+        mvc.perform(post(ADMIN_RESEND, producer.memberId()).sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, ADMIN))
+                .andExpect(status().isForbidden());
+        verify(mailSender, times(1)).send(any());
+    }
+
+    @Test
+    void adminResendRejectsActivatedAndMissingAccounts() throws Exception {
+        ProducerResult producer = signUpService.signUp(command());
+        verificationService.verifyCode(producer.memberId(), new VerificationCode("000123"));
+        adminResend(producer.memberId()).andExpect(status().isBadRequest());
+        adminResend(Long.MAX_VALUE).andExpect(status().isBadRequest());
+        verify(mailSender, times(1)).send(any());
+    }
+
+    @Test
+    void adminResendReturnsSafeFailureAndKeepsTheExistingCooldown() throws Exception {
+        ProducerResult producer = signUpService.signUp(command());
+        when(clock.instant()).thenReturn(NOW.plusSeconds(61));
+        doThrow(new MailSendException(EMAIL + " 000123")).when(mailSender).send(any());
+        adminResend(producer.memberId()).andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.code").value("AUTH_EMAIL_VERIFICATION_DELIVERY_FAILED"))
+                .andExpect(jsonPath("$.message").value("인증 메일을 보내지 못했습니다. 잠시 후 다시 시도해 주세요."));
+        adminResend(producer.memberId()).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("AUTH_EMAIL_VERIFICATION_RESEND_TOO_SOON"));
+    }
+
+    private ResultActions adminResend(long memberId) throws Exception {
+        return mvc.perform(post(ADMIN_RESEND, memberId).with(csrf())
+                .sessionAttr(MemberPrincipal.SESSION_ATTRIBUTE, ADMIN));
     }
 
     @Test

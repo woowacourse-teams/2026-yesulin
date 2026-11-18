@@ -1,5 +1,6 @@
 package art.yesulin.auth.presentation.api.admin;
 
+import art.yesulin.auth.application.EmailVerificationService;
 import art.yesulin.auth.application.MemberPrincipal;
 import art.yesulin.auth.application.admin.AdminMemberService;
 import art.yesulin.auth.application.admin.MemberStatusResult;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminMemberController {
 
     private final AdminMemberService adminMemberService;
+    private final EmailVerificationService emailVerificationService;
 
     @PatchMapping("/{memberId}/status")
     public ResponseEntity<MemberStatusResult> changeStatus(
@@ -32,5 +35,14 @@ public class AdminMemberController {
         MemberStatusResult result = adminMemberService.changeStatus(
                 request.toCommand(principal.memberId(), memberId));
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/{memberId}/email-verifications")
+    public ResponseEntity<Void> resendVerification(
+            @LoginMember(roles = MemberType.ADMIN) MemberPrincipal principal,
+            @PathVariable long memberId
+    ) {
+        emailVerificationService.resendVerificationByAdmin(principal.memberId(), memberId);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -227,15 +227,19 @@ class CommunityMembershipTest {
     }
 
     @Test
-    void guestsCanPreviewFivePostsAndOnlyMembersCanContinue() {
+    void guestsCanReadOlderPostsWithTheSameCursorAsMembers() {
         MemberPrincipal member = actor();
-        for (int count = 0; count < 6; count++) {
+        long older = post(member).id();
+        for (int count = 0; count < 5; count++) {
             post(member);
         }
-        CommunityPage preview = members.posts(Long.MAX_VALUE, null, null);
-        assertEquals(5, preview.items().size());
-        assertThrows(BusinessException.class, () -> members.posts(preview.nextCursor(), null, null));
-        assertTrue(members.posts(preview.nextCursor(), null, member).items().getFirst().id() < preview.nextCursor());
+        CommunityPage first = members.posts(Long.MAX_VALUE, null, null);
+        assertEquals(5, first.items().size());
+        CommunityPage next = members.posts(first.nextCursor(), null, null);
+        assertEquals(older, next.items().getFirst().id());
+        assertEquals(members.posts(first.nextCursor(), null, member).items().stream().map(EntryResult::id).toList(),
+                next.items().stream().map(EntryResult::id).toList());
+        assertFalse(next.items().getFirst().editable());
     }
 
     @Test

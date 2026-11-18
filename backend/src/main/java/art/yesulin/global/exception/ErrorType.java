@@ -7,5 +7,6 @@ public enum ErrorType {
     NOT_FOUND,
     CONFLICT,
     TOO_MANY_REQUESTS,
+    BAD_GATEWAY,
     FORBIDDEN
 }

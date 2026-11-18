@@ -1,0 +1,15 @@
+.dashboard {
+  container: producer-dashboard / inline-size;
+}
+
+@container producer-dashboard (min-width: 740px) {
+  .sections {
+    grid-template-columns: minmax(0, 1.76fr) minmax(288px, 1fr);
+    grid-template-areas: "recent guide" "schedule guide";
+  }
+
+  .recent { grid-area: recent; }
+  .guide { grid-area: guide; }
+  .schedule { grid-area: schedule; }
+  .guideJump { display: none; }
+}

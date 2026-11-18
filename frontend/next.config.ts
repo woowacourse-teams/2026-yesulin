@@ -9,17 +9,48 @@ const apiOrigin = process.env.API_ORIGIN
 // robots.txt로 막으면 로봇이 이 헤더를 읽지 못하므로 수집은 허용하고 헤더로만 제외한다.
 const excludeFromSearch = Boolean(process.env.VERCEL_ENV) && process.env.VERCEL_ENV !== "production";
 
+function sentryIngestOrigins(): string[] {
+  const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+  if (!dsn) return [];
+  const url = URL.parse(dsn);
+  if (url?.protocol !== "https:") return [];
+  return [url.origin];
+}
+
+const connectSources = [
+  "'self'", "https://www.googletagmanager.com", "https://*.google-analytics.com", "https://*.analytics.google.com",
+  "https://us.i.posthog.com", "https://eu.i.posthog.com", "https://us-assets.i.posthog.com", "https://eu-assets.i.posthog.com",
+  "https://dcijkydwh7e79.cloudfront.net", "https://s3.ap-northeast-2.amazonaws.com", "https://*.s3.ap-northeast-2.amazonaws.com",
+  "https://s3.amazonaws.com", "https://*.s3.amazonaws.com", ...sentryIngestOrigins(),
+];
+
+const reportOnlyPolicy = [
+  "default-src 'self'",
+  "script-src 'self' 'wasm-unsafe-eval' https://www.googletagmanager.com https://us-assets.i.posthog.com https://eu-assets.i.posthog.com https://va.vercel-scripts.com",
+  "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+  "font-src 'self' data: https://cdn.jsdelivr.net",
+  "img-src 'self' data: blob: https:",
+  "media-src 'self' blob: https:",
+  `connect-src ${connectSources.join(" ")}`,
+  "worker-src 'self' blob:",
+  "frame-src 'self' blob: https://www.youtube-nocookie.com https://www.youtube.com",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'self'",
+  "form-action 'self'",
+].join("; ");
+
 const nextConfig: NextConfig = {
   output: "standalone",
+  poweredByHeader: false,
   async headers() {
-    if (!excludeFromSearch) return [];
-
-    return [
-      {
-        source: "/:path*",
-        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
-      },
-    ];
+    const headers = [];
+    if (excludeFromSearch) headers.push({ key: "X-Robots-Tag", value: "noindex" });
+    if (process.env.NODE_ENV !== "development") {
+      headers.push({ key: "Content-Security-Policy-Report-Only", value: reportOnlyPolicy });
+    }
+    if (!headers.length) return [];
+    return [{ source: "/:path*", headers }];
   },
   // App Router는 `@`로 시작하는 폴더를 병렬 라우트 슬롯으로 보므로 `/actors/@아이디`를 내부 경로로 넘긴다.
   // 내부 경로로 바로 들어오면 정규 주소로 보낸다. 리다이렉트는 들어온 주소에만 적용되어 rewrite 결과와 순환하지 않는다.

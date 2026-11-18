@@ -114,6 +114,8 @@ yesulin:
       max-open-duration: ${YESULIN_PDF_AI_CIRCUIT_MAX_OPEN_DURATION:PT5M}
   pdf-extraction:
     enabled: ${YESULIN_PDF_EXTRACTION_ENABLED:false}
+  pdf-review:
+    reset-enabled: false
   community:
     link-base-url: ${YESULIN_COMMUNITY_LINK_BASE_URL:}
     notifications-enabled: ${YESULIN_COMMUNITY_NOTIFICATIONS_ENABLED:true}
@@ -124,6 +126,8 @@ yesulin:
       maximum-size: 32
   monitoring:
     enabled: ${YESULIN_MONITORING_ENABLED:true}
+    # 부하 테스트하는 동안만 PT1S로 낮춘다. 1초보다 짧으면 1초로 올려 쓴다.
+    publish-interval: ${YESULIN_MONITORING_PUBLISH_INTERVAL:PT60S}
   kopis:
     # 공연예술통합전산망 Open API 인증키. 비우면 운영자 공연사 정보 쓰기에서 KOPIS 조회를 끈다.
     api-key: ${KOPIS_API_KEY:}
@@ -217,6 +221,10 @@ spring:
     activate:
       on-profile: dev
 yesulin:
+  pdf-review:
+    reset-enabled: true
+    # 우형 전시회(2026-11-20) 시연 계정만 초기화한다. 전시회가 끝나면 초기화 기능과 함께 지운다.
+    reset-allowed-member-ids: 59
   pdf-ai:
     request-interval: ${YESULIN_PDF_AI_REQUEST_INTERVAL:PT1S}
     resilience:

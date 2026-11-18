@@ -68,9 +68,6 @@ public class CommunityMembershipService {
 
     @Transactional(readOnly = true)
     public CommunityPage posts(long before, String cookie, MemberPrincipal principal, CommunityTopic topic) {
-        if (before != Long.MAX_VALUE && principal == null) {
-            throw new BusinessException(AuthErrorCode.UNAUTHENTICATED, "이전 글을 보려면 로그인해 주세요.");
-        }
         return decorate(entries.posts(before, cookie, topic), cookie, principal);
     }
 

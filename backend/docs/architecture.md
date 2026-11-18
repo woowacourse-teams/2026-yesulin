@@ -98,7 +98,8 @@ infrastructure/    JPA·QueryDSL, OAuth, S3 등 외부 기술 adapter
   예매 실패는 `HTTP_REQUEST`의 error code로 구분한다.
 - `FILE_METADATA_MISMATCH`는 `fileId`, 기대/실제 크기와 Content-Type을 기록한다. 파일명·소유자 ID·S3 URL은
   기록하지 않는다.
-- 운영자의 쓰기 작업은 `admin_audit_logs`에 실행자·대상·상태 변화 또는 리소스 UUID만 남기고 개인정보 원문은 담지 않는다.
+- 운영자의 상태 변경과 리소스 관리 작업은 `admin_audit_logs`에 실행자·대상·상태 변화 또는 리소스 UUID만 남긴다.
+  인증 메일 재전송 요청 기록은 [공연사 가입과 인증 복구](../src/main/java/art/yesulin/auth/docs/flows/producer-auth.md)를 따른다.
 - 운영자 지원서 삭제는 별도 확인 비밀번호의 BCrypt 해시를 서버 설정에서 읽는다. 원문 비밀번호는 저장·로그하지 않고,
   확인 성공 뒤에만 지원서 행을 잠가 종속 데이터와 심사 완료 표시를 같은 트랜잭션에서 삭제한다.
 - 삭제 확인의 계정별 반복 제한은 `AdminDeletionConfirmation`이 불변 상태와 원자적 `compute`로 처리한다.

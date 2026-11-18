@@ -10,6 +10,9 @@ Logback 로그로 확인한다. 세 도구의 역할을 섞지 않는 게 기본
 - 코드가 `catch`한 뒤 사용자 메시지로 바꾸는 오류는 해당 `catch` 지점에서 `reportError`를 호출한다.
 - API 4xx는 로그인 만료나 입력 검증처럼 예상 가능한 흐름이므로 이슈로 만들지 않는다. 네트워크 실패와 5xx만
   공통 API 클라이언트에서 수집한다.
+- 관리자 인증 메일 재전송과 회원 상태 변경도 네트워크 실패와 5xx를 수집한다. `feature=admin`과
+  `operation=resend_member_verification` 또는 `change_member_status`로 찾을 수 있다. 요청에 보낸 ID와
+  HTTP 상태가 있는 경우 그 상태만 전달하며, 서버 응답과 브라우저 예외 원문은 담지 않는다.
 
 iOS WebKit의 `NotFoundError: The object can not be found here`처럼 HTTP 응답이 없는 오류도 수집 대상이다.
 지원 사진, 프로필 사진, 공연 포스터 업로드가 이 오류를 잡아 재시도한 뒤 최종 실패하면

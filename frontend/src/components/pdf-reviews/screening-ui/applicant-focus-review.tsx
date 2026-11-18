@@ -4,6 +4,7 @@ import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react"
 import { startReviewTimer } from "@/features/analytics/review-timer";
 import type { ReviewInput } from "@/features/analytics/review-actions";
 import type { Applicant, ReviewStatus } from "@/features/pdf-reviews/screening-types";
+import { applicantListLabel } from "@/features/pdf-reviews/applicant-list-label";
 import { useReviewAutosave } from "@/features/pdf-reviews/use-review-autosave";
 import { SecondaryButton } from "@/components/ui/controls";
 import { ReviewDocumentHeading } from "../review-document-heading";
@@ -80,7 +81,8 @@ function FocusReviewContent({ applicant, rows, index, onBack, onMove, documentEx
   const navigate = async (action: () => void) => { if (!await flush()) return; if (requestNavigation) { requestNavigation(action); return; } action(); };
   const errorIds: { title?: string; memo?: string } = {};
   if (draft.errorField) errorIds[draft.errorField] = "pdf-review-save-error";
-  return <section ref={section} tabIndex={-1} aria-label={`${applicant.name} · 지원자 ${index + 1} / ${rows.length} 심사`} className="pb-8 outline-none">
+  const heading = applicantListLabel(applicant).heading;
+  return <section ref={section} tabIndex={-1} aria-label={`${heading} · 지원자 ${index + 1} / ${rows.length} 심사`} className="pb-8 outline-none">
     <header className="mb-3 flex flex-col gap-2 px-1 md:flex-row md:items-center md:justify-between">
       <ReviewDocumentHeading errorId={errorIds.title} title={draft.title} disabled={disabled} onChange={value => draft.change("title", value)} onBlur={() => void flush()} onCompositionStart={() => draft.compose("title", true)} onCompositionEnd={value => draft.compose("title", false, value)} />
       <nav aria-label="지원서 이동" className="flex shrink-0 items-center justify-between gap-2">
@@ -92,7 +94,7 @@ function FocusReviewContent({ applicant, rows, index, onBack, onMove, documentEx
     </header>
     <div className="grid min-w-0 items-start gap-4 md:grid-cols-[minmax(0,1fr)_240px] xl:grid-cols-[minmax(0,1fr)_280px]">
       <div className="min-w-0 overflow-hidden rounded-card border border-border bg-card">{renderDocument?.(applicant, { expanded: documentExpanded, onExpandedChange: onDocumentExpandedChange,
-        caption: <FullscreenCaption name={applicant.name} status={applicant.review.status} position={index + 1} total={rows.length} error={fullscreenError(draft, saveError)} /> })}</div>
+        caption: <FullscreenCaption name={heading} status={applicant.review.status} position={index + 1} total={rows.length} error={fullscreenError(draft, saveError)} /> })}</div>
       <aside className="min-w-0 space-y-5 rounded-card border border-border bg-card p-4 md:sticky md:top-4" aria-label="지원자 심사">
         {!!roleOptions?.length && changeRole && <ReviewRoleSelect label="배역 배정" roles={roleOptions} value={currentRole?.(applicant.id) ?? null} disabled={disabled} onChange={roleId => void navigate(() => changeRole(applicant.id, roleId))} />}
         <div><label htmlFor="pdf-review-memo" className="mb-2 block text-sm font-semibold">내부 메모</label><textarea aria-invalid={draft.errorField === "memo"} aria-describedby={errorIds.memo} id="pdf-review-memo" value={draft.memo} maxLength={500} disabled={disabled || reviewLocked} rows={6} onChange={event => draft.change("memo", event.target.value)} onBlur={() => void flush()} onCompositionStart={() => draft.compose("memo", true)} onCompositionEnd={event => draft.compose("memo", false, event.currentTarget.value)} className="h-44 w-full resize-none rounded-control border border-border bg-surface p-3 text-sm" /></div>
