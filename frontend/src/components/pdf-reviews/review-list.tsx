@@ -34,7 +34,7 @@ export function ReviewList({ reviews, selectedId, loading, error, onSelect, onRe
               <button type="button" aria-pressed={active} onClick={() => onSelect(review.id)}
                 className={`${styles.boxLink} ${styles.boxButton} ${active ? "text-brand" : ""}`}>
                 <span className={styles.boxIcon} aria-hidden="true">▤</span>
-                <span className="min-w-0"><strong className="block break-words">{review.title}</strong><small>{dateText(review.createdAt)} 생성 · 배역 {review.roleCount}개 · 지원서 {review.entryCount}개</small></span>
+                <span className="min-w-0"><strong className="block break-words">{review.title}</strong><small>{dateText(review.createdAt)} 생성, 배역 {review.roleCount}개, 지원서 {review.entryCount}개</small></span>
                 <span aria-hidden="true">→</span>
               </button>
             </li>;

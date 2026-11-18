@@ -164,7 +164,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
                 <button type="button" className={styles.dropChoose} disabled={uploadProps.busy || expired} onClick={() => uploadInput.current?.click()}>파일 선택하기 <span aria-hidden="true">→</span></button>
                 <button type="button" className={styles.dropChoose} disabled={uploadProps.busy || expired} onClick={() => uploadFolderInput.current?.click()}>폴더 선택하기 <span aria-hidden="true">→</span></button>
               </div>
-              <span id="pdf-drop-limit" className={styles.dropLimit}>PDF · 한 번에 최대 300개 · 파일당 최대 25MiB</span>
+              <span id="pdf-drop-limit" className={styles.dropLimit}>PDF 파일, 한 번에 최대 300개, 파일당 최대 25MiB</span>
             </div>
             : <ScreeningBoard key={`${review.id}-${filterKey}-${decision}-${view}`} review={review} entries={visible} decision={decision} view={view} refreshKey={detailRefresh} onSaved={reviews.replaceEntry} onUnauthorized={markExpired} onDirtyChange={onDirtyChange} registerNavigationSave={registerNavigationSave} onApplicantOpened={recheckProgress} navigate={navigate} />}
           </>}

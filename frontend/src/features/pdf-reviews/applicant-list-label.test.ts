@@ -13,10 +13,10 @@ const label = (roles: ReviewDetail["roles"], patch: Partial<ReviewEntry>) => {
   return applicantListLabel(screeningApplicant({ ...review(roles), entries: [item] }, item));
 };
 
-describe("PDF 심사 카드·표 목록 표시", () => {
-  it("이름·배역이 비어 있으면 파일 이름만 보이고 자리 표시를 쓰지 않는다", () => {
+describe("PDF 심사 카드와 표 목록 표시", () => {
+  it("이름과 배역이 비어 있으면 파일 이름만 보이고 자리 표시를 쓰지 않는다", () => {
     expect(label([{ id: "r1", name: "남주" }], {})).toEqual({
-      filename: "지원서_가상.pdf", name: "", heading: "지원서_가상.pdf", details: "", uploading: false,
+      filename: "지원서_가상.pdf", name: "", role: "", heading: "지원서_가상.pdf", uploading: false,
     });
   });
 
@@ -25,7 +25,7 @@ describe("PDF 심사 카드·표 목록 표시", () => {
   });
 
   it("자동으로 읽은 이름은 보이지 않고 담당자가 적은 이름과 배정한 배역만 덧붙인다", () => {
-    expect(label([{ id: "r1", name: "남주" }], { title: "가람", roleId: "r1" }).details).toBe("가람 · 남주");
+    expect(label([{ id: "r1", name: "남주" }], { title: "가람", roleId: "r1" })).toMatchObject({ name: "가람", role: "남주" });
   });
 
   it("아직 올라가는 중인 지원서는 업로드 중으로 표시한다", () => {

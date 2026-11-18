@@ -51,7 +51,7 @@ export function ReviewEntryForm({ reviewId, entry, onSaved, onUnauthorized }: Pr
       onChange={event => { setMemo(event.target.value); setSaved(false); }} />
     {error ? <p role="alert" className="mt-3 break-words rounded-control bg-fail-bg p-3 text-sm text-fail">{error}</p> : null}
     <div className="mt-4 flex flex-wrap items-center gap-3">
-      <PrimaryButton type="submit" disabled={!dirty || saving} className="min-h-12 px-5">{saving ? "저장 중…" : "메모·결정 저장"}</PrimaryButton>
+      <PrimaryButton type="submit" disabled={!dirty || saving} className="min-h-12 px-5">{saving ? "저장 중…" : "메모와 결정 저장"}</PrimaryButton>
       <p role="status" className="text-sm text-muted-strong">{saved && !dirty ? "저장했습니다." : dirty ? "저장하지 않은 변경이 있습니다." : ""}</p>
     </div>
   </form>;

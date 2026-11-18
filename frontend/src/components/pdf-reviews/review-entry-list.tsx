@@ -28,7 +28,7 @@ export function ReviewEntryList({ review, filter, selectedEntryId, onFilter, onS
   const visible = review.entries.filter(entry => matchesFilter(entry, filter));
   return <section aria-label="지원 항목" className="min-w-0 rounded-card border border-border bg-card p-4">
     <h2 className="mb-1 px-1 text-sm font-bold">지원 항목 <span className="num font-normal text-muted-strong">{review.entries.length}개</span></h2>
-    <p className="mb-3 px-1 text-xs leading-5 text-muted-strong">지원서에 적힌 지원 배역이 분명한 것만 배역별로 나뉘고, 나머지는 ‘배역 확인 필요’에 남습니다. 합격·불합격은 담당자가 직접 정합니다.</p>
+    <p className="mb-3 px-1 text-xs leading-5 text-muted-strong">지원서에 적힌 지원 배역이 분명한 것만 배역별로 나뉘고, 나머지는 ‘배역 확인 필요’에 남습니다. 합격과 불합격은 담당자가 직접 정합니다.</p>
     <div role="group" aria-label="배역별 보기" className="mb-3 flex flex-wrap gap-2">
       {chips.map(chip => {
         const count = review.entries.filter(entry => matchesFilter(entry, chip.value)).length;

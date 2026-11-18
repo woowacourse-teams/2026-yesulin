@@ -1,5 +1,5 @@
 flowchart TD
-    OTR_TREE["지원서 접수·심사 트리"] --> OTR_LIST["GET /api/v1/otr-auditions<br>공연사별 목록"]
+    OTR_TREE["지원서 접수 심사 트리"] --> OTR_LIST["GET /api/v1/otr-auditions<br>공연사별 목록"]
     OTR_LIST --> OTR_CREATE["POST /api/v1/otr-auditions<br>번호·제목·배역·마감일"]
     OTR_CREATE --> OTR_LIST
     OTR_LIST --> OTR_SOURCE["OTR 원문 링크 열기"]

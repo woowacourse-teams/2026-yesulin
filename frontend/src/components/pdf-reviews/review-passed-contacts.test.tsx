@@ -30,8 +30,8 @@ afterEach(async () => { await act(async () => root.unmount()); container.remove(
 describe("합격자 연락처 복사", () => {
   it("전체/선택 범위를 지키며 미확인 상태와 안전한 셀을 복사한다", async () => {
     await render(); await act(async () => button("전체 2명 연락처 복사").click());
-    expect(writeText).toHaveBeenLastCalledWith("이름\t배역\t전화번호\t이메일\n가람\t주연\t010-0000-0001\tactor@example.test\n'=이름 확인 필요\t앙상블\t번호 여러 개 · 원문 확인\t이메일 미확인");
-    expect(container.textContent).toContain("2명의 이름·배역·전화번호·이메일을 복사했습니다");
+    expect(writeText).toHaveBeenLastCalledWith("이름\t배역\t전화번호\t이메일\n가람\t주연\t010-0000-0001\tactor@example.test\n'=이름 확인 필요\t앙상블\t번호 여러 개, 원문 확인\t이메일 미확인");
+    expect(container.textContent).toContain("2명의 이름, 배역, 전화번호, 이메일을 복사했습니다");
     await act(async () => container.querySelector<HTMLInputElement>("tbody input")!.click());
     expect(container.textContent).not.toContain("복사했습니다");
     await act(async () => button("선택한 1명 연락처 복사").click());

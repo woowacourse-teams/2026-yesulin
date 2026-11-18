@@ -44,7 +44,7 @@ public class AuditExtractionService {
                 entry.applyAnalysis(analyze(text, review, applicantInfo));
                 PdfAiJob aiJob = aiJobs.enqueue(jobId, review.getId(), ownerId, text, review.getRoles().stream()
                         .map(role -> new PdfAiRole(role.getId(), role.getName())).toList(), applicantInfo);
-                applyProcessingStatus(entry, aiJob);
+                applyProcessingStatus(entry, aiJob, text);
             }
         });
     }
@@ -68,22 +68,31 @@ public class AuditExtractionService {
         entries.findByJobIdForUpdate(jobId).ifPresent(AuditApplicant::markEnriching);
     }
 
-    private void applyProcessingStatus(AuditApplicant entry, PdfAiJob aiJob) {
+    private void applyProcessingStatus(AuditApplicant entry, PdfAiJob aiJob, String text) {
         switch (aiJob.getStatus()) {
             case PENDING, RUNNING -> entry.markEnriching();
             case COMPLETED -> entry.markReady();
             case FAILED -> entry.markNeedsReview();
-            case SKIPPED -> applySkipped(entry, aiJob.getErrorCode());
+            case SKIPPED -> applySkipped(entry, aiJob.getErrorCode(), text);
             default -> throw new IllegalStateException("Unknown AI status");
         }
     }
 
-    private void applySkipped(AuditApplicant entry, String reason) {
+    private void applySkipped(AuditApplicant entry, String reason, String text) {
         switch (reason) {
             case "EXTRACTION_FAILED" -> entry.markFailed();
             case "LEGACY_COMPLETED" -> entry.markReady();
+            case "DISABLED" -> applyWithoutAi(entry, text);
             default -> entry.markNeedsReview();
         }
+    }
+
+    private void applyWithoutAi(AuditApplicant entry, String text) {
+        if (text == null || text.isBlank()) {
+            entry.markNeedsReview();
+            return;
+        }
+        entry.markReady();
     }
 
     private AuditAnalysis analyze(String text, Audit review, PdfApplicantInfo info) {

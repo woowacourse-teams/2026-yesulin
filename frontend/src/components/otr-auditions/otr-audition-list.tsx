@@ -28,7 +28,7 @@ export function OtrAuditionList({ selectedId, autoOpenCreate = false }: {
       <header className="mb-8 flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-brand">OTR 협업 공고</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-[-0.025em] md:text-[28px]">지원서 접수·심사</h1>
+          <h1 className="mt-1 text-2xl font-bold tracking-[-0.025em] md:text-[28px]">지원서 접수 심사</h1>
           <p className="mt-2 text-sm text-muted-strong">OTR 공고 번호와 모집 정보를 등록하고 한곳에서 확인하세요.</p>
         </div>
         <CreatePageButton onClick={() => setCreateOpen(true)}>오디션 공고 만들기</CreatePageButton>
@@ -75,13 +75,13 @@ function OtrAuditionRow({ audition, selected }: { readonly audition: OtrAudition
       <a href={audition.otrLink} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-control border border-border px-3 text-sm font-semibold text-muted-strong hover:border-brand-line hover:text-brand">OTR 원문 보기 ↗</a>
     </div>
     <dl className="mt-4 grid gap-3 border-t border-border-soft pt-4 text-sm sm:grid-cols-2">
-      <div><dt className="text-xs text-muted">모집 배역</dt><dd className="mt-1 font-semibold">{audition.roles.join(" · ")}</dd></div>
+      <div><dt className="text-xs text-muted">모집 배역</dt><dd className="mt-1 font-semibold">{audition.roles.join(", ")}</dd></div>
       <div><dt className="text-xs text-muted">마감일</dt><dd className="num mt-1 font-semibold">{audition.deadline.replaceAll("-", ".")}</dd></div>
     </dl>
     <div className="mt-4 flex flex-wrap items-center gap-3">
       <Link href={otrAuditionRoutes.screening(audition.id)} className="inline-flex min-h-11 items-center rounded-control border border-brand bg-brand px-3 text-sm font-semibold text-white hover:bg-brand-strong">심사 관리</Link>
       <Link href={applyHref} target="_blank" className="inline-flex min-h-11 items-center rounded-control border border-brand-line px-3 text-sm font-semibold text-brand hover:bg-brand-soft">지원 페이지 열기 ↗</Link>
-      <button type="button" onClick={() => void navigator.clipboard.writeText(new URL(applyHref, window.location.origin).href).then(() => setCopyState("success"), () => setCopyState("error"))} className="min-h-11 rounded-control border border-border px-3 text-sm font-semibold text-muted-strong hover:border-brand-line">{copyState === "success" ? "링크 복사됨" : copyState === "error" ? "복사 실패 · 다시 시도" : "지원 링크 복사"}</button>
+      <button type="button" onClick={() => void navigator.clipboard.writeText(new URL(applyHref, window.location.origin).href).then(() => setCopyState("success"), () => setCopyState("error"))} className="min-h-11 rounded-control border border-border px-3 text-sm font-semibold text-muted-strong hover:border-brand-line">{copyState === "success" ? "링크 복사됨" : copyState === "error" ? "복사 실패, 다시 시도" : "지원 링크 복사"}</button>
     </div>
     <p className="mt-2 text-xs text-muted">OTR 마감일 이후에는 제출할 수 없습니다. 접수된 지원서는 배역별 심사 관리에서 확인할 수 있습니다.</p>
   </li>;

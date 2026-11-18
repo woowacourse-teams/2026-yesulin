@@ -37,7 +37,7 @@ export function ReviewPassedContacts({ reviewId, onBack, onUnauthorized, onDirty
     setCopying(true); setCopied(""); setManualCopy("");
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(`${targets.length}명의 이름·배역·전화번호·이메일을 복사했습니다. 원하는 곳에 붙여 넣으세요.`);
+      setCopied(`${targets.length}명의 이름, 배역, 전화번호, 이메일을 복사했습니다. 원하는 곳에 붙여 넣으세요.`);
     } catch {
       setManualCopy(text);
     } finally { setCopying(false); }
@@ -72,12 +72,12 @@ export function ReviewPassedContacts({ reviewId, onBack, onUnauthorized, onDirty
           <textarea ref={manualField} id="manual-contact-copy" readOnly value={manualCopy} rows={5} className="w-full rounded-control border border-border bg-card p-3 text-sm" onFocus={event => event.currentTarget.select()} />
           <SecondaryButton onClick={() => setManualCopy("")}>복사 내용 닫기</SecondaryButton>
         </div>}
-        <p role="status" className="mb-3 text-sm text-muted-strong">{loading && !rows.length ? "합격자 명단을 불러오는 중…" : `합격 ${rows.length}명 · 번호 확인 ${found}명 · 이메일 확인 ${emailsFound}명${loading ? " · 연락처를 불러오는 중…" : ""}`}</p>
+        <p role="status" className="mb-3 text-sm text-muted-strong">{loading && !rows.length ? "합격자 명단을 불러오는 중…" : `합격 ${rows.length}명, 번호 확인 ${found}명, 이메일 확인 ${emailsFound}명${loading ? ", 연락처를 불러오는 중…" : ""}`}</p>
         {!loading && !rows.length ? <div className="rounded-card border border-border bg-card px-5 py-12 text-center">
           <p className="font-semibold">아직 합격 처리한 지원자가 없습니다.</p><p className="mt-2 text-sm text-muted">심사에서 합격으로 저장한 지원자가 여기에 표시됩니다.</p>
         </div> : rows.length > 0 && <div className="overflow-x-auto rounded-card border border-border bg-card">
           <table className="w-full min-w-[800px] text-left text-sm">
-            <caption className="sr-only">전체 배역 합격자 이름과 전화번호·이메일</caption>
+            <caption className="sr-only">전체 배역 합격자 이름과 전화번호, 이메일</caption>
             <thead className="border-b border-border bg-surface text-muted-strong"><tr>
               <th scope="col" className="px-3 py-3"><span className="sr-only">선택</span></th>
               <th scope="col" className="px-4 py-3 font-semibold">이름</th><th scope="col" className="px-4 py-3 font-semibold">배역</th>

@@ -4,12 +4,13 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { ReviewKey, ReviewRole } from "@/features/pdf-reviews/types";
 
 /** 배역 변경은 선택 즉시 저장한다. 표시 값은 서버 저장 성공 뒤 부모가 갱신한다. */
-export function ReviewRoleSelect({ roles, value, disabled, label = "심사 배역", allowReselect = false, onChange }: {
+export function ReviewRoleSelect({ roles, value, disabled, label = "심사 배역", allowReselect = false, inline = false, onChange }: {
   readonly roles: readonly ReviewRole[];
   readonly value: ReviewKey | null;
   readonly disabled?: boolean;
   readonly label?: string;
   readonly allowReselect?: boolean;
+  readonly inline?: boolean;
   readonly onChange: (roleId: string | null) => void;
 }) {
   const id = useId();
@@ -33,11 +34,11 @@ export function ReviewRoleSelect({ roles, value, disabled, label = "심사 배�
     setOpen(false); trigger.current?.focus();
     if (allowReselect || options[index].id !== current) onChange(options[index].id || null);
   }
-  return <div ref={root} className="relative min-w-40 text-sm" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
-    <span id={`${id}-label`} className="mb-2 block font-semibold text-muted-strong">{label}</span>
+  return <div ref={root} className={`relative min-w-40 text-sm ${layoutClass(inline).root}`} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
+    <span id={`${id}-label`} className={`font-semibold text-muted-strong ${layoutClass(inline).label}`}>{label}</span>
     <button ref={trigger} type="button" role="combobox" aria-labelledby={`${id}-label ${id}-value`} aria-haspopup="listbox" aria-controls={id} aria-expanded={expanded}
       aria-activedescendant={expanded ? `${id}-${active}` : undefined} disabled={disabled}
-      className="flex min-h-11 w-full items-center justify-between gap-3 rounded-control border border-border bg-card px-3 py-2 text-left font-semibold shadow-sm hover:border-brand-line focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50"
+      className={`flex min-h-11 ${layoutClass(inline).trigger} items-center justify-between gap-3 rounded-control border border-border bg-card px-3 py-2 text-left font-semibold shadow-sm hover:border-brand-line focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50`}
       onClick={() => { setActive(Math.max(0, options.findIndex(option => option.id === current))); setOpen(!expanded); }}
       onKeyDown={event => {
         if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
@@ -57,4 +58,9 @@ export function ReviewRoleSelect({ roles, value, disabled, label = "심사 배�
       </div>)}
     </div>}
   </div>;
+}
+
+function layoutClass(inline: boolean) {
+  if (inline) return { root: "flex items-center gap-2", label: "shrink-0 whitespace-nowrap", trigger: "w-40" };
+  return { root: "", label: "mb-2 block", trigger: "w-full" };
 }

@@ -122,7 +122,7 @@ function RowDetail({ row }: { readonly row: DashboardRow }) {
   return (
     <p className="num mt-1 text-xs text-muted-strong">
       {row.detail}
-      {row.kind === "post" && <> · <time dateTime={row.dateTime}>{formatShowDate(row.dateTime)}</time> 업데이트</>}
+      {row.kind === "post" && <>, <time dateTime={row.dateTime}>{formatShowDate(row.dateTime)}</time> 업데이트</>}
     </p>
   );
 }

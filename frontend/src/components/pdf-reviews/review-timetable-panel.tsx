@@ -85,7 +85,7 @@ export function ReviewTimetablePanel({ reviewId, selected, onClose, onUnauthoriz
     setList(current => [{ id: detail.id, title: detail.title, actorCount: detail.actors.length }, ...current.filter(item => item.id !== detail.id)]);
   }
   async function choose(id: number) {
-    if ((editDirty || scheduleDirty(schedule)) && !window.confirm("저장하지 않은 연락처·배정 수정을 버릴까요?")) return;
+    if ((editDirty || scheduleDirty(schedule)) && !window.confirm("저장하지 않은 연락처와 배정 수정을 버릴까요?")) return;
     setSchedule(emptySchedule());
     loadController.current?.abort();
     const controller = new AbortController(); loadController.current = controller;
@@ -96,7 +96,7 @@ export function ReviewTimetablePanel({ reviewId, selected, onClose, onUnauthoriz
   }
   async function create() {
     if (!title.trim() || title.trim().length > 60) { setError("일정 이름을 1~60자로 입력해 주세요."); return; }
-    if ((editDirty || scheduleDirty(schedule)) && !window.confirm("저장하지 않은 연락처·배정 수정을 버리고 새 일정을 만들까요?")) return;
+    if ((editDirty || scheduleDirty(schedule)) && !window.confirm("저장하지 않은 연락처와 배정 수정을 버리고 새 일정을 만들까요?")) return;
     setBusy(true); setError(""); setMessage("");
     try {
       const detail = await createRoster(title.trim(), creationKey);
@@ -175,10 +175,10 @@ export function ReviewTimetablePanel({ reviewId, selected, onClose, onUnauthoriz
       <div className="flex flex-wrap items-end gap-3">
         <label className="min-w-0 flex-1 text-sm font-semibold">관리할 일정<FieldSelect className="mt-2 w-full" value={roster?.id ?? ""} disabled={busy || loading} onChange={event => { if (event.target.value) void choose(Number(event.target.value)); }}>
           <option value="">{loading ? "불러오는 중…" : list.length ? "일정을 선택해 주세요" : "등록된 일정이 없습니다"}</option>
-          {list.map(item => <option key={item.id} value={item.id}>{item.title} · {item.actorCount}명</option>)}
+          {list.map(item => <option key={item.id} value={item.id}>{item.title} ({item.actorCount}명)</option>)}
         </FieldSelect></label>
         <div ref={creationTrigger}><SecondaryButton disabled={busy || loading} aria-expanded={creating} aria-controls="new-roster-form"
-          onClick={() => setCreating(true)}>새 일정 만들기{title && !creating ? " · 작성 중" : ""}</SecondaryButton></div>
+          onClick={() => setCreating(true)}>새 일정 만들기{title && !creating ? " (작성 중)" : ""}</SecondaryButton></div>
       </div>
       {roster && <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-strong" aria-label="일정 배정 현황">
         <span>전체 <strong className="num text-foreground">{roster.actors.length}</strong>명</span>
@@ -208,12 +208,12 @@ export function ReviewTimetablePanel({ reviewId, selected, onClose, onUnauthoriz
       {!roster && <p className="text-sm text-muted">등록할 일정을 먼저 선택하거나 만들어 주세요.</p>}
     </section>}
     {roster && <section aria-label="등록된 일정 명단" className="space-y-3">
-      <h3 className="sr-only">{roster.title} · {roster.actors.length}명</h3>
+      <h3 className="sr-only">{roster.title} ({roster.actors.length}명)</h3>
       {roster.actors.length > 0 && <div role="group" aria-label="명단 관리 보기" className={styles.viewSwitch}>
         <SecondaryButton aria-pressed={rosterView === "schedule"} onClick={() => setRosterView("schedule")}
-          className={rosterView === "schedule" ? "border-brand-line bg-brand-soft text-brand" : ""}>날짜·시간 배정</SecondaryButton>
+          className={rosterView === "schedule" ? "border-brand-line bg-brand-soft text-brand" : ""}>날짜와 시간 배정</SecondaryButton>
         <SecondaryButton aria-pressed={rosterView === "contacts"} onClick={() => setRosterView("contacts")}
-          className={rosterView === "contacts" ? "border-brand-line bg-brand-soft text-brand" : ""}>연락처 관리{editDirty ? " · 수정 중" : ""}</SecondaryButton>
+          className={rosterView === "contacts" ? "border-brand-line bg-brand-soft text-brand" : ""}>연락처 관리{editDirty ? " (수정 중)" : ""}</SecondaryButton>
       </div>}
       {roster.actors.length > 0 && rosterView === "schedule" && <RosterScheduleEditor actors={roster.actors} value={schedule} onChange={setSchedule} disabled={busy} />}
       {!roster.actors.length ? <p className="py-6 text-sm text-muted">아직 등록된 사람이 없습니다.</p>

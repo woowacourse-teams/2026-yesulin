@@ -77,7 +77,7 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
     setNotices(current => [...current, ...next.map(({ id, reviewId, name, size, phase, error }) => ({ id, reviewId, name, size, phase, error }))]);
     const uploadable = next.filter(isUploadable);
     if (!uploadable.length) {
-      setMessage(`선택 ${next.length}개 · 업로드 완료 0개 · 제외 ${next.length}개. 파일별 형식과 크기를 확인해 주세요.`);
+      setMessage(`선택 ${next.length}개, 업로드 완료 0개, 제외 ${next.length}개. 파일별 형식과 크기를 확인해 주세요.`);
       return;
     }
     void run(uploadable, next.length, next.length - uploadable.length);
@@ -163,7 +163,7 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
     let finished = 0;
     const transfers = new Map<string, Promise<void>>();
     const showProgress = () => {
-      if (mounted.current) setMessage(`선택 ${selectedCount}개 · 업로드 완료 ${uploaded}개 · 중복 제외 ${duplicates}개 · 실패 ${finished - uploaded - duplicates}개 · 진행/대기 ${queue.length - finished}개 · 제외 ${excludedCount}개`);
+      if (mounted.current) setMessage(`선택 ${selectedCount}개, 업로드 완료 ${uploaded}개, 중복 제외 ${duplicates}개, 실패 ${finished - uploaded - duplicates}개, 진행/대기 ${queue.length - finished}개, 제외 ${excludedCount}개`);
     };
     showProgress();
     async function worker() {
