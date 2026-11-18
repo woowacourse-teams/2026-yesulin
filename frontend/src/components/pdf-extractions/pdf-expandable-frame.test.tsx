@@ -25,7 +25,7 @@ const dialog = () => host.querySelector<HTMLElement>("[role='dialog']");
 
 it("원본을 누르면 화면 맞춤 전체화면으로 펼치고 배경을 막으며 Esc로 닫아 버튼에 초점을 돌린다", () => {
   act(() => root.render(<Harness />));
-  expect(fits.at(-1)).toBe("width");
+  expect(fits.at(-1)).toBe("page");
   click(host.querySelector("[data-testid='page']")!);
   expect(dialog()?.getAttribute("aria-label")).toBe("지원서 원본 전체화면");
   expect(dialog()?.hasAttribute("data-fullscreen-viewer")).toBe(true);
