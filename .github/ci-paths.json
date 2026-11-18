@@ -1,0 +1,70 @@
+{
+  "rules": [
+    {
+      "run": "both",
+      "paths": [
+        ".gitattributes",
+        ".github/ci-paths.json",
+        ".github/workflows/ci.yml",
+        "scripts/ci/**"
+      ]
+    },
+    {
+      "run": "none",
+      "paths": [
+        ".env.example",
+        ".github/ISSUE_TEMPLATE/**",
+        ".github/pull_request_template.md",
+        ".github/workflows/slack-notification.yml",
+        ".gitmodules",
+        ".husky/**",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "README.md",
+        "backend/AGENTS.md",
+        "backend/README.md",
+        "backend/docs/**.md",
+        "buildspec.yml",
+        "commitlint.config.cjs",
+        "compose.yaml",
+        "config",
+        "config-version.txt",
+        "design/**",
+        "docs/**",
+        "evidence.md",
+        "ops/backup/**",
+        "ops/configure/**",
+        "ops/diagnose/**",
+        "ops/loadtest/**",
+        "ops/monitor/app.sh",
+        "ops/monitor/cloudwatch/install_database.sh",
+        "ops/monitor/cloudwatch/systemd/**",
+        "ops/monitor/database.sh",
+        "ops/pdf-extraction-lambda/**",
+        "ops/recover/**",
+        "output/pdf/**",
+        "scripts/config/compare-env-keys.sh",
+        "scripts/config/sync.sh",
+        "scripts/config/tests/compare_env_keys_test.sh",
+        "scripts/config/validate-pin.sh",
+        "scripts/run-checkstyle.mjs"
+      ]
+    },
+    {
+      "run": "frontend",
+      "paths": [".gitignore", ".nvmrc", "frontend/**", "package-lock.json", "package.json"]
+    },
+    {
+      "run": "backend",
+      "paths": [
+        "backend/**",
+        "ops/monitor/cloudwatch/database_metrics.py",
+        "ops/monitor/cloudwatch/queries.json",
+        "ops/monitor/cloudwatch/tests/**",
+        "ops/monitor/cloudwatch/update_dashboards.py",
+        "scripts/config/tests/deploy_env_test.sh",
+        "scripts/config/verify-build-source.sh"
+      ]
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 name: CI
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('CI benchmark {0} base {1}', inputs.mode, inputs.base_sha) || '' }}
 
 on:
   pull_request:
@@ -9,17 +10,31 @@ on:
     branches:
       - dev
       - main
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: Full commit SHA to compare against the selected ref
+        required: true
+        type: string
+      mode:
+        description: Which checks to run for the timing comparison
+        required: true
+        default: selective
+        type: choice
+        options:
+          - selective
+          - full
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   frontend:
-    name: Frontend
+    name: ${{ github.event_name == 'workflow_dispatch' && 'Benchmark Frontend' || 'Frontend' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -28,8 +43,20 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - name: Select changes (${{ inputs.mode || 'selective' }})
+        id: changes
+        working-directory: .
+        run: python3 -B scripts/ci/select_changes.py
+
+      - name: Require a frontend selection
+        if: steps.changes.outputs.frontend != 'true' && steps.changes.outputs.frontend != 'false'
+        run: exit 1
 
       - name: Set up Node.js
+        if: steps.changes.outputs.frontend == 'true'
         uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
@@ -37,18 +64,21 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
+        if: steps.changes.outputs.frontend == 'true'
         run: npm ci
 
       - name: Run frontend lint
+        if: steps.changes.outputs.frontend == 'true'
         run: npm run lint
 
       - name: Build frontend
+        if: steps.changes.outputs.frontend == 'true'
         run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
 
   backend:
-    name: Backend
+    name: ${{ github.event_name == 'workflow_dispatch' && 'Benchmark Backend' || 'Backend' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -58,29 +88,47 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          fetch-depth: 2
+
+      - name: Select changes (${{ inputs.mode || 'selective' }})
+        id: changes
+        working-directory: .
+        run: python3 -B scripts/ci/select_changes.py
+
+      - name: Require a backend selection
+        if: steps.changes.outputs.backend != 'true' && steps.changes.outputs.backend != 'false'
+        run: exit 1
+
+      - name: Test CI path rules
+        if: steps.changes.outputs.backend == 'true'
+        working-directory: .
+        run: python3 -B -m unittest discover -s scripts/ci -v
 
       - name: Check Flyway migration order
-        if: github.event_name == 'pull_request'
+        if: steps.changes.outputs.backend == 'true' && github.event_name == 'pull_request'
         run: sh deploy/scripts/check_flyway_migration_order.sh "${{ github.event.pull_request.base.sha }}"
 
       - name: Check Flyway contract changes
-        if: github.event_name == 'pull_request'
+        if: steps.changes.outputs.backend == 'true' && github.event_name == 'pull_request'
         run: sh deploy/scripts/check_flyway_contract_changes.sh "${{ github.event.pull_request.base.sha }}"
 
       - name: Set up Java
+        if: steps.changes.outputs.backend == 'true'
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "25"
 
       - name: Set up Gradle
+        if: steps.changes.outputs.backend == 'true'
         uses: gradle/actions/setup-gradle@v6
 
       - name: Build backend
+        if: steps.changes.outputs.backend == 'true'
         run: ./gradlew build --no-daemon
 
       - name: Test deployment scripts
+        if: steps.changes.outputs.backend == 'true'
         run: |
           sh deploy/tests/check_flyway_migration_order_test.sh
           sh deploy/tests/check_flyway_contract_changes_test.sh
