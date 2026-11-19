@@ -31,12 +31,12 @@ beforeEach(() => {
 afterEach(() => { act(() => root.unmount()); vi.unstubAllGlobals(); });
 
 describe("PDF 심사 지원자 목록", () => {
-  it("카드는 파일 이름을 제목으로 쓰고 자리 표시와 자동 추출 이름을 보이지 않는다", async () => {
+  it("카드는 기본 파일명 또는 수동 제목을 한 번만 표시한다", async () => {
     await render(<ApplicantCards rows={rows} />);
     const titles = [...container.querySelectorAll("h2")].map(node => node.textContent);
-    expect(titles).toEqual(["plain.pdf", "named.pdf", "loading.pdf"]);
+    expect(titles).toEqual(["plain.pdf", "가람", "loading.pdf"]);
     const named = container.querySelectorAll("article")[1];
-    expect([...named.querySelectorAll("p span")].map(node => node.textContent)).toEqual(["가람", "남주"]);
+    expect([...named.querySelectorAll("p span")].map(node => node.textContent)).toEqual(["남주"]);
     expect(container.textContent).not.toMatch(/이름 미입력|미배정|자동 추출 이름/);
     expect(container.textContent).toContain("업로드 중");
   });

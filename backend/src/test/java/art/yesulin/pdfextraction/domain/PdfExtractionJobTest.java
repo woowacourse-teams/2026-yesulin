@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import art.yesulin.global.exception.BusinessException;
+import java.text.Normalizer;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
@@ -17,6 +18,8 @@ class PdfExtractionJobTest {
         assertThrows(BusinessException.class, () -> job("a.pdf", PdfExtractionJob.MAX_FILE_BYTES + 1));
         assertThrows(BusinessException.class, () -> job("a.png", 10));
         assertThrows(BusinessException.class, () -> job("a\n.pdf", 10));
+        assertThrows(BusinessException.class, () -> job("a.pdf\t", 10));
+        assertThrows(BusinessException.class, () -> job("a".repeat(252) + ".pdf", 10));
     }
 
     @Test
@@ -49,10 +52,11 @@ class PdfExtractionJobTest {
 
     @Test
     void sourceFileMetadataPreservesFilenameAndSizeAndIdentifiesOneStableStorageKey() {
-        PdfExtractionJob source = job("  지원서.PDF  ", 100);
+        String originalFilename = Normalizer.normalize("  지원서  최종.PDF  ", Normalizer.Form.NFD);
+        PdfExtractionJob source = job(originalFilename, 100);
         source.identifySource("private/inputs/synthetic/source.pdf");
         source.identifySource("private/inputs/synthetic/source.pdf");
-        assertEquals("지원서.PDF", source.getOriginalFilename());
+        assertEquals(originalFilename, source.getOriginalFilename());
         assertEquals(100L, source.getSize());
         assertEquals(PdfSourceFileType.PDF, source.getFileMetadata().getType());
         assertEquals("pdf", source.getFileMetadata().getExtension());

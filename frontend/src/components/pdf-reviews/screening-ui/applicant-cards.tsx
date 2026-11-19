@@ -22,14 +22,14 @@ function ApplicantCard({ applicant }: { readonly applicant: Applicant }) {
     <div className="flex items-start gap-3 p-4 pb-3">
       <label className="relative z-10 -m-2 grid h-11 w-11 shrink-0 cursor-pointer place-items-center">
         <input type="checkbox" checked={checked} onChange={() => toggleSelected(applicant.id)} className="h-5 w-5 accent-brand" />
-        <span className="sr-only">{label.filename} 선택</span>
+        <span className="sr-only">{label.title} 선택</span>
       </label>
       <div className="min-w-0 flex-1">
-        <h2 className="text-sm font-semibold leading-5"><button type="button" aria-label={`지원서 열기: ${label.filename}`} onClick={() => openApplicant(applicant.id)}
+        <h2 className="text-sm font-semibold leading-5"><button type="button" aria-label={`지원서 열기: ${label.title}`} onClick={() => openApplicant(applicant.id)}
           className="cursor-pointer text-left after:absolute after:inset-0 after:rounded-card focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-brand">
-          <span className="line-clamp-2 break-all" title={label.filename}>{label.filename}</span>
+          <span className="line-clamp-2 break-all whitespace-pre-wrap" title={label.title}>{label.title}</span>
         </button></h2>
-        <ApplicantMeta name={label.name} role={label.role} uploading={label.uploading} />
+        <ApplicantMeta role={label.role} uploading={label.uploading} />
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1.5">
         <StatusBadge status={applicant.review.status} size="sm" />
@@ -45,11 +45,10 @@ function MemoPresence({ note }: { readonly note: string }) {
   return <span className="px-2 py-0.5 text-xs text-muted">메모 없음</span>;
 }
 
-function ApplicantMeta({ name, role, uploading }: { readonly name: string; readonly role: string; readonly uploading: boolean }) {
+function ApplicantMeta({ role, uploading }: { readonly role: string; readonly uploading: boolean }) {
   if (uploading) return <p className="mt-1.5 flex items-center gap-2 text-xs text-muted-strong"><Spinner size="sm" />업로드 중</p>;
-  if (!name && !role) return null;
+  if (!role) return null;
   return <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-strong">
-    {name && <span className="font-medium text-foreground">{name}</span>}
-    {role && <span className="rounded-full bg-brand-soft px-2 py-0.5 font-semibold text-brand">{role}</span>}
+    <span className="rounded-full bg-brand-soft px-2 py-0.5 font-semibold text-brand">{role}</span>
   </p>;
 }

@@ -169,7 +169,7 @@
 .integrated .breadcrumb { flex:1; min-width:0; }
 .integrated .breadcrumb ol { flex-wrap:nowrap; gap:8px; }
 .integrated .breadcrumb li:last-child { flex:1; overflow:hidden; }
-.integrated .breadcrumb h1 { margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:16px; font-weight:600; line-height:1.5; letter-spacing:-.01em; }
+.integrated .breadcrumb h1 { margin:0; overflow:hidden; text-overflow:ellipsis; white-space:pre; font-size:16px; font-weight:600; line-height:1.5; letter-spacing:-.01em; }
 .integrated .breadcrumbReview { max-width:40%; }
 .integrated .breadcrumbReview button { display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; }
 .integrated .breadcrumbSeparator { font-size:16px; }

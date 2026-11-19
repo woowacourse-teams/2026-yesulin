@@ -3,6 +3,7 @@ package art.yesulin.audit.domain;
 import static art.yesulin.audit.domain.AuditErrorCode.INVALID_PDF_REVIEW;
 
 import art.yesulin.global.exception.BusinessException;
+import art.yesulin.pdfextraction.domain.PdfFileMetadata;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -23,11 +24,12 @@ import org.hibernate.annotations.DynamicUpdate;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AuditApplicant {
 
-    public static final int MAX_FILENAME_LENGTH = 255;
     public static final int MAX_APPLICANT_NAME_LENGTH = 100;
     public static final int MAX_EVIDENCE_LENGTH = 1000;
     public static final int MAX_MEMO_LENGTH = 500;
     public static final int MEMO_STORAGE_LENGTH = 2000;
+
+    private static final int MAX_TITLE_LENGTH = 255;
 
     @Id
     @Column(length = 36)
@@ -39,13 +41,13 @@ public class AuditApplicant {
     @Column(nullable = false, updatable = false, length = 36)
     private String jobId;
 
-    @Column(nullable = false, updatable = false, length = MAX_FILENAME_LENGTH)
+    @Column(nullable = false, updatable = false, length = PdfFileMetadata.MAX_FILENAME_LENGTH)
     private String originalFilename;
 
     @Column(length = MAX_APPLICANT_NAME_LENGTH)
     private String applicantName;
 
-    @Column(length = MAX_FILENAME_LENGTH)
+    @Column(length = MAX_TITLE_LENGTH)
     private String displayTitle;
 
     @Column(length = 36)
@@ -76,7 +78,7 @@ public class AuditApplicant {
         this.id = UUID.randomUUID().toString();
         this.reviewId = Objects.requireNonNull(reviewId);
         this.jobId = Objects.requireNonNull(jobId);
-        this.originalFilename = AuditText.requireName(originalFilename, MAX_FILENAME_LENGTH, "파일 이름");
+        this.originalFilename = PdfFileMetadata.requireOriginalFilename(originalFilename);
         this.matchStatus = AuditMatchStatus.WAITING;
         this.matchEvidence = "";
         this.memo = "";
@@ -85,14 +87,17 @@ public class AuditApplicant {
     }
 
     public String getTitle() {
-        return Objects.requireNonNullElse(displayTitle, "");
+        if (displayTitle == null || displayTitle.isBlank()) {
+            return originalFilename;
+        }
+        return displayTitle;
     }
 
     public void rename(String title) {
         String normalized = AuditText.normalize(title);
-        if (title == null || AuditText.length(normalized) > MAX_FILENAME_LENGTH
+        if (title == null || AuditText.length(normalized) > MAX_TITLE_LENGTH
                 || normalized.chars().anyMatch(Character::isISOControl)) {
-            throw new BusinessException(INVALID_PDF_REVIEW, "배우 이름은 255자 이하로 입력해 주세요.");
+            throw new BusinessException(INVALID_PDF_REVIEW, "지원서 제목은 255자 이하로 입력해 주세요.");
         }
         this.displayTitle = normalized;
     }

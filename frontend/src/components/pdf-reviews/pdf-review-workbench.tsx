@@ -4,7 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
-import { entryFilterKey, matchesDecision, matchesFilter, sameKey, type DecisionFilter, type EntryFilter, type ReviewDetail, type ReviewEntry, type ReviewKey } from "@/features/pdf-reviews/types";
+import { reviewEntryTitle, entryFilterKey, matchesDecision, matchesFilter, sameKey, type DecisionFilter, type EntryFilter, type ReviewDetail, type ReviewEntry, type ReviewKey } from "@/features/pdf-reviews/types";
 import { useReviewExitGuard } from "@/features/pdf-reviews/use-review-exit-guard";
 import { useReviewProgress } from "@/features/pdf-reviews/use-review-progress";
 import { usePdfReviews } from "@/features/pdf-reviews/use-pdf-reviews";
@@ -85,6 +85,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
   const review = reviews.detail;
   const visible = review?.entries.filter(item => matchesFilter(item, filter) && matchesDecision(item, decision)) ?? [];
   const focusedEntry = findFocusedEntry(visible, focusedId);
+  const applicantTitle = focusedEntry && reviewEntryTitle(focusedEntry);
   const activeId = focusedEntry?.id.toString() ?? null;
   if (activeId !== focusedId) setFocusedId(activeId);
   const listOpen = !home && !contactsOpen && !!review && !focusedEntry;
@@ -157,7 +158,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
         <ReviewList reviews={reviews.reviews} selectedId={reviews.selectedId} loading={reviews.listLoading} error={reviews.listError} onSelect={openReview} onRetry={() => void reviews.refresh()} />
       </div> : !review ? <p role="status" className="p-8">{reviews.detailError || "심사함을 불러오고 있습니다…"}</p> : <>
         <div className={`${styles.controls} px-4 md:px-6 xl:px-8`}>
-          <ReviewBreadcrumb title={review.title} filename={focusedEntry?.originalFilename}
+          <ReviewBreadcrumb title={review.title} applicantTitle={applicantTitle}
             listHeading={listHeading} onReviews={() => navigate(leaveToList)} onApplicants={backToApplicants} />
           {Object.entries(sidebarSlots).map(([surface, slot]) => slot && <ReviewSidebarRoles key={surface} slot={slot} title={review.title} chips={sidebarChips()} selected={filterKey} onSelect={selectRole} />)}
           {local && !contactsOpen && <aside className="mb-2 max-w-xs rounded-control bg-sidebar py-2">
@@ -221,23 +222,23 @@ function findFocusedEntry(entries: readonly ReviewEntry[], id: string | null) {
 
 type BreadcrumbProps = {
   readonly title: string;
-  readonly filename?: string;
+  readonly applicantTitle?: string;
   readonly listHeading: RefObject<HTMLHeadingElement | null>;
   readonly onReviews: () => void;
   readonly onApplicants: () => void;
 };
 
-function ReviewBreadcrumb({ title, filename, listHeading, onReviews, onApplicants }: BreadcrumbProps) {
+function ReviewBreadcrumb({ title, applicantTitle, listHeading, onReviews, onApplicants }: BreadcrumbProps) {
   return <header className={styles.header}><nav className={styles.breadcrumb} aria-label="심사함 경로"><ol>
     <li><button type="button" className={styles.homeLink} onClick={onReviews}>심사함</button></li>
     <li aria-hidden="true" className={styles.breadcrumbSeparator}>›</li>
-    {!filename && <li aria-current="page"><h1 tabIndex={-1} ref={listHeading} title={title}>{title}</h1></li>}
-    {filename && <>
+    {!applicantTitle && <li aria-current="page"><h1 tabIndex={-1} ref={listHeading} title={title}>{title}</h1></li>}
+    {applicantTitle && <>
       <li className={styles.breadcrumbReview}>
         <button type="button" className={styles.homeLink} onClick={onApplicants} title={title}>{title}</button>
       </li>
       <li aria-hidden="true" className={styles.breadcrumbSeparator}>›</li>
-      <li aria-current="page"><h1 title={filename}>{filename}</h1></li>
+      <li aria-current="page"><h1 title={applicantTitle}>{applicantTitle}</h1></li>
     </>}
   </ol></nav></header>;
 }

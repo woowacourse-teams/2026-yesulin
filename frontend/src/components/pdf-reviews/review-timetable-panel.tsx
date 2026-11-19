@@ -8,7 +8,7 @@ import type { PassedContact } from "@/features/pdf-reviews/use-passed-contacts";
 import { RosterContactList } from "./roster-contact-list";
 import { RosterScheduleEditor, RosterScheduleActions } from "./roster-schedule-editor";
 import { emptySchedule, scheduleDirty, scheduleAssignments, slotError } from "@/features/pdf-reviews/roster-schedule";
-import type { ReviewKey } from "@/features/pdf-reviews/types";
+import { reviewContactName, type ReviewKey } from "@/features/pdf-reviews/types";
 import { createRoster, editRosterContact, fetchRoster, importRoster, listRosters, readRosterContact, removeRosterActor, saveRosterAssignments,
   type RosterActor, type RosterContact, type RosterDetail, type RosterSummary } from "@/features/pdf-reviews/timetables";
 
@@ -42,7 +42,7 @@ export function ReviewTimetablePanel({ reviewId, selected, onClose, onUnauthoriz
   }
   const [creationKey, setCreationKey] = useState(() => crypto.randomUUID());
   const [contacts, setContacts] = useState<RosterContact[]>(() => selected.map(row => ({
-    entryId: String(row.entry.id), name: row.entry.title || row.entry.applicantName || "",
+    entryId: String(row.entry.id), name: reviewContactName(row.entry),
     phone: row.contact.phone ?? "", email: row.email.email ?? "",
   })));
   const [editing, setEditing] = useState<RosterActor | null>(null);

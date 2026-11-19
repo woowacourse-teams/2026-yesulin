@@ -117,8 +117,8 @@ page는 `number,text,needsOcr,images`, image는 `fileKey,url,classification=UNCL
 URL은 응답 시 새로 서명하며 DB에는 저장하지 않는다. 원본·이미지는 공개 CDN으로 바꾸지 않는다.
 `resultFileKey`는 Lambda 재시도용 `result.json` 위치를 알려 줄 뿐 조회 API는 이 객체를 읽지 않는다. Lambda만 재시도 때 재사용한다.
 
-파일당 PDF 25MiB, 파일명 255자 이하를 받는다. 서버는 파일명(NFC 정규화, `.pdf`)과 크기를 검증하고 확장자 `pdf`·`application/pdf`를
-고정하며 생성 후 바꾸지 않는다. 심사 프론트는 최대 300개를 선택하고 파일별로 URL을 발급해 제한된 수로 PUT한다. 독립 추출 진단 화면의 선택 상한은 별도다.
+파일당 PDF 25MiB, 파일명 255자 이하를 받는다. 서버는 파일명과 크기를 검증하고 확장자 `pdf`와 미디어 타입 `application/pdf`를 고정한다.
+새 작업의 `originalFilename`에는 요청으로 받은 이름을 그대로 저장한다. 심사 프론트는 최대 300개를 선택하고 파일별로 URL을 발급해 제한된 수로 PUT한다. 독립 추출 진단 화면의 선택 상한은 별도다.
 URL은 파일 한 개의 PUT을 서명하며 파일 여러 개를 한 URL에 넣지 않는다. 크기·Content-Type·`If-None-Match: *`를 서명해
 같은 원본 키를 덮어쓰지 않는다. URL 만료는 새 PUT만 막는다. 본인 작업의 원본이 이미 있고 크기·형식·PDF 서명이 맞으면
 만료 후 시간이 지나도 completion이 확인하며, 확인을 마친 작업의 재확인은 멱등이다. 조회(GET)는 원본을 찾거나 확인하지 않는다.

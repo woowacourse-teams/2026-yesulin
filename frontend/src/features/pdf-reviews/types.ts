@@ -33,8 +33,13 @@ export type ReviewEntry = {
   readonly processingStatus?: "UPLOADING" | "EXTRACTING" | "ENRICHING" | "READY" | "NEEDS_REVIEW" | "FAILED";
 };
 
-export function reviewEntryName(entry: Pick<ReviewEntry, "title" | "applicantName">): string {
-  if (entry.title !== undefined) return entry.title;
+export function reviewEntryTitle(entry: Pick<ReviewEntry, "title" | "originalFilename">): string {
+  if (entry.title?.trim()) return entry.title;
+  return entry.originalFilename;
+}
+
+export function reviewContactName(entry: Pick<ReviewEntry, "title" | "originalFilename" | "applicantName">): string {
+  if (entry.title?.trim() && entry.title !== entry.originalFilename) return entry.title;
   return entry.applicantName ?? "";
 }
 

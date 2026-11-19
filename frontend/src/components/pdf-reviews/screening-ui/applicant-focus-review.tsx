@@ -52,7 +52,7 @@ function FocusReviewContent({ applicant, rows, index, onMove, documentExpanded, 
   const openApplicant = useEffectEvent(() => onApplicantOpened?.());
   useEffect(() => { openApplicant(); }, [applicant.id]);
   useEffect(() => startReviewTimer({ metric_version: 2, workflow: "producer_pdf", review_id: reviewId, item_id: applicant.id }), [reviewId, applicant.id]);
-  const heading = applicant.sourceDocument?.filename || applicant.name;
+  const heading = applicant.name;
   const move = useCallback(async (target: Applicant | undefined, input: ReviewInput = "button") => {
     if (!target || saving || decisionPending.current) return;
     let actionType: "previous" | "next" = "next";
