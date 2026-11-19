@@ -13,10 +13,10 @@ const label = (roles: ReviewDetail["roles"], patch: Partial<ReviewEntry>) => {
   return applicantListLabel(screeningApplicant({ ...review(roles), entries: [item] }, item));
 };
 
-describe("PDF 심사 카드와 표 목록 표시", () => {
+describe("PDF 심사 지원자 목록 표시", () => {
   it("이름과 배역이 비어 있으면 파일 이름만 보이고 자리 표시를 쓰지 않는다", () => {
     expect(label([{ id: "r1", name: "남주" }], {})).toEqual({
-      number: "지원서 1", filename: "지원서_가상.pdf", name: "", role: "", uploading: false,
+      filename: "지원서_가상.pdf", name: "", role: "", uploading: false,
     });
   });
 

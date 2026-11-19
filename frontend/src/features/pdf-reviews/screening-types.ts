@@ -3,7 +3,7 @@ export type { ApplicantPhoto, ReviewStatus, SubmissionId } from "../auditions/ty
 /** Existing screening presentation model; no legacy screening API is used. */
 export type Applicant = BaseApplicant & {
   readonly review: BaseApplicant["review"] & { readonly revision?: number };
-  readonly sourceDocument?: { readonly filename: string; readonly title?: string; readonly sequence?: number; readonly preparation: string; readonly processing?: boolean;
+  readonly sourceDocument?: { readonly filename: string; readonly title?: string; readonly preparation: string; readonly processing?: boolean;
     readonly uploading?: boolean;
     readonly educationText?: string; readonly ageText?: string; readonly heightText?: string;
     readonly careers?: readonly { readonly text: string; readonly title?: string; readonly part?: string;

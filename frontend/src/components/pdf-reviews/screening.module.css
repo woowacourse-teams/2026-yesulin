@@ -138,13 +138,6 @@
 .controls .createSubmit { display:flex; align-items:center; justify-content:center; gap:12px; width:100%; min-height:52px; margin-top:24px; border-radius:12px; font-size:16px; }
 .createSubmit span { font-size:20px; }
 .optional { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 4px; }
-.roleBar { display:flex; align-items:center; gap:12px; padding:6px 0 10px; min-width:0; }
-.roleChips { display:flex; flex:1; min-width:0; gap:6px; overflow-x:auto; }
-.roleChips button { display:flex; align-items:center; gap:8px; flex-shrink:0; min-height:40px; padding:8px 12px; border:1px solid var(--border); border-radius:12px; background:var(--card); font-size:13px; font-weight:600; }
-.roleChips button[aria-pressed="true"] { background:var(--brand); border-color:var(--brand); color:white; }
-.controls .roleChips button[aria-pressed="true"]:hover:not(:disabled) { background:var(--brand-strong); border-color:var(--brand-strong); color:white; }
-.roleChips span { font-size:12px; opacity:.75; }
-
 .roleHint { font-size:12px; color:var(--muted); margin:0 0 12px; }
 .registeredRoles { padding:12px; border-radius:12px; background:var(--surface); overflow-wrap:anywhere; }
 
@@ -177,18 +170,15 @@
 .integrated .breadcrumb ol { flex-wrap:nowrap; gap:8px; }
 .integrated .breadcrumb li:last-child { flex:1; overflow:hidden; }
 .integrated .breadcrumb h1 { margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:20px; font-weight:700; line-height:1.5; letter-spacing:-.02em; }
+.integrated .breadcrumbReview { max-width:40%; }
+.integrated .breadcrumbReview button { display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; }
 .integrated .breadcrumbSeparator { font-size:16px; }
 .integrated .controls .homeLink { padding:0 8px; color:var(--ink-60); font-size:14px; }
 .uploadButtons { display:flex; align-items:center; flex-shrink:0; gap:8px; }
 .toolbarButton { display:inline-flex; align-items:center; gap:6px; min-height:44px; padding:10px 14px; border:1px solid var(--line); border-radius:10px; background:var(--white); color:var(--ink); font-size:14px; font-weight:600; white-space:nowrap; cursor:pointer; }
 .toolbarButton:hover:not(:disabled) { background:var(--paper); }
 .toolbarButton:disabled { cursor:default; opacity:.5; }
-.integrated .roleChips { gap:6px; padding:2px 0; scrollbar-width:thin; }
-.integrated .controls .roleChips button { min-height:44px; border:0; border-radius:10px; padding:10px 12px; background:transparent; font-size:14px; }
-.integrated .roleChips button span { display:inline-flex; align-items:center; justify-content:center; min-width:24px; padding:1px 6px; border-radius:6px; background:var(--paper); color:var(--ink-60); font-size:13px; }
-.integrated .roleChips button[aria-pressed=true] span { color:var(--brand-pressed); background:var(--white); }
-.integrated .controls .roleChips button[aria-pressed=true] { color:var(--brand); background:var(--brand-soft); }
-.integrated .controls .roleChips button[aria-pressed=true]:hover { background:var(--brand-soft); border-color:transparent; }
+.toolbarIcon { width:18px; height:18px; flex-shrink:0; color:var(--brand); }
 .integrated .roleHint { margin:0 0 12px; font-size:14px; }
 .boardToolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px 20px; padding:8px 0 12px; margin-bottom:16px; border-bottom:1px solid var(--line); }
 .boardActions { display:flex; align-items:center; flex-wrap:wrap; justify-content:flex-end; gap:12px; margin-left:auto; min-width:0; }
@@ -199,9 +189,6 @@
 .decisionTabs button[aria-pressed=true] { border-color:var(--ink); color:var(--ink); }
 .decisionTabs span { min-width:20px; font-size:14px; text-align:center; }
 .decisionTabs button:hover { background:var(--paper); }
-.viewTabs { display:flex; flex-shrink:0; padding:3px; border:1px solid var(--line); border-radius:10px; background:var(--paper); }
-.viewTabs button { min-height:44px; min-width:44px; padding:6px 12px; border-radius:7px; color:var(--ink-60); font-size:14px; font-weight:600; }
-.viewTabs button[aria-pressed=true] { background:var(--white); color:var(--ink); box-shadow:0 1px 3px #11172215; }
 .focusReview { max-width:1400px; }
 .focusGrid { display:grid; grid-template-columns:minmax(0,1fr); align-items:start; gap:24px; min-width:0; }
 .photoColumn { display:flex; flex-direction:column; align-items:center; gap:8px; min-width:0; }
@@ -241,7 +228,6 @@
   .integrated .header { flex-wrap:wrap; gap:0; }
   .integrated .breadcrumb { flex-basis:100%; }
   .decisionTabs button { padding:8px; gap:4px; }
-  .viewTabs button { padding:6px 9px; }
   .boardToolbar { gap:12px 8px; }
   .boardActions { width:100%; justify-content:space-between; gap:8px; }
   .boardActions > button { padding-inline:10px; }

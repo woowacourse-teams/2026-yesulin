@@ -7,11 +7,11 @@ import { producerAuditionPostRoutes } from "@/features/audition-posts/types";
 import { PRODUCER_DASHBOARD_PATH } from "@/features/auth/producer-navigation";
 import { showRoutes } from "@/features/shows/types";
 import { ProducerSidebarItem } from "./producer-sidebar-item";
-import { SidebarSlotTarget } from "./sidebar-slot";
+import { SidebarSlotTarget, type SidebarSurface } from "./sidebar-slot";
 
 const PDF_REVIEW_PATH = "/producers/pdf-reviews";
 
-export function ProducerSidebarMenu({ onNavigate, reviewSlot = false }: { readonly onNavigate?: () => void; readonly reviewSlot?: boolean }) {
+export function ProducerSidebarMenu({ onNavigate, reviewSlot }: { readonly onNavigate?: () => void; readonly reviewSlot?: SidebarSurface }) {
   return (
     <nav aria-label="공연사 관리 메뉴" className="min-h-0 flex-1 divide-y divide-sidebar-line overflow-y-auto overscroll-contain px-2 py-2">
       <div className="pb-2">
@@ -23,7 +23,7 @@ export function ProducerSidebarMenu({ onNavigate, reviewSlot = false }: { readon
         <OtrAuditionTreeNav onNavigate={onNavigate} />
         <ProducerSidebarItem href={PDF_REVIEW_PATH} label="PDF 지원서 심사" onNavigate={onNavigate}
           createLink={{ href: `${PDF_REVIEW_PATH}?create=1`, label: "심사함 추가하기" }} />
-        {reviewSlot && <SidebarSlotTarget />}
+        {reviewSlot && <SidebarSlotTarget surface={reviewSlot} />}
       </SidebarGroup>
       <SidebarGroup label="공연">
         <ProducerSidebarItem href={showRoutes.manageList} label="무료 공연 관리" onNavigate={onNavigate}

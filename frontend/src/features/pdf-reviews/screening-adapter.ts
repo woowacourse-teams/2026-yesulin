@@ -18,26 +18,6 @@ function linksFor(result: PdfExtractionResult | null | undefined): string[] {
   return links;
 }
 
-const uploadOrderCache = new WeakMap<readonly ReviewEntry[], ReadonlyMap<string, number>>();
-
-function entrySequence(review: ReviewDetail, entry: ReviewEntry) {
-  return uploadOrder(review.entries).get(String(entry.id)) ?? 0;
-}
-
-function uploadOrder(entries: readonly ReviewEntry[]) {
-  const cached = uploadOrderCache.get(entries);
-  if (cached) return cached;
-  const order = new Map([...entries].sort(byCreation).map((entry, index) => [String(entry.id), index + 1]));
-  uploadOrderCache.set(entries, order);
-  return order;
-}
-
-function byCreation(left: ReviewEntry, right: ReviewEntry) {
-  const difference = Number(left.id) - Number(right.id);
-  if (Number.isNaN(difference)) return String(left.id).localeCompare(String(right.id));
-  return difference;
-}
-
 /** Adapt current Lambda results to the original screening UI without persisting legacy records. */
 export function screeningApplicant(review: ReviewDetail, entry: ReviewEntry, job?: PdfExtractionJob): Applicant {
   const info = job?.result?.applicantInfo;
@@ -54,7 +34,7 @@ export function screeningApplicant(review: ReviewDetail, entry: ReviewEntry, job
     photos: (job?.result?.pages.flatMap(page => page.images) ?? []).filter(image => image.classification === "CANDIDATE" && image.url)
       .map((image, index) => ({ label: `프로필 사진 ${index + 1}`, url: image.url, fallbackUrl: "" })),
     review: saved, reviewHistory: { 1: saved, 2: null, 3: null, 4: null, 5: null }, mismatchReasons: [],
-    sourceDocument: { filename: entry.originalFilename, title: entry.title ?? "", sequence: entrySequence(review, entry), ageText, heightText: profile?.height.value ?? undefined,
+    sourceDocument: { filename: entry.originalFilename, title: entry.title ?? "", ageText, heightText: profile?.height.value ?? undefined,
       processing: entry.processingStatus === "UPLOADING" || entry.processingStatus === "EXTRACTING" || entry.processingStatus === "ENRICHING",
       uploading: entry.processingStatus === "UPLOADING",
       educationText: profile?.education.value ?? undefined,
