@@ -66,15 +66,15 @@ it('수동 저장·대기 복원·원본 파일명·설명 문구를 표시하�
   expect(host.querySelector('[aria-label="배우 이름"]')).toBeNull();
   expect(host.querySelector('h2')?.textContent).toBe('지원서 1');
 });
-it('판정을 되돌리면 이전 판정으로 다시 저장하고 그 지원서로 돌아간다', async () => {
+it('판정 뒤 되돌리기 알림 없이 Z로 이전 판정에 다시 저장하고 그 지원서로 돌아간다', async () => {
   mocks.save.mockImplementation(async (_review,id,change)=>({...entries.find(entry=>entry.id===id)!,...change}));
   await act(async () => root.render(<Harness />)); await button('합격');
   expect(host.querySelector('[data-job-id]')?.getAttribute('data-job-id')).toBe('job-b');
-  expect(host.textContent).toContain('지원서 1 합격으로 저장했어요');
-  await button('되돌리기');
+  expect(host.textContent).not.toContain('저장했어요');
+  expect(host.querySelector('[aria-label="되돌리기 (Z)"]')).toBeNull();
+  await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', code: 'KeyZ' })); });
   expect(mocks.save).toHaveBeenLastCalledWith('review','a',{ decision:'PENDING',memo:'' },'decision');
   expect(host.querySelector('[data-job-id]')?.getAttribute('data-job-id')).toBe('job-a');
-  expect(host.textContent).not.toContain('저장했어요');
 });
 
 it('Z 단축키로 직전 판정을 되돌리고 되돌린 뒤에는 다시 눌러도 저장하지 않는다', async () => {
@@ -82,7 +82,6 @@ it('Z 단축키로 직전 판정을 되돌리고 되돌린 뒤에는 다시 눌�
   await act(async () => root.render(<Harness />));
   await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', code: 'KeyA' })); });
   expect(mocks.save).toHaveBeenLastCalledWith('review','a',{ decision:'FAIL',memo:'' },'decision');
-  expect(host.textContent).toContain('지원서 1 불합격으로 저장했어요');
   await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ㅋ', code: 'KeyZ' })); });
   expect(mocks.save).toHaveBeenLastCalledWith('review','a',{ decision:'PENDING',memo:'' },'decision');
   const calls = mocks.save.mock.calls.length;

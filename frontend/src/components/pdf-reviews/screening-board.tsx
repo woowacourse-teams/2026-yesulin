@@ -17,9 +17,9 @@ import type { LastDecision } from "./screening-ui/fullscreen-dock";
 type Props = { review: ReviewDetail; entries: readonly ReviewEntry[]; decision: DecisionFilter; view: "single" | "card" | "table";
   refreshKey: number; onSaved: (entry: ReviewEntry) => void; onUnauthorized: () => void;
   onDirtyChange: (dirty: boolean) => void; registerNavigationSave?: (flush: () => Promise<boolean>) => () => void; onApplicantOpened?: () => void; navigate: (action: () => void) => void;
-  lastDecision?: LastDecision | null; onLastDecisionChange?: (last: LastDecision | null) => void };
+  lastDecision?: LastDecision | null; onLastDecisionChange?: (last: LastDecision | null) => void; pagerSlot?: HTMLElement | null };
 
-export function ScreeningBoard({ review, entries, decision, view, refreshKey, onSaved, onUnauthorized, onDirtyChange, onApplicantOpened, navigate, registerNavigationSave, lastDecision, onLastDecisionChange }: Props) {
+export function ScreeningBoard({ review, entries, decision, view, refreshKey, onSaved, onUnauthorized, onDirtyChange, onApplicantOpened, navigate, registerNavigationSave, lastDecision, onLastDecisionChange, pagerSlot }: Props) {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
@@ -88,7 +88,7 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
     currentRole: id => review.entries.find(entry => sameKey(entry.id, id))?.roleId ?? null,
     changeRole: (id, roleId) => void assignRole([id], roleId), saveMemo, registerNavigationSave, requestNavigation: navigate, onNoteDirty: noteDirty,
     onBasicAction: (id, action, input) => trackReviewAction(String(review.id), String(id), view, action, input),
-    onApplicantOpened, lastDecision, onLastDecisionChange,
+    onApplicantOpened, lastDecision, onLastDecisionChange, pagerSlot,
     reviewFocused: (id, status, _memo, note) => save(id, status, note),
     renderDocument: (applicant, frame) => { const entry = entryFor(applicant.id); if (!entry) return null; return <ReviewOriginalDocument key={`${entry.jobId}:${refreshKey}`} jobId={entry.jobId} onUnauthorized={onUnauthorized} frame={frame} />; },
   }}>

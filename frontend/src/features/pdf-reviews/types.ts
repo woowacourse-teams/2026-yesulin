@@ -76,6 +76,11 @@ export type EntryFilter = "ALL" | "WAITING" | "NEEDS_CHECK" | { readonly roleId:
 export const sameKey = (a: ReviewKey | null | undefined, b: ReviewKey | null | undefined) =>
   a != null && b != null && String(a) === String(b);
 
+export function entryFilterKey(filter: EntryFilter) {
+  if (typeof filter === "object") return String(filter.roleId);
+  return filter;
+}
+
 /** 배역 ID로 수동 배정 여부를 구분한다. */
 export function matchesFilter(entry: ReviewEntry, filter: EntryFilter) {
   if (filter === "ALL") return true;

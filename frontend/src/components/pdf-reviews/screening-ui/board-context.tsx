@@ -21,6 +21,7 @@ export type BoardContextValue = {
   onApplicantOpened?: () => void;
   lastDecision?: LastDecision | null;
   onLastDecisionChange?: (last: LastDecision | null) => void;
+  pagerSlot?: HTMLElement | null;
   onBasicAction?: (id: SubmissionId, action: ReviewAction, input?: ReviewInput) => void;
   reviewFocused: (id: SubmissionId, status: ReviewStatus, memo?: string, note?: string, revision?: number) => Promise<{ applicants: Applicant[] } | null>;
 };

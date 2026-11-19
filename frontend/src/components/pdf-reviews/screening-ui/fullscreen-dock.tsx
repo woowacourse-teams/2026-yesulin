@@ -11,9 +11,8 @@ export const decisionOptions: readonly { readonly status: DecidedStatus; readonl
   { status: "PASS", label: "합격", key: "D", code: "KeyD", icon: "✓" },
 ];
 export const statusLabels: Readonly<Record<ReviewStatus, string>> = { PENDING: "미판정", PASS: "합격", ETC: "보류", FAIL: "불합격" };
-const savedAs: Readonly<Record<ReviewStatus, string>> = { PENDING: "미판정으로", PASS: "합격으로", ETC: "보류로", FAIL: "불합격으로" };
 
-export type LastDecision = { readonly id: SubmissionId; readonly heading: string; readonly previous: ReviewStatus; readonly next: DecidedStatus };
+export type LastDecision = { readonly id: SubmissionId; readonly previous: ReviewStatus };
 
 type DockProps = {
   readonly pager: PdfPagerState | null; readonly current: ReviewStatus; readonly stamp: DecidedStatus | null;
@@ -51,14 +50,4 @@ function pageRange(pager: PdfPagerState) {
 
 function endNotice(pager: PdfPagerState | null) {
   return !!pager && pager.endAttempts > 0 && pager.row === pager.rows - 1;
-}
-
-export function UndoNotice({ last, disabled, onUndo, floating }: { readonly last: LastDecision; readonly disabled: boolean; readonly onUndo: () => void; readonly floating: boolean }) {
-  const notice = <div role="status" className={`${styles.undo} ${styles.glass}`}>
-    <span className={styles.undoDot} aria-hidden="true" />
-    <span><strong>{last.heading}</strong> {savedAs[last.next]} 저장했어요</span>
-    <button type="button" className={styles.undoButton} aria-label="되돌리기 (Z)" disabled={disabled} onClick={onUndo}>되돌리기<kbd className={styles.key} aria-hidden="true">Z</kbd></button>
-  </div>;
-  if (!floating) return notice;
-  return <div className={styles.undoLayer}>{notice}</div>;
 }

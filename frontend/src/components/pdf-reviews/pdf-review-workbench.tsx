@@ -4,7 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuthSession } from "@/components/auth/auth-session";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
-import { matchesDecision, matchesFilter, type DecisionFilter, type EntryFilter, type ReviewDetail, type ReviewKey } from "@/features/pdf-reviews/types";
+import { entryFilterKey, matchesDecision, matchesFilter, type DecisionFilter, type EntryFilter, type ReviewDetail, type ReviewKey } from "@/features/pdf-reviews/types";
 import { useReviewExitGuard } from "@/features/pdf-reviews/use-review-exit-guard";
 import { useReviewProgress } from "@/features/pdf-reviews/use-review-progress";
 import { usePdfReviews } from "@/features/pdf-reviews/use-pdf-reviews";
@@ -14,6 +14,8 @@ import { ReviewCreateForm } from "./review-create-form";
 import { ReviewList } from "./review-list";
 import { ReviewLoginGate, SessionExpiredNotice } from "./review-session";
 import { ReviewUploadPanel } from "./review-upload-panel";
+import { ReviewSidebarRoles, type RoleChip } from "./review-sidebar-roles";
+import { useSidebarSlot } from "@/components/producers/sidebar-slot";
 import { ReviewProcessingProgress } from "./review-processing-progress";
 import { ScreeningBoard } from "./screening-board";
 import { EmptyListUndo } from "./screening-ui/empty-list-undo";
@@ -72,7 +74,9 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
     if (dirty.current) { setPendingNavigation({ action }); return; }
     action();
   }, []);
-  useReviewExitGuard(authorized && !home, navigate, href => router.push(href));
+  useReviewExitGuard(authorized && !home, navigate, href => router.push(href), () => leaveToList());
+  const sidebarSlot = useSidebarSlot();
+  const [pagerSlot, setPagerSlot] = useState<HTMLElement | null>(null);
   const uploadSync = useRef<ReturnType<typeof setTimeout>>(undefined);
   const markExpired = useCallback(() => setExpired(true), []);
   const reviews = usePdfReviews({ enabled: authorized, onUnauthorized: markExpired });
@@ -99,7 +103,20 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
   const chips: { value: EntryFilter; label: string }[] = review?.roles.length === 0
     ? [{ value: "ALL", label: "자유 배역" }]
     : [{ value: "ALL", label: "전체 배역" }, ...(review?.roles ?? []).map(role => ({ value: { roleId: role.id }, label: role.name })), { value: "NEEDS_CHECK", label: "미배정" }];
-  const filterKey = typeof filter === "object" ? String(filter.roleId) : filter;
+  const filterKey = entryFilterKey(filter);
+  const roleChips: RoleChip[] = chips.map(chip => ({ ...chip, key: entryFilterKey(chip.value), count: review?.entries.filter(item => matchesFilter(item, chip.value)).length ?? 0 }));
+  const selectRole = (value: EntryFilter) => navigate(() => { setLastDecision(null); setFilter(value); });
+  const selectDecision = (value: DecisionFilter) => navigate(() => { setLastDecision(null); setDecision(value); });
+  const selectView = (value: "single" | "card" | "table") => navigate(() => { setLastDecision(null); setView(value); });
+  function leaveToList() { setLastDecision(null); setHome(true); }
+  function managedBySidebar(className: string) {
+    if (!sidebarSlot) return "";
+    return className;
+  }
+  function singlePagerSlot() {
+    if (view !== "single") return null;
+    return pagerSlot;
+  }
   const uploadProps = { busy: uploads.busy || collecting,
     disabled: expired,
     onChoose: (files: FileList | readonly File[] | null) => { setSelectionError(""); if (review) uploads.choose(review.id, files); },
@@ -127,15 +144,10 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
         <ReviewList reviews={reviews.reviews} selectedId={reviews.selectedId} loading={reviews.listLoading} error={reviews.listError} onSelect={openReview} onRetry={() => void reviews.refresh()} />
       </div> : !review ? <p role="status" className="p-8">{reviews.detailError || "심사함을 불러오고 있습니다…"}</p> : <>
         <div className={`${styles.controls} px-4 md:px-6 xl:px-8`}>
-          <header className={styles.header}><nav className={styles.breadcrumb} aria-label="심사함 경로"><ol><li><button type="button" className={styles.homeLink} onClick={() => navigate(() => setHome(true))}>심사함</button></li><li aria-hidden="true" className={styles.breadcrumbSeparator}>›</li><li aria-current="page"><h1 title={review.title}>{review.title}</h1></li></ol></nav>
-
-          </header>
-          {!contactsOpen && <ReviewUploadPanel {...uploadProps} inputRef={uploadInput} folderInputRef={uploadFolderInput}>
-            <nav className={styles.roleBar} aria-label="배역별 지원자"><div className={styles.roleChips}>{chips.map(chip => {
-              const key = typeof chip.value === "object" ? String(chip.value.roleId) : chip.value;
-              return <button type="button" key={key} aria-pressed={filterKey === key} onClick={() => navigate(() => setFilter(chip.value))}>{chip.label}<span className="num">{review.entries.filter(item => matchesFilter(item, chip.value)).length}</span></button>;
-            })}</div></nav>
-          </ReviewUploadPanel>}
+          <header className={`${styles.header} ${managedBySidebar("lg:sr-only")}`}><nav className={styles.breadcrumb} aria-label="심사함 경로"><ol><li><button type="button" className={styles.homeLink} onClick={() => navigate(leaveToList)}>심사함</button></li><li aria-hidden="true" className={styles.breadcrumbSeparator}>›</li><li aria-current="page"><h1 title={review.title}>{review.title}</h1></li></ol></nav></header>
+          {!contactsOpen && <div className={managedBySidebar("lg:hidden")}><nav className={styles.roleBar} aria-label="배역별 지원자"><div className={styles.roleChips}>{roleChips.map(chip =>
+            <button type="button" key={chip.key} aria-pressed={filterKey === chip.key} onClick={() => selectRole(chip.value)}>{chip.label}<span className="num">{chip.count}</span></button>)}</div></nav></div>}
+          {sidebarSlot && <ReviewSidebarRoles slot={sidebarSlot} title={review.title} chips={contactsOpen ? [] : roleChips} selected={filterKey} onSelect={selectRole} />}
           {!contactsOpen && filter === "NEEDS_CHECK" && <p className={styles.roleHint}>배역이 아직 배정되지 않은 지원서입니다. 각 지원서의 ‘배역 배정’에서 선택해 주세요.</p>}
           {selectionError && <p role="alert" className="text-sm text-fail">{selectionError}</p>}
           {reviews.detailError && <p role="alert" className="text-fail">{reviews.detailError}</p>}
@@ -148,10 +160,12 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
             ? <p role="alert" className="py-8 text-sm text-fail">로그인이 만료되어 연락처를 숨겼습니다. 다시 로그인한 뒤 새로고침해 주세요.</p>
             : <ReviewPassedContacts key={review.id} reviewId={review.id} onDirtyChange={onDirtyChange} onBack={() => { setContactsOpen(false); void sync(); }} onUnauthorized={markExpired} /> : <>
           <div className={styles.boardToolbar}>
-            <div role="group" aria-label="심사 상태" className={styles.decisionTabs}>{([['PENDING','대기'],['PASS','합격'],['HOLD','보류'],['FAIL','불합격']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={decision === value} onClick={() => navigate(() => setDecision(value))}>{label}<span className="num">{review.entries.filter(item => matchesFilter(item, filter) && matchesDecision(item, value)).length}</span></button>)}</div>
+            <div role="group" aria-label="심사 상태" className={styles.decisionTabs}>{([['PENDING','대기'],['PASS','합격'],['HOLD','보류'],['FAIL','불합격']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={decision === value} onClick={() => selectDecision(value)}>{label}<span className="num">{review.entries.filter(item => matchesFilter(item, filter) && matchesDecision(item, value)).length}</span></button>)}</div>
             <div className={styles.boardActions}>
-            <div role="group" aria-label="보기 방식" className={styles.viewTabs}>{([['single','한 명씩'],['card','카드'],['table','표']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={view === value} onClick={() => navigate(() => setView(value))}>{label}</button>)}</div>
+            <ReviewUploadPanel {...uploadProps} inputRef={uploadInput} folderInputRef={uploadFolderInput} />
+            <div role="group" aria-label="보기 방식" className={styles.viewTabs}>{([['single','한 명씩'],['card','카드'],['table','표']] as const).map(([value,label]) => <button type="button" key={value} aria-pressed={view === value} onClick={() => selectView(value)}>{label}</button>)}</div>
             {decision === "PASS" && <SecondaryButton disabled={expired} onClick={() => navigate(() => setContactsOpen(true))}>합격자 연락처</SecondaryButton>}
+            {view === "single" && <div ref={setPagerSlot} className="contents" />}
             </div>
           </div>
           {!visible.length ? preparing ? <div className={styles.emptyDrop} role="status" aria-live="polite">
@@ -169,7 +183,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
               </div>
               <span id="pdf-drop-limit" className={styles.dropLimit}>PDF 파일, 한 번에 최대 300개, 파일당 최대 25MiB</span>
             </div>
-            : <ScreeningBoard key={`${review.id}-${filterKey}-${decision}-${view}`} lastDecision={lastDecision} onLastDecisionChange={setLastDecision} review={review} entries={visible} decision={decision} view={view} refreshKey={detailRefresh} onSaved={reviews.replaceEntry} onUnauthorized={markExpired} onDirtyChange={onDirtyChange} registerNavigationSave={registerNavigationSave} onApplicantOpened={recheckProgress} navigate={navigate} />}
+            : <ScreeningBoard key={`${review.id}-${filterKey}-${decision}-${view}`} lastDecision={lastDecision} onLastDecisionChange={setLastDecision} pagerSlot={singlePagerSlot()} review={review} entries={visible} decision={decision} view={view} refreshKey={detailRefresh} onSaved={reviews.replaceEntry} onUnauthorized={markExpired} onDirtyChange={onDirtyChange} registerNavigationSave={registerNavigationSave} onApplicantOpened={recheckProgress} navigate={navigate} />}
           </>}
         </div>
       </>}
