@@ -20,13 +20,13 @@ function ApplicantCard({ applicant }: { readonly applicant: Applicant }) {
   const checked = selected.has(applicant.id);
   return <article className={`relative flex min-w-0 flex-col rounded-card border bg-card transition-[border-color,box-shadow] ${cardTone(checked)}`}>
     <div className="flex items-start gap-3 p-4 pb-3">
-      <label className="relative z-10 -m-2 grid h-11 w-11 shrink-0 cursor-pointer place-items-center">
+      <label className="relative z-10 -mx-2 -my-2.5 grid h-11 w-11 shrink-0 cursor-pointer place-items-center">
         <input type="checkbox" checked={checked} onChange={() => toggleSelected(applicant.id)} className="h-5 w-5 accent-brand" />
         <span className="sr-only">{label.title} 선택</span>
       </label>
       <div className="min-w-0 flex-1">
-        <h2 className="text-sm font-semibold leading-5"><button type="button" aria-label={`지원서 열기: ${label.title}`} onClick={() => openApplicant(applicant.id)}
-          className="cursor-pointer text-left after:absolute after:inset-0 after:rounded-card focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-brand">
+        <h2 className="text-sm font-semibold leading-6"><button type="button" aria-label={`지원서 열기: ${label.title}`} onClick={() => openApplicant(applicant.id)}
+          className="block min-h-0! max-w-full cursor-pointer text-left after:absolute after:inset-0 after:rounded-card focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-brand">
           <span className="line-clamp-2 break-all whitespace-pre-wrap" title={label.title}>{label.title}</span>
         </button></h2>
         <ApplicantMeta role={label.role} uploading={label.uploading} />

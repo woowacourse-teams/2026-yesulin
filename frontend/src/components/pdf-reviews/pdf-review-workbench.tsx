@@ -116,9 +116,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
   function openReview(id: ReviewKey) { navigate(() => { enterReview(); reviews.open(id); }); }
   function created(next: ReviewDetail) { closeCreate(); enterReview(); reviews.created(next); }
   function manualRefresh() { setExpired(false); setDetailRefresh(value => value + 1); void reviews.refresh(); }
-  const chips: { value: EntryFilter; label: string }[] = review?.roles.length === 0
-    ? [{ value: "ALL", label: "자유 배역" }]
-    : [{ value: "ALL", label: "전체 배역" }, ...(review?.roles ?? []).map(role => ({ value: { roleId: role.id }, label: role.name })), { value: "NEEDS_CHECK", label: "미배정" }];
+  const chips = roleFilters(review?.roles ?? []);
   const filterKey = entryFilterKey(filter);
   const roleChips: RoleChip[] = chips.map(chip => ({ ...chip, key: entryFilterKey(chip.value), count: review?.entries.filter(item => matchesFilter(item, chip.value)).length ?? 0 }));
   function resetFocus() { setLastDecision(null); setFocusedId(null); }
@@ -161,7 +159,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
           <ReviewBreadcrumb title={review.title} applicantTitle={applicantTitle}
             listHeading={listHeading} onReviews={() => navigate(leaveToList)} onApplicants={backToApplicants} />
           {Object.entries(sidebarSlots).map(([surface, slot]) => slot && <ReviewSidebarRoles key={surface} slot={slot} title={review.title} chips={sidebarChips()} selected={filterKey} onSelect={selectRole} />)}
-          {local && !contactsOpen && <aside className="mb-2 max-w-xs rounded-control bg-sidebar py-2">
+          {local && !contactsOpen && roleChips.length > 0 && <aside className="mb-2 max-w-xs rounded-control bg-sidebar py-2">
             <ReviewSidebarRoles chips={roleChips} selected={filterKey} onSelect={selectRole} />
           </aside>}
           {!contactsOpen && filter === "NEEDS_CHECK" && <p className={styles.roleHint}>배역이 아직 배정되지 않은 지원서입니다. 각 지원서의 ‘배역 배정’에서 선택해 주세요.</p>}
@@ -213,6 +211,15 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
       <div className="mt-6 flex justify-end gap-2"><SecondaryButton onClick={() => setPendingNavigation(null)}>취소</SecondaryButton><PrimaryButton onClick={() => { const action = pendingNavigation?.action; dirty.current = false; setPendingNavigation(null); action?.(); }}>저장하지 않고 이동</PrimaryButton></div>
     </ModalShell>
   </div>;
+}
+
+function roleFilters(roles: ReviewDetail["roles"]): { value: EntryFilter; label: string }[] {
+  if (!roles.length) return [];
+  return [
+    { value: "ALL", label: "전체 배역" },
+    ...roles.map(role => ({ value: { roleId: role.id }, label: role.name })),
+    { value: "NEEDS_CHECK", label: "미배정" },
+  ];
 }
 
 function findFocusedEntry(entries: readonly ReviewEntry[], id: string | null) {
