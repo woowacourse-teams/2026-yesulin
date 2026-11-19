@@ -78,7 +78,7 @@ it.each(["single", "card", "table"] as const)("%s: 자동 원본 표시는 클�
   } finally { await act(async () => root.unmount()); host.remove(); }
 });
 
-it("판정 되돌리기는 버튼과 Z를 각각 한 번씩 기록하고 판정 값은 보내지 않는다", async () => {
+it("판정 되돌리기는 Z를 누를 때마다 기록하고 판정 값은 보내지 않는다", async () => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   const host = document.createElement("div"); document.body.append(host);
@@ -95,10 +95,10 @@ it("판정 되돌리기는 버튼과 Z를 각각 한 번씩 기록하고 판정 
   try {
     await act(async () => root.render(<Harness />));
     await act(async () => button("합격").click());
-    await act(async () => button("되돌리기").click());
+    await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "z", code: "KeyZ" })));
     await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "s", code: "KeyS" })));
     await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "z", code: "KeyZ" })));
-    expect(undoActions().map(a => [a.item_id, a.input_method])).toEqual([["a", "button"], ["a", "shortcut"]]);
+    expect(undoActions().map(a => [a.item_id, a.input_method])).toEqual([["a", "shortcut"], ["a", "shortcut"]]);
     expect(undoActions().every(a => !("decision" in a) && !("review_status" in a))).toBe(true);
   } finally { await act(async () => root.unmount()); host.remove(); }
 });

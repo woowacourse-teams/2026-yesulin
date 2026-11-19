@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchPdfExtraction, PdfExtractionApiError } from "@/features/pdf-extractions/api";
 import { fetchPdfReview } from "@/features/pdf-reviews/api";
+import { SidebarSlotProvider, SidebarSlotTarget } from "@/components/producers/sidebar-slot";
 import { PdfReviewWorkbench } from "./pdf-review-workbench";
 
 const fixtures = vi.hoisted(() => ({
@@ -73,4 +74,25 @@ describe("합격자 연락처 세션 경계", () => {
     expect(container.querySelector('[data-pdf-processing-toast]')).toBeNull();
   });
 
+});
+
+describe("왼쪽 메뉴와 한 줄 툴바", () => {
+  it("배역은 왼쪽 메뉴에, 이전·다음은 툴바에 두고 메뉴의 심사 링크로 목록에 돌아간다", async () => {
+    const previous = window.location.href; window.history.replaceState({}, "", "/producers/pdf-reviews");
+    try {
+      await act(async () => root.render(<SidebarSlotProvider><aside><a href="/producers/pdf-reviews">PDF 지원서 심사</a><SidebarSlotTarget /></aside><PdfReviewWorkbench /></SidebarSlotProvider>));
+      await click("합성 심사");
+      const slot = container.querySelector("[data-sidebar-slot]")!;
+      expect(slot.textContent).toContain("합성 심사");
+      expect(slot.querySelector('nav[aria-label="배역별 지원자"] button[aria-pressed="true"]')?.textContent).toBe("자유 배역1");
+      expect(container.querySelector("header h1")?.closest("header")?.className).toContain("lg:sr-only");
+      await click("합격");
+      const pager = container.querySelector('nav[aria-label="지원서 이동"]')!;
+      expect(pager.closest('[role="group"], section[aria-label$="심사"]')).toBeNull();
+      expect(pager.parentElement?.parentElement?.querySelector('[aria-label="보기 방식"]')).not.toBeNull();
+      await act(async () => container.querySelector("aside a")!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 })));
+      expect(container.textContent).toContain("내 심사함");
+      expect(slot.textContent).toBe("");
+    } finally { window.history.replaceState({}, "", previous); }
+  });
 });

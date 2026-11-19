@@ -149,15 +149,6 @@
 .registeredRoles { padding:12px; border-radius:12px; background:var(--surface); overflow-wrap:anywhere; }
 
 
-.uploadToolbar { display:flex; align-items:center; gap:16px; padding:8px 0 12px; min-width:0; }
-.controls .uploadAction { display:inline-flex; align-items:center; justify-content:center; gap:9px; flex-shrink:0; min-height:48px; padding:12px 20px; border-radius:12px; font-size:14px; }
-.uploadToolbar .roleBar { flex:1; padding:0; }
-.uploadToolbar .roleChips { padding:3px; }
-@media(max-width:700px) {
-  .uploadToolbar { flex-wrap:wrap; gap:12px; }
-  .controls .uploadAction { margin-left:auto; }
-  .uploadToolbar .roleBar { flex-basis:100%; order:2; }
-}
 
 /* Current review routes use buttons while retaining the original link presentation. */
 .controls .homeLink { border:0; background:transparent; padding:8px 0; font-size:13px; font-weight:400; color:#5d6c82; white-space:nowrap; }
@@ -188,16 +179,16 @@
 .integrated .breadcrumb h1 { margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:20px; font-weight:700; line-height:1.5; letter-spacing:-.02em; }
 .integrated .breadcrumbSeparator { font-size:16px; }
 .integrated .controls .homeLink { padding:0 8px; color:var(--ink-60); font-size:14px; }
-.integrated .uploadToolbar { display:flex; flex-wrap:nowrap; align-items:center; gap:16px; padding:4px 0 12px; }
-.integrated .uploadToolbar .roleBar { order:0; flex:1; min-width:0; flex-basis:0; }
 .uploadButtons { display:flex; align-items:center; flex-shrink:0; gap:8px; }
+.toolbarButton { display:inline-flex; align-items:center; gap:6px; min-height:44px; padding:10px 14px; border:1px solid var(--line); border-radius:10px; background:var(--white); color:var(--ink); font-size:14px; font-weight:600; white-space:nowrap; cursor:pointer; }
+.toolbarButton:hover:not(:disabled) { background:var(--paper); }
+.toolbarButton:disabled { cursor:default; opacity:.5; }
 .integrated .roleChips { gap:6px; padding:2px 0; scrollbar-width:thin; }
 .integrated .controls .roleChips button { min-height:44px; border:0; border-radius:10px; padding:10px 12px; background:transparent; font-size:14px; }
 .integrated .roleChips button span { display:inline-flex; align-items:center; justify-content:center; min-width:24px; padding:1px 6px; border-radius:6px; background:var(--paper); color:var(--ink-60); font-size:13px; }
 .integrated .roleChips button[aria-pressed=true] span { color:var(--brand-pressed); background:var(--white); }
 .integrated .controls .roleChips button[aria-pressed=true] { color:var(--brand); background:var(--brand-soft); }
 .integrated .controls .roleChips button[aria-pressed=true]:hover { background:var(--brand-soft); border-color:transparent; }
-.integrated .controls .uploadAction { min-height:44px; margin:0; padding:10px 14px; gap:8px; font-size:14px; }
 .integrated .roleHint { margin:0 0 12px; font-size:14px; }
 .boardToolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px 20px; padding:8px 0 12px; margin-bottom:16px; border-bottom:1px solid var(--line); }
 .boardActions { display:flex; align-items:center; flex-wrap:wrap; justify-content:flex-end; gap:12px; margin-left:auto; min-width:0; }
@@ -249,10 +240,6 @@
 @media(max-width:700px) {
   .integrated .header { flex-wrap:wrap; gap:0; }
   .integrated .breadcrumb { flex-basis:100%; }
-  .integrated .uploadToolbar { gap:8px; }
-  .integrated .uploadToolbar { flex-wrap:wrap; }
-  .integrated .uploadToolbar .roleBar { flex-basis:100%; }
-  .uploadButtons { margin-left:auto; }
   .decisionTabs button { padding:8px; gap:4px; }
   .viewTabs button { padding:6px 9px; }
   .boardToolbar { gap:12px 8px; }
