@@ -25,11 +25,11 @@ A01~A04/A06~A07 서버 권한·업로드·추출·AI·진행률·배포는 N/A: 
 평가자가 관련19파일115테스트를 별도로 실행했고, F02 수정 후1파일1테스트를 표적 재실행해 통과했다. 추가 전체 평가는 시행하지 않았다.
 발견2/해결2/미해결0, P0 0/P1 1/P2 0/P3 1, 오탐0. 발견 경로: PRECHECK 0, INDEPENDENT_REVIEW 2, POST_FIX_CHECK 0, EXTERNAL 0.
 필수 PASS9/FAIL0/UNVERIFIED0, 제외 서버 기준 N/A6(A01~A04/A06~A07). 검증률9/9=100%는 이번 프론트 평가 범위만 뜻한다. 실서비스 배포 검증은 수행하지 않았다.
-PR은 생성하지 않았다. 최초 PR은 PENDING이며 다음 PR에 동일 문제 ID와 이력을 포함한다.
+최초 기록은 [PR #626](https://github.com/woowacourse-teams/2026-yesulin/pull/626)이며, PR 본문에 같은 문제 ID와 상태 이력을 연결했다.
 
 ## 문제·사건 이력
 
-확정 문제 F01/F02와 추가 전용 사건 이력은 아래에 기록한다. PR 없음(PENDING).
+확정 문제 F01/F02와 추가 전용 사건 이력은 아래에 기록한다.
 
 ## 구현자 검증 근거
 
@@ -46,15 +46,15 @@ U01: 모바일·데스크톱 메뉴와 기존 중첩 producer URL → /producers
 
 | 문제 ID | 심각도/유형/유입 | 발견 경로 | 근거·조치 | 상태 | 최초 확정 | 해결 시각 | 최초 PR |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-11-19-audit-producer-ui-F01 | P3/DOC/INTRODUCED | INDEPENDENT_REVIEW | architecture.md 기존 메뉴·접수 목록·마감 일정 설명이 종료 절과 모순. 기존 본문에 현재 흐름을 통합하고 중복 절 제거. 평가자 표적 재확인 완료. | FIXED | 2026-11-19T19:58:31+09:00 | 2026-11-19T19:58:31+09:00 | PENDING |
-| 2026-11-19-audit-producer-ui-F02 | P1/CODE/INTRODUCED | INDEPENDENT_REVIEW | 전역 접수 provider 제거 때 계정 key도 제거됨. 공연사 A→B 세션 전환 시 자식 심사 상태 잔존 가능. ProducerShellFrame에 credential/status key 복원, 같은 계정 재렌더 보존·다른 계정 초기화 회귀 테스트 추가. | FIXED | 2026-11-19T19:58:31+09:00 | 2026-11-19T19:58:31+09:00 | PENDING |
+| 2026-11-19-audit-producer-ui-F01 | P3/DOC/INTRODUCED | INDEPENDENT_REVIEW | architecture.md 기존 메뉴·접수 목록·마감 일정 설명이 종료 절과 모순. 기존 본문에 현재 흐름을 통합하고 중복 절 제거. 평가자 표적 재확인 완료. | FIXED | 2026-11-19T19:58:31+09:00 | 2026-11-19T19:58:31+09:00 | #626 |
+| 2026-11-19-audit-producer-ui-F02 | P1/CODE/INTRODUCED | INDEPENDENT_REVIEW | 전역 접수 provider 제거 때 계정 key도 제거됨. 공연사 A→B 세션 전환 시 자식 심사 상태 잔존 가능. ProducerShellFrame에 credential/status key 복원, 같은 계정 재렌더 보존·다른 계정 초기화 회귀 테스트 추가. | FIXED | 2026-11-19T19:58:31+09:00 | 2026-11-19T19:58:31+09:00 | #626 |
 
 | 사건 ID | 문제 ID | 사건 | 시각 | 근거 | PR |
 | --- | --- | --- | --- | --- | --- |
-| E01 | 2026-11-19-audit-producer-ui-F01 | CONFIRMED | 2026-11-19T19:58:31+09:00 | 독립 평가와 원문 대조 | PENDING |
-| E02 | 2026-11-19-audit-producer-ui-F01 | FIXED | 2026-11-19T19:58:31+09:00 | architecture.md 기존 본문 갱신·평가자 재확인 | PENDING |
-| E03 | 2026-11-19-audit-producer-ui-F02 | CONFIRMED | 2026-11-19T19:58:31+09:00 | producer-shell keyed 경계 제거 diff 및 session refresh 경로 | PENDING |
-| E04 | 2026-11-19-audit-producer-ui-F02 | FIXED | 2026-11-19T19:58:31+09:00 | accountKey를 ShellFrame에 복원, producer-shell.test.tsx | PENDING |
+| E01 | 2026-11-19-audit-producer-ui-F01 | CONFIRMED | 2026-11-19T19:58:31+09:00 | 독립 평가와 원문 대조 | #626 |
+| E02 | 2026-11-19-audit-producer-ui-F01 | FIXED | 2026-11-19T19:58:31+09:00 | architecture.md 기존 본문 갱신·평가자 재확인 | #626 |
+| E03 | 2026-11-19-audit-producer-ui-F02 | CONFIRMED | 2026-11-19T19:58:31+09:00 | producer-shell keyed 경계 제거 diff 및 session refresh 경로 | #626 |
+| E04 | 2026-11-19-audit-producer-ui-F02 | FIXED | 2026-11-19T19:58:31+09:00 | accountKey를 ShellFrame에 복원, producer-shell.test.tsx | #626 |
 
 ## 잔존 호환 코드·후속 범위
 
