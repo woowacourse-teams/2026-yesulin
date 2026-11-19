@@ -16,6 +16,8 @@ import { ReviewLoginGate, SessionExpiredNotice } from "./review-session";
 import { ReviewUploadPanel } from "./review-upload-panel";
 import { ReviewProcessingProgress } from "./review-processing-progress";
 import { ScreeningBoard } from "./screening-board";
+import { EmptyListUndo } from "./screening-ui/empty-list-undo";
+import type { LastDecision } from "./screening-ui/fullscreen-dock";
 import { ReviewPassedContacts } from "./review-passed-contacts";
 import styles from "./screening.module.css";
 
@@ -42,6 +44,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
   const [filter, setFilter] = useState<EntryFilter>("ALL");
   const [decision, setDecision] = useState<DecisionFilter>("PENDING");
   const [view, setView] = useState<"single" | "card" | "table">("single");
+  const [lastDecision, setLastDecision] = useState<LastDecision | null>(null);
   const [detailRefresh, setDetailRefresh] = useState(0);
   const [drag, setDrag] = useState(false);
   const [selectionError, setSelectionError] = useState("");
@@ -90,8 +93,8 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
     refreshKey: `${detailRefresh}:${review?.entries.length ?? 0}`, onChanged: sync, onUnauthorized: markExpired,
   });
   const preparing = decision === "PENDING" && !expired && !progressError && !reviews.detailError && (uploading || originalUploading);
-  function openReview(id: ReviewKey) { navigate(() => { setContactsOpen(false); setFilter("ALL"); setDecision("PENDING"); setHome(false); reviews.open(id); }); }
-  function created(next: ReviewDetail) { closeCreate(); setContactsOpen(false); setFilter("ALL"); setDecision("PENDING"); setHome(false); reviews.created(next); }
+  function openReview(id: ReviewKey) { navigate(() => { setLastDecision(null); setContactsOpen(false); setFilter("ALL"); setDecision("PENDING"); setHome(false); reviews.open(id); }); }
+  function created(next: ReviewDetail) { setLastDecision(null); closeCreate(); setContactsOpen(false); setFilter("ALL"); setDecision("PENDING"); setHome(false); reviews.created(next); }
   function manualRefresh() { setExpired(false); setDetailRefresh(value => value + 1); void reviews.refresh(); }
   const chips: { value: EntryFilter; label: string }[] = review?.roles.length === 0
     ? [{ value: "ALL", label: "자유 배역" }]
@@ -155,7 +158,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
             <div aria-hidden="true" className="mx-auto mb-5 h-10 w-10 animate-spin rounded-full border-4 border-brand-soft border-t-brand motion-reduce:animate-none" />
             <h2>{uploading ? "PDF를 올리고 있어요" : "지원서를 준비하고 있어요"}</h2>
             <p>업로드된 원본 PDF를 보며 심사할 수 있습니다.</p>
-          </div> : review.entries.length ? <div className={styles.emptyDrop}><h2>이 조건에 해당하는 지원자가 없습니다.</h2><p>배역이나 심사 상태를 바꿔 확인해 주세요.</p></div> :
+          </div>   : review.entries.length ? <div className={styles.emptyDrop}>{lastDecision && <EmptyListUndo review={review} last={lastDecision} view={view} onSaved={reviews.replaceEntry} onDone={() => setLastDecision(null)} onUnauthorized={markExpired} />}<h2>이 조건에 해당하는 지원자가 없습니다.</h2><p>배역이나 심사 상태를 바꿔 확인해 주세요.</p></div> :
             <div className={styles.uploadDropzone} data-dragging={drag} aria-labelledby="pdf-drop-title" aria-describedby="pdf-drop-description pdf-drop-limit">
               <span className={styles.dropIcon} aria-hidden="true"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M12 18v-7m-3 3 3-3 3 3" /></svg></span>
               <span id="pdf-drop-title" className={styles.dropTitle}>{uploads.busy ? "PDF를 올리고 있어요" : drag ? "여기에 놓으면 업로드가 시작돼요" : "지원서 PDF나 폴더를 한 번에 끌어 놓으세요"}</span>
@@ -166,7 +169,7 @@ export function PdfReviewWorkbench({ local = false }: { readonly local?: boolean
               </div>
               <span id="pdf-drop-limit" className={styles.dropLimit}>PDF 파일, 한 번에 최대 300개, 파일당 최대 25MiB</span>
             </div>
-            : <ScreeningBoard key={`${review.id}-${filterKey}-${decision}-${view}`} review={review} entries={visible} decision={decision} view={view} refreshKey={detailRefresh} onSaved={reviews.replaceEntry} onUnauthorized={markExpired} onDirtyChange={onDirtyChange} registerNavigationSave={registerNavigationSave} onApplicantOpened={recheckProgress} navigate={navigate} />}
+            : <ScreeningBoard key={`${review.id}-${filterKey}-${decision}-${view}`} lastDecision={lastDecision} onLastDecisionChange={setLastDecision} review={review} entries={visible} decision={decision} view={view} refreshKey={detailRefresh} onSaved={reviews.replaceEntry} onUnauthorized={markExpired} onDirtyChange={onDirtyChange} registerNavigationSave={registerNavigationSave} onApplicantOpened={recheckProgress} navigate={navigate} />}
           </>}
         </div>
       </>}

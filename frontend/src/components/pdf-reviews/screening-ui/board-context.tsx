@@ -5,6 +5,7 @@ import type { Applicant, ReviewStatus, SubmissionId } from "@/features/pdf-revie
 import type { ReviewKey, ReviewRole } from "@/features/pdf-reviews/types";
 import type { RoleSummary } from "@/features/auditions/types";
 import type { PdfFrameState } from "@/components/pdf-extractions/pdf-expandable-frame";
+import type { LastDecision } from "./fullscreen-dock";
 export type BoardContextValue = {
   source: { kind: "PDF" }; board: { role: RoleSummary }; filters: { work: "PENDING" | "DONE" };
   selected: ReadonlySet<SubmissionId>; saving: boolean; reviewLocked: boolean; saveError?: string;
@@ -12,13 +13,14 @@ export type BoardContextValue = {
   roleOptions?: readonly ReviewRole[];
   currentRole?: (id: SubmissionId) => ReviewKey | null;
   changeRole?: (id: SubmissionId, roleId: string | null) => void;
-  renameTitle?: (id: SubmissionId, title: string) => Promise<string | null>;
   saveMemo?: (id: SubmissionId, memo: string) => Promise<string | null>;
   registerNavigationSave?: (flush: () => Promise<boolean>) => () => void;
   renderDocument?: (applicant: Applicant, frame: PdfFrameState) => ReactNode;
   requestNavigation?: (action: () => void) => void;
   onNoteDirty?: (dirty: boolean) => void;
   onApplicantOpened?: () => void;
+  lastDecision?: LastDecision | null;
+  onLastDecisionChange?: (last: LastDecision | null) => void;
   onBasicAction?: (id: SubmissionId, action: ReviewAction, input?: ReviewInput) => void;
   reviewFocused: (id: SubmissionId, status: ReviewStatus, memo?: string, note?: string, revision?: number) => Promise<{ applicants: Applicant[] } | null>;
 };

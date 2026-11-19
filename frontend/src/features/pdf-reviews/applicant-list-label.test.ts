@@ -16,12 +16,12 @@ const label = (roles: ReviewDetail["roles"], patch: Partial<ReviewEntry>) => {
 describe("PDF 심사 카드와 표 목록 표시", () => {
   it("이름과 배역이 비어 있으면 파일 이름만 보이고 자리 표시를 쓰지 않는다", () => {
     expect(label([{ id: "r1", name: "남주" }], {})).toEqual({
-      filename: "지원서_가상.pdf", name: "", role: "", heading: "지원서_가상.pdf", uploading: false,
+      number: "지원서 1", filename: "지원서_가상.pdf", name: "", role: "", uploading: false,
     });
   });
 
   it("공백만 적은 이름은 비어 있는 것으로 본다", () => {
-    expect(label([], { title: "   " })).toMatchObject({ name: "", heading: "지원서_가상.pdf" });
+    expect(label([], { title: "   " })).toMatchObject({ name: "" });
   });
 
   it("자동으로 읽은 이름은 보이지 않고 담당자가 적은 이름과 배정한 배역만 덧붙인다", () => {

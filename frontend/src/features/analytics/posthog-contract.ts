@@ -4,7 +4,7 @@ import { ACQUISITION_CHANNELS, type AcquisitionChannel } from "./acquisition";
 export type ProductProperties = {
   banner_id?: "audition-alert" | "producer-partnership";
   pdf_open_source?: "review_detail" | "passed_contacts";
-  review_action?: "open" | "decision_save" | "next" | "previous";
+  review_action?: "open" | "decision_save" | "decision_undo" | "next" | "previous";
   input_method?: "button" | "shortcut";
   review_view?: "single" | "card" | "table";
   metric_version?: number;
