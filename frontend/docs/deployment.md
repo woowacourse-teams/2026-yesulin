@@ -19,8 +19,8 @@ PostHog 무료 프로젝트는 운영·개발이 공유하되 환경 표시·대
 Preview(`dev.yesulin.art` 포함)는 Vercel이 넣는 `VERCEL_ENV`로 판별해 모든 응답에 `X-Robots-Tag: noindex`를 붙인다.
 robots.txt는 운영과 같이 수집을 허용해 로봇이 이 헤더를 읽게 한다. `VERCEL_ENV`가 없는 로컬 빌드에는 붙이지 않는다.
 
-열린 GitHub PR의 프리뷰는 [Ignored Build Step](../vercel.json)에서 PR의 대상 커밋과 배포 커밋 사이의 전체 변경을
-확인한다. 파일 변경이 모두 `backend/` 안에 있으면 Vercel 빌드를 생략한다. 이름이 바뀐 파일은 이전 경로도 확인한다.
+같은 저장소에서 열린 GitHub PR의 프리뷰는 [Ignored Build Step](../vercel.json)에서 PR 대상과 배포 커밋의 공통 조상부터
+배포 커밋까지의 변경을 확인한다. 파일 변경이 모두 `backend/` 안에 있으면 Vercel 빌드를 생략한다. 이름이 바뀐 파일은 이전 경로도 확인한다.
 프론트·공유 파일 변경, 조회 실패, PR을 열기 전의 푸시, `dev`·`main` 브랜치 배포는 빌드를 계속한다.
 프리뷰를 생략해도 연결된 개발 API의 배포 판단은 별도로 이뤄진다. 규칙 테스트는 `npm test -- scripts/ignore-preview-build.test.mjs`로 실행한다.
 
