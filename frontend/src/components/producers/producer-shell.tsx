@@ -73,7 +73,7 @@ function ProducerShellFrame({
           <>
             <aside className="fixed bottom-0 left-0 top-0 z-30 hidden flex-col overflow-hidden rounded-r-modal border-r border-sidebar-line bg-sidebar text-sidebar-text lg:flex lg:w-[var(--sidebar-width)]">
               <ProducerSidebarHeader onClose={() => setDesktopSidebarOpen(false)} />
-              <ProducerSidebarMenu reviewSlot />
+              <ProducerSidebarMenu reviewSlot="desktop" />
               <ProducerAccountPanel />
             </aside>
             <SidebarResizer />

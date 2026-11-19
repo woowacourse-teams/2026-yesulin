@@ -5,46 +5,33 @@ import { createPortal } from "react-dom";
 import { startReviewTimer } from "@/features/analytics/review-timer";
 import type { ReviewInput } from "@/features/analytics/review-actions";
 import type { Applicant } from "@/features/pdf-reviews/screening-types";
-import { applicantNumberLabel } from "@/features/pdf-reviews/applicant-list-label";
 import { useReviewAutosave } from "@/features/pdf-reviews/use-review-autosave";
 import { SecondaryButton } from "@/components/ui/controls";
 import type { PdfPagerState } from "@/components/pdf-extractions/pdf-pager";
 import { ReviewRoleSelect } from "../review-role-select";
 import { useBoard } from "./board-context";
 import { FullscreenCaption } from "./fullscreen-caption";
-import { decisionOptions, FullscreenDock, type DecidedStatus, type LastDecision } from "./fullscreen-dock";
+import { decisionOptions, FullscreenDock, type DecidedStatus } from "./fullscreen-dock";
 
 const shortcutDecisions: Readonly<Record<string, DecidedStatus>> = Object.fromEntries(decisionOptions.map(option => [option.code, option.status]));
 export const DECISION_STAMP_MS = 400;
 const decisionColors: Readonly<Record<DecidedStatus, string>> = { FAIL: "border-fail text-fail", ETC: "border-border text-muted-strong", PASS: "border-brand text-brand" };
 
-export function ApplicantFocusReview({ rows, onBack, initialId }: { readonly rows: readonly Applicant[]; readonly onBack?: () => void; readonly initialId?: string }) {
-  const [activeId, setActiveId] = useState(initialId ?? rows[0]?.id ?? null);
+export function ApplicantFocusReview({ rows, applicant, onMove }: { readonly rows: readonly Applicant[]; readonly applicant: Applicant; readonly onMove: (id: string) => void }) {
   const [documentExpanded, setDocumentExpanded] = useState(false);
-  const { lastDecision, setLastDecision } = useSharedLastDecision();
-  const applicant = rows.find(row => row.id === activeId) ?? rows[0];
-  if (!applicant) return null;
-  return <FocusReviewContent key={applicant.id} applicant={applicant} rows={rows} index={rows.indexOf(applicant)} onBack={onBack} onMove={id => setActiveId(id)}
-    documentExpanded={documentExpanded} onDocumentExpandedChange={setDocumentExpanded} lastDecision={lastDecision} onLastDecisionChange={setLastDecision} />;
-}
-
-function useSharedLastDecision() {
-  const { lastDecision: shared, onLastDecisionChange } = useBoard();
-  const [local, setLocal] = useState<LastDecision | null>(null);
-  if (onLastDecisionChange) return { lastDecision: shared ?? null, setLastDecision: onLastDecisionChange };
-  return { lastDecision: local, setLastDecision: setLocal };
+  return <FocusReviewContent key={applicant.id} applicant={applicant} rows={rows} index={rows.indexOf(applicant)} onMove={onMove}
+    documentExpanded={documentExpanded} onDocumentExpandedChange={setDocumentExpanded} />;
 }
 
 type ContentProps = {
   readonly applicant: Applicant; readonly rows: readonly Applicant[]; readonly index: number;
-  readonly onBack?: () => void; readonly onMove: (id: string) => void;
+  readonly onMove: (id: string) => void;
   readonly documentExpanded: boolean; readonly onDocumentExpandedChange: (expanded: boolean) => void;
-  readonly lastDecision: LastDecision | null; readonly onLastDecisionChange: (last: LastDecision | null) => void;
 };
 
-function FocusReviewContent({ applicant, rows, index, onBack, onMove, documentExpanded, onDocumentExpandedChange, lastDecision, onLastDecisionChange }: ContentProps) {
+function FocusReviewContent({ applicant, rows, index, onMove, documentExpanded, onDocumentExpandedChange }: ContentProps) {
   const boardState = useBoard();
-  const { board, saveError, requestNavigation, onNoteDirty, onApplicantOpened, onBasicAction, saving, reviewLocked, reviewFocused, renderDocument, roleOptions, currentRole, changeRole, saveMemo, registerNavigationSave, pagerSlot } = boardState;
+  const { reviewId, saveError, requestNavigation, onNoteDirty, onApplicantOpened, onBasicAction, saving, reviewLocked, reviewFocused, renderDocument, roleOptions, currentRole, changeRole, saveMemo, registerNavigationSave, pagerSlot, lastDecision, onLastDecisionChange } = boardState;
   const [deciding, setDeciding] = useState(false);
   const [stamp, setStamp] = useState<DecidedStatus | null>(null);
   const decisionPending = useRef(false);
@@ -57,10 +44,15 @@ function FocusReviewContent({ applicant, rows, index, onBack, onMove, documentEx
       return Promise.resolve(null);
     }, dirty => onNoteDirty?.(dirty));
   const { flush } = draft;
-  useEffect(() => registerNavigationSave?.(flush), [registerNavigationSave, flush]);
-  useEffect(() => { onApplicantOpened?.(); }, [applicant.id, onApplicantOpened]);
-  useEffect(() => startReviewTimer({ metric_version: 2, workflow: "producer_pdf", review_id: String(board.role.id), item_id: String(applicant.id) }), [board.role.id, applicant.id]);
-  const heading = applicantNumberLabel(applicant, index + 1);
+  const flushBeforeNavigation = useCallback(async () => {
+    if (saving || decisionPending.current) return false;
+    return flush();
+  }, [saving, flush]);
+  useEffect(() => registerNavigationSave?.(flushBeforeNavigation), [registerNavigationSave, flushBeforeNavigation]);
+  const openApplicant = useEffectEvent(() => onApplicantOpened?.());
+  useEffect(() => { openApplicant(); }, [applicant.id]);
+  useEffect(() => startReviewTimer({ metric_version: 2, workflow: "producer_pdf", review_id: reviewId, item_id: applicant.id }), [reviewId, applicant.id]);
+  const heading = applicant.sourceDocument?.filename || applicant.name;
   const move = useCallback(async (target: Applicant | undefined, input: ReviewInput = "button") => {
     if (!target || saving || decisionPending.current) return;
     let actionType: "previous" | "next" = "next";
@@ -107,16 +99,12 @@ function FocusReviewContent({ applicant, rows, index, onBack, onMove, documentEx
   if (draft.errorField === "memo") errorIds.memo = "pdf-review-save-error";
   const dock = (pager: PdfPagerState | null) => <FullscreenDock pager={pager} current={applicant.review.status} stamp={stamp} disabled={disabled || reviewLocked} onDecide={status => void save(status)} />;
   const pager = <nav aria-label="지원서 이동" className="flex shrink-0 items-center justify-between gap-2">
-    {onBack && <SecondaryButton disabled={disabled} onClick={() => void navigate(onBack)}>목록</SecondaryButton>}
     <SecondaryButton aria-label="이전 지원서" disabled={!rows[index - 1] || disabled} onClick={() => void move(rows[index - 1])}>← 이전</SecondaryButton>
     <span className="num whitespace-nowrap text-sm text-muted-strong">{index + 1} / {rows.length}</span>
     <SecondaryButton aria-label="다음 지원서" disabled={!rows[index + 1] || disabled} onClick={() => void move(rows[index + 1])}>다음 →</SecondaryButton>
   </nav>;
   return <section ref={section} tabIndex={-1} aria-label={`${heading}, 지원자 ${index + 1} / ${rows.length} 심사`} className="pb-8 outline-none">
-    <header className="mb-3 flex flex-col gap-2 px-1 md:flex-row md:items-center md:justify-between">
-      <h2 className="text-lg font-bold">{heading}</h2>
-      {placePager(pager, pagerSlot)}
-    </header>
+    {placePager(pager, pagerSlot)}
     <div className="grid min-w-0 items-start gap-4 md:grid-cols-[minmax(0,1fr)_240px] xl:grid-cols-[minmax(0,1fr)_280px]">
       <div className="min-w-0 overflow-hidden rounded-card border border-border bg-card">{renderDocument?.(applicant, { expanded: documentExpanded, onExpandedChange: onDocumentExpandedChange, dock,
         caption: <FullscreenCaption name={heading} status={applicant.review.status} position={index + 1} total={rows.length} error={fullscreenError(draft, saveError)} /> })}</div>
@@ -132,7 +120,7 @@ function FocusReviewContent({ applicant, rows, index, onBack, onMove, documentEx
 }
 
 function placePager(pager: ReactNode, slot: HTMLElement | null | undefined) {
-  if (!slot) return pager;
+  if (!slot) return <div className="mb-3 flex justify-end">{pager}</div>;
   return createPortal(pager, slot);
 }
 

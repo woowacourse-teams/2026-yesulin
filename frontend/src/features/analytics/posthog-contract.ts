@@ -6,7 +6,7 @@ export type ProductProperties = {
   pdf_open_source?: "review_detail" | "passed_contacts";
   review_action?: "open" | "decision_save" | "decision_undo" | "next" | "previous";
   input_method?: "button" | "shortcut";
-  review_view?: "single" | "card" | "table";
+  review_view?: "single" | "card" | "table" | "list";
   metric_version?: number;
   pending_count?: number;
   held_count?: number;

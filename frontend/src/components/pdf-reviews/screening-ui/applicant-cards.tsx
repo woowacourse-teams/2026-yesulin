@@ -26,16 +26,15 @@ function ApplicantCard({ applicant }: { readonly applicant: Applicant }) {
       </label>
       <PdfMark />
       <div className="min-w-0 flex-1">
-        {label.number && <p className="text-xs font-bold text-brand">{label.number}</p>}
-        <h3 className="line-clamp-2 break-all text-sm font-semibold leading-5" title={label.filename}>{label.filename}</h3>
+        <h2 className="line-clamp-2 break-all text-sm font-semibold leading-5" title={label.filename}>{label.filename}</h2>
         <ApplicantMeta name={label.name} role={label.role} uploading={label.uploading} />
       </div>
       <StatusBadge status={applicant.review.status} size="sm" />
     </div>
     {applicant.review.note && <p className="mx-4 line-clamp-2 whitespace-pre-wrap break-words rounded-control bg-surface px-3 py-2 text-xs text-muted-strong">{applicant.review.note}</p>}
-    <button type="button" onClick={() => openApplicant(applicant.id)}
+    <button type="button" aria-label={`상세보기: ${label.filename}`} onClick={() => openApplicant(applicant.id)}
       className="mt-auto flex min-h-11 items-center justify-between border-t border-border-soft px-4 text-sm font-semibold text-brand hover:bg-brand-soft">
-      원본으로 심사하기<span aria-hidden="true">→</span>
+      상세보기<span aria-hidden="true">→</span>
     </button>
   </article>;
 }
