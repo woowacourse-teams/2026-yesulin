@@ -39,7 +39,8 @@ DEBUG에서 응답 원문(`aiResponse`)·종료 사유·토큰 수도 기록하�
 ### 런타임 값
 
 기존 Actuator/Micrometer registry에서 최대 18개 앱 값을 읽어 **일반 JSON 로그** 한 줄을 기본 1분마다 남긴다.
-`_aws` metadata·Metric Filter·PutMetricData로 custom metric을 만들지 않는다.
+앱 코드는 `_aws` metadata·PutMetricData를 쓰지 않고 로그만 기록한다. 콘솔에서 별도로 설정한
+운영 경보용 Metric Filter 3개는 [운영 경보](#운영-경보)와 구분해 관리한다.
 Linux `/proc/meminfo`의 MemAvailable과 사용 swap bytes 2개도 같은 로그에 남긴다.
 MemAvailable은 reclaim 가능한 cache를 포함한다. 파일이 없거나 읽을 수 없으면 호스트 값만 생략한다.
 외부 HTTP endpoint는 기존대로 `health`만 노출한다. `/actuator/metrics` 공개나 새 포트 개방은 필요 없다.
@@ -52,7 +53,8 @@ Tomcat MBean registry는 `server.tomcat.mbeanregistry.enabled=true`로 켠다.
   Servlet 요청 스레드나 기존 Spring 예약 작업의 실행 스레드를 공유하지 않는다. 종료할 때 스레드를 정리한다.
 - 앱은 로컬 파일만 기록하며 네트워크 전송은 Agent가 담당한다. JVM 수집은 DB 쿼리를 실행하지 않는다.
 - `Environment=dev|prod`, `sampleTimestamp`와 숫자 필드를 기록한다.
-  별도 CloudWatch custom metric을 등록하지 않고 Logs Insights에서 이 숫자를 집계한다.
+  앱 수집 코드는 별도 CloudWatch custom metric을 등록하지 않고 Logs Insights에서 이 숫자를 집계한다.
+  운영 경보용 세 필드의 Metric Filter는 앱 배포 코드가 아닌 콘솔 설정이다.
 - 누락·NaN·음수 값은 생략한다. **데이터 없음은 0이 아니다.** 첫 표본은 누적 counter/timer의 기준점이다.
   여러 GC 원인/풀의 timer를 합치며 새 meter와 counter reset은 다음 표본부터 차분을 계산한다.
 
@@ -144,7 +146,8 @@ DEV/PROD 영역에서 API 요청 수, `/api/v1/{target}` 첫 경로별 집계, m
 조회/예매 비율, 오류와 앱 메모리·thread·커넥션·GC 및 DB 캐시·메모리·swap·I/O를 확인한다.
 관련 값을 단위별 한 그래프에 묶고 Bytes는 메모리 그래프에서 MiB로 표시한다.
 전체 숫자는 저장 쿼리 `yesulin/{환경}/runtime-latest`, `database-latest`의 원문을 펼쳐 본다.
-이 값들은 **All metrics의 새 custom metric이 아니라 로그에 있는 숫자 필드**다.
+대시보드는 이 **로그 숫자 필드**를 집계한다. 전체 필드를 custom metric으로 등록한 것은 아니며,
+운영 경보용 `ProcessCpuUsage`·`HostMemoryAvailable`·`HostSwapUsed`만 별도 Metric Filter로 발행한다.
 
 저장 쿼리 `error-details`의 requestId를 복사하고 `request-trace`의 `REPLACE_WITH_REQUEST_ID`를 바꿔 실행한다.
 stack_trace/@message를 펼쳐 요청 완료·예외를 추적한다. 4xx는 `api-error-codes`로 확인한다.
@@ -153,50 +156,43 @@ stack_trace/@message를 펼쳐 요청 완료·예외를 추적한다. 4xx는 `ap
 수집 이전 원문은 복원하지 않는다. Logs Insights는 그룹 생성 시각보다 이른 event timestamp를 검색하지 못한다.
 요청 수는 사람 수가 아니며 elapsedMs는 ALB 대기·네트워크를 제외한다.
 **열기·새로고침마다 검색이 실행되므로 자동 새로고침을 끄고 필요한 시간 범위만 선택한다.**
-로그 검색 그래프는 상시 metric alarm과 같은 방식이 아니며 새 런타임 알람은 만들지 않는다.
+로그 검색 그래프와 상시 metric alarm은 별도다. 현재 운영의 상시 경보·콘솔 Metric Filter는 아래 운영 경보 절을 따른다.
 
 ### 부하 테스트 환경
 
-부하 테스트는 DEV에서 직접 한다. 별도 인스턴스·로그 그룹을 만들지 않고, 기존 DEV 로그를 1초 구간으로 보는
-전용 대시보드 `DASHBOARD-yesulin-loadtest`만 따로 둔다. DEV는 QA에도 쓰므로 실행 시간을 팀에 먼저 알린다.
+부하 테스트는 QA·스테이징 DEV와 분리한 **`yesulin-loadtest-asg`**에서 실행한다. 배포 파이프라인 없이
+S3의 실험용 배포본을 서버에서 직접 받아 실행하며, ASG 원하는 용량 0↔1로 사용·대기를 전환한다.
+현재 시작 템플릿은 `yesulin-loadtest-lt` **v5 번호 고정**(t4g.small·Unlimited), 배치 후보는 **2a 고정**이다.
+DB가 2a이므로 AZ 차이가 실험 회차 비교에 섞이지 않게 한다. 운영·DEV의 두 AZ 설정과 구분한다.
 
-요청 지연·요청 수·오류는 요청 로그가 건별로 남으므로 발행 주기와 무관하게 `bin(1s)`로 집계된다.
-Tomcat·Hikari·CPU 같은 순간값만 발행 주기를 따르므로, 테스트하는 동안만 DEV 인스턴스의 주기를 1초로 낮춘다.
+- 11-18 17:41 새 small `i-083bdad0f37a76e2e`를 생성했고, 17:46 `BOOTSTRAP-DONE`·앱 active와 목록·상세 API 200을 확인했다.
+- 11-19 01:3x 원하는 용량을 1→0으로 내려 같은 서버를 **Stopped 웜 풀**로 보냈다(인계 최종 상태).
+  11-17에는 웜 풀 정지·재시작 전후 같은 인스턴스와 크레딧 유지도 확인했다. t4g 크레딧은 정지 후 7일 보존되며,
+  새 EC2로 교체되면 이전 서버의 잔액을 물려받는 것은 아니다. 실행 전 인스턴스 ID·크레딧 모드를 확인한다.
+- `yesulin-loadtest-cpu-credit-low`는 CPUCreditBalance **57.6 미만**, 5분 2회 조건이다.
+  11-18 저장 후 소스에서 임계값과 `yesulin-loadtest-slack-alerts` 연결을 확인했다. 57.6은 small 최대 576의 10%다.
+  운영에서 삭제한 고정 ASG 크레딧 경보와 구분한다.
 
-```bash
-# DEV 인스턴스(SSM 접속)에서. 앱을 재시작하므로 DEV가 잠시 끊긴다
-sudo mkdir -p /etc/systemd/system/yesulin.service.d
-printf '[Service]\nEnvironment=YESULIN_MONITORING_PUBLISH_INTERVAL=PT1S\n' \
-  | sudo tee /etc/systemd/system/yesulin.service.d/loadtest.conf
-sudo systemctl daemon-reload && sudo systemctl restart yesulin
+실험 중 순간값은 `YESULIN_MONITORING_PUBLISH_INTERVAL=PT1S`, 요청 로그는 건별 기록을 1초 구간으로 집계한다.
+공용 `dev.env`에 실험 설정을 넣거나 DEV 서버를 테스트용으로 재시작하지 않는다. 로그 `Environment`는 dev 프로필을
+사용할 수 있으므로 **인스턴스 ID·로그 스트림·실제 로그 그룹**으로 DEV와 테스트 서버를 구분한다.
+11-17 DEV에 1초 로그가 이미 들어오던 과거 기록을 테스트 서버 수집 성공으로 간주하지 않는다.
 
-# 테스트가 끝나면 되돌린다
-sudo rm /etc/systemd/system/yesulin.service.d/loadtest.conf
-sudo systemctl daemon-reload && sudo systemctl restart yesulin
-```
-
-- 이 값을 공용 `dev.env`에 넣지 않는다. systemd는 `EnvironmentFile` 값을 우선하므로 거기에 넣으면 되돌릴 때 재배포가 필요하다.
-- drop-in 파일은 인스턴스에만 있다. ASG가 인스턴스를 교체하면 사라지고 주기는 60초로 돌아간다.
-- **2026-11-17 기준 실제 DEV 인스턴스에서 1초 주기를 켜 본 적은 없다.** 처음 켤 때 `RUNTIME_METRICS` 로그 간격을 확인한다.
-- 대시보드는 2026-11-17 콘솔의 소스 편집으로 `--loadtest --plan` 생성본을 넣어 만들었다. 스크립트의 AWS 실행 경로는
-  아직 돌려 보지 않았고, 그래서 `yesulin/loadtest/*` 저장 쿼리도 아직 없다.
-- 요청 수·지연 그래프는 1초 구간 × API 수만큼 행이 생긴다. 부하 중 조회 결과가 행 상한에 잘리는지는 확인하지 않았다.
+전용 대시보드 `DASHBOARD-yesulin-loadtest`와 `--loadtest` 생성 경로는 유지한다. 생성본의 기본 대상은 DEV 로그이므로
+실험 전에 쿼리가 현재 테스트 서버의 스트림을 보는지 대조한다. 저장 쿼리 생성과 대상 그룹·스트림의 최신 적용 여부는 **미확인**이다.
 
 ```bash
 python3 ops/monitor/cloudwatch/update_dashboards.py --loadtest --plan
-python3 ops/monitor/cloudwatch/update_dashboards.py --loadtest
 ```
 
-전용 대시보드는 앱 쿼리를 `bin(1s)`로 바꾸고 예매 전용 쿼리 두 개를 뺀다. DB 쿼리는 수집기 주기에 맞춰 1분 그대로다.
-기본 조회는 최근 15분이다. 직접 추가한 위젯(예: 인스턴스 CPU credit)은 재실행해도 보존하고, 대시보드가 없으면 새로 만든다.
-1초로 바꾼 쿼리 10개만 `yesulin/loadtest/{쿼리 ID}`로 따로 저장해 기존 1분 저장 쿼리를 덮지 않는다.
-`--loadtest`는 통합 대시보드 이름(`DASHBOARD-yesulin`)에는 쓰지 못하고, 두 대시보드는 서로의 위젯을 지우지 않는다.
-1초 구간은 조회 범위가 길수록 검색량이 커지므로 테스트 구간만 조회한다. 대시보드 수에 따른 요금은 청구 내역에서 확인한다.
+`--plan` 결과의 대상부터 확인하고 실제 변경은 별도 운영 절차로 진행한다. 기본 조회는 최근 15분이며 앱 쿼리는 `bin(1s)`,
+DB는 수집기 주기에 맞춘 1분이다. 1초 구간 × API 수 때문에 조회 결과가 행 상한에 잘리는지와 스캔량을 확인한다.
+대시보드 관측 성공을 서버 부하·서비스 한계 검증으로 대체하지 않는다.
 
 ### 권한·비용·배포 확인
 
-- 이번 앱/호스트/DB 수집은 **새 CloudWatch custom metric 0개**다. 앞서 계산한 18개 × 환경별 metric 비용은 적용되지 않는다.
-  로그 수집·보관·Insights 스캔과 기존 dashboard/알람/API 비용은 남는다. 실제 조회량과 청구 내역을 확인한다.
+- 앱/호스트/DB 수집 코드 자체는 custom metric을 만들지 않는다. 콘솔의 운영 경보용 Metric Filter **3개는 별도 custom metric**이다.
+  18개 전체 × 환경별 metric 계산과 혼동하지 않는다. 로그 수집·보관·Insights·dashboard·metric·경보 비용은 실제 사용량으로 확인한다.
 - 값을 버리지 않고 한 줄에 앱 18개+호스트 2개, DB 19개를 묶어 기본 1분마다 기록한다.
   기록량/기간/검색 횟수에 따라 로그 비용이 달라지며 무료 사용량이 남았다고 가정하지 않는다.
 - EC2 role에는 로그 그룹/stream 생성·조회·전송, DB 보관 설정에는 `logs:PutRetentionPolicy`가 필요하다.
@@ -216,6 +212,64 @@ python3 ops/monitor/cloudwatch/update_dashboards.py --loadtest
 [Logs Insights](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html),
 [MySQL status](https://dev.mysql.com/doc/refman/8.4/en/server-status-variables.html),
 [AWS CloudWatch 요금](https://aws.amazon.com/cloudwatch/pricing/).
+
+## 운영 경보
+
+**2026-11-19 01:4x KST까지의 콘솔 확인·인계 기록 기준**이다. PROD Blue/Green은 ASG 이름과 인스턴스 ID를 바꾸므로,
+현재 운영은 배포마다 대상을 갱신하지 않아도 되는 **PROD 로그 그룹·ALB 대상 그룹 기반 경보**를 유지한다.
+DB EC2는 앱 배포로 교체되지 않아 DB 상태 경보는 유지한다. 앱 배포·ASG 설정은 [배포 문서](deployment.md#prod-bluegreen-배포와-dev-인플레이스-배포)를 따른다.
+
+### 유지하는 경보와 전달 경로
+
+| 경보 | 지표·평가 조건 | 대상·역할 |
+| --- | --- | --- |
+| `yesulin-prod-high-process-cpu` | `ProcessCpuUsage` Average >80%, 5분 2회 | 앱 프로세스 CPU. EC2 전체 CPU와 다름 |
+| `yesulin-prod-low-available-memory` | `HostMemoryAvailable` Minimum <100MiB(104857600 bytes), 1분 5회 | 호스트 가용 메모리 부족 |
+| `yesulin-prod-high-host-swap` | `HostSwapUsed` Maximum >=256MiB(268435456 bytes), 1분 5회 | swap 점유 경고. 실제 swap-in 증가·thrashing을 단독으로 확정하지 않음 |
+| `yesulin-prod-no-healthy-host` | 대상 그룹 `HealthyHostCount` <1, 1분 3회 | 트래픽을 받을 정상 앱 대상 없음 |
+| `yesulin-prod-5xx`, `yesulin-prod-slow-response` | 대상 그룹 5xx·응답 지연 | 유지 확인. 이번 인계에서 세부 임계값 재확인은 미실시 |
+| `yesulin-prod-db-ec2-status` | DB EC2 상태 검사 실패 | DB 대상 고정 유지. 이번 인계에서 세부 임계값 재확인은 미실시 |
+
+앱 CPU·가용 메모리·swap은 `/yesulin/prod/backend`의 `RUNTIME_METRICS`, `Environment=prod` 숫자 필드를
+콘솔 Metric Filter로 추출한다. 네임스페이스는 `Yesulin/Prod/Backend`, 인스턴스·ASG 차원은 두지 않는다.
+배포 중 두 세대가 함께 로그를 보내면 같은 시간 구간에 합쳐진다. 프로세스 CPU 평균은 개별 서버의 과부하를 가릴 수 있으므로
+여러 대 상시 운영으로 바뀌면 인스턴스별 평가를 다시 설계한다. 표본이 없는 구간을 실제 0으로 해석하지 않는다.
+
+11-18~19 저장 확인에서 CPU·메모리 경보는 ALARM·OK를 `yesulin-prod-slack-alerts`로 전달하고,
+swap 경보는 ALARM 전달을 확인했다. `CloudWatch Alarm → SNS → yesulin-alerts-to-slack Lambda → Slack` 흐름이다.
+기존 ALB 경보는 `yesulin-alerts`, 부하 테스트 잔액 경보는 `yesulin-loadtest-slack-alerts`로 구분한다.
+전달 Lambda는 메시지를 Slack 형식으로 바꾸는 역할이며 **경보 대상을 갱신하는 자동화가 아니다**. 웹훅 값은 문서에 적지 않는다.
+
+근거: 11-18~19 생성·저장 후 소스와 조건을 확인했다. swap 경보는 실제 `HostSwapUsed=50397184 bytes` 유입과 OK 전환을
+확인했다. CPU·메모리·swap 세 필터에는 PROD 이벤트만 통과시키며, swap 필터 테스트는 PROD·DEV·필드 누락 3개 중 1개만 일치했다.
+API가 정상이어도 수집·알림 전달이 정상이라고 단정하지 않는다. 이번 문서 작업에서는 AWS 변경·재배포·알림 발송을 하지 않는다.
+
+### 배포 롤백 경보
+
+`yesulin-backend-prod-deploy-no-healthy-target`과 `yesulin-backend-prod-deploy-target-5xx`는 CodeDeploy에 연결된
+**배포 중 중단·롤백용**이다. 정상 대상이 두 분 연속 1 미만이거나 타깃 5xx가 분당 3건 이상이면 경보가 발생하도록
+11-16에 확인했다. 이번 인계에서는 연결 유지가 확인됐고 세부 수치의 변경 여부는 재조회하지 않았다.
+평상시 Slack 알림 경보와 이름·평가 구간·용도가 다르다. 원본 15분 종료 설정의 실제 배포 완주는 아직 미확인이다.
+
+### 삭제한 고정 대상 경보와 대체 기준
+
+11-19 01:2x에 `yesulin-prod-ec2-status`(이전 InstanceId 고정)와
+`yesulin-prod-cpu-surplus-credit`(배포별 AutoScalingGroupName 고정)을 **삭제했다**.
+삭제 전에 대체 `yesulin-prod-no-healthy-host` 존재를 확인했고, 이후 경보 수 236→234와 두 상세 화면의
+"경보를 찾을 수 없음"을 확인했다. 앱 장애 감지는 ALB 정상 대상·5xx·지연 경보가 맡는다.
+이는 AWS 인프라 상태 검사를 같은 지표로 대체했다는 뜻은 아니며 앱 서버별 EC2 진단 경보는 현재 두지 않는다.
+
+AWS/EC2의 CPU 크레딧·상태 검사 값은 하이퍼바이저가 만드는 지표다. 현재 경보에서 쓰던 ASG·인스턴스 식별자가
+바뀌면 고정 차원은 새 서버를 따라가지 않는다. Metrics Insights `WHERE`는 `=`·`!=`·`AND`만 지원해 prefix `LIKE`를
+쓸 수 없고, `SEARCH`는 동적 그래프용으로 경보에 사용할 수 없다. 태그 기반 조회에는 리소스 태그 텔레메트리 관리자 설정이 필요하다.
+별도 Lambda 자동 갱신은 `iam:CreateRole` 거부로 **미배포**이며, 이번 결정으로 전용 역할·자동화·과거 `ADMIN-HANDOFF.md`는 사용하지 않는다.
+
+대신 **매월 Cost Explorer에서 `ProjectTeam=yesulin`으로 필터링해 `CPUCredits` 사용 유형**을 확인한다.
+11-19 확인까지 해당 청구는 없었다는 인계 결과이며 미래 무료를 보장하지 않는다. 실제 청구가 생기거나 실사용자 유입·대량 알림 등
+트래픽 증가 전에는 크레딧 경보와 식별자 추적 방법을 다시 마련한다. 이 절은 점검 절차이며 `cost.md`의 비용 계산을 변경하지 않는다.
+
+참고: [Metrics Insights 문법](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-metrics-insights-querylanguage.html),
+[SEARCH 제한](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/using-search-expressions.html).
 
 ## OTR 공고 경유 링크 집계
 
