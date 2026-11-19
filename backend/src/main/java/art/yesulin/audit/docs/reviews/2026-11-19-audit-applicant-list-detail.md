@@ -34,11 +34,11 @@
 
 | 문제 ID | 심각도·유형·유입 | 발견 경로 | 최초 확정(+09:00) / 최초 기록 PR | 해결(+09:00) | 근거와 조치 |
 | --- | --- | --- | --- | --- | --- |
-| 2026-11-19-audit-applicant-list-detail-F01 | P2 · FLOW · INTRODUCED | INDEPENDENT_REVIEW | 2026-11-19T16:37:26+09:00 / PENDING | 2026-11-19T16:38:06+09:00 | `/dev/pdf-reviews`에는 사이드바 슬롯이 없어 필터가 사라졌다. 로컬에만 필터를 복원하고 로컬·일반 경로의 회귀 테스트를 통과했다. `FIXED` |
+| 2026-11-19-audit-applicant-list-detail-F01 | P2 · FLOW · INTRODUCED | INDEPENDENT_REVIEW | 2026-11-19T16:37:26+09:00 / [#625](https://github.com/woowacourse-teams/2026-yesulin/pull/625) | 2026-11-19T16:38:06+09:00 | `/dev/pdf-reviews`에는 사이드바 슬롯이 없어 필터가 사라졌다. 로컬에만 필터를 복원하고 로컬·일반 경로의 회귀 테스트를 통과했다. `FIXED` |
 
 ## 상태 사건 이력
 
 | 사건 ID | 문제 ID | 사건 | 시각(+09:00) | 근거·관련 PR |
 | --- | --- | --- | --- | --- |
-| 2026-11-19-audit-applicant-list-detail-F01-E01 | 2026-11-19-audit-applicant-list-detail-F01 | CONFIRMED | 2026-11-19T16:37:26+09:00 | 로컬 라우트와 사이드바 슬롯 소비 확인, PENDING |
-| 2026-11-19-audit-applicant-list-detail-F01-E02 | 2026-11-19-audit-applicant-list-detail-F01 | FIXED | 2026-11-19T16:38:06+09:00 | 로컬 필터와 접힌 일반 사이드바 회귀 테스트, PENDING |
+| 2026-11-19-audit-applicant-list-detail-F01-E01 | 2026-11-19-audit-applicant-list-detail-F01 | CONFIRMED | 2026-11-19T16:37:26+09:00 | 로컬 라우트와 사이드바 슬롯 소비 확인, [#625](https://github.com/woowacourse-teams/2026-yesulin/pull/625) |
+| 2026-11-19-audit-applicant-list-detail-F01-E02 | 2026-11-19-audit-applicant-list-detail-F01 | FIXED | 2026-11-19T16:38:06+09:00 | 로컬 필터와 접힌 일반 사이드바 회귀 테스트, [#625](https://github.com/woowacourse-teams/2026-yesulin/pull/625) |
