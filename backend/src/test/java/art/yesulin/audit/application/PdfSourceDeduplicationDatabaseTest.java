@@ -28,6 +28,7 @@ import art.yesulin.pdfextraction.domain.PdfExtractionPayload;
 import art.yesulin.pdfextraction.domain.PdfExtractionPayloadRepository;
 import art.yesulin.pdfextraction.domain.PdfExtractionStatus;
 import db.migration.PdfSourceHashesMigration;
+import java.text.Normalizer;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -88,10 +89,11 @@ class PdfSourceDeduplicationDatabaseTest {
     private BlockingStorage storage;
 
     @Test
-    void renamedSourceReusesUploadedJobWithoutChangingManualReview() {
+    void renamedSourceRetainsTheFirstOriginalFilenameAndManualReview() {
         long ownerId = owner();
         String reviewId = review(ownerId);
-        PreparedUpload first = service.prepareUpload(ownerId, reviewId, "original.pdf", 100, SHA);
+        String originalFilename = Normalizer.normalize("  지원서  최종.PDF", Normalizer.Form.NFD);
+        PreparedUpload first = service.prepareUpload(ownerId, reviewId, originalFilename, 100, SHA);
         PdfExtractionJob job = jobs.findById(first.jobId()).orElseThrow();
         job.receiveResult("COMPLETED", NOW);
         jobs.saveAndFlush(job);
@@ -105,6 +107,9 @@ class PdfSourceDeduplicationDatabaseTest {
         assertNull(duplicate.upload());
         AuditDetail detail = service.find(ownerId, reviewId);
         assertEquals(1, detail.entries().size());
+        assertEquals(originalFilename, detail.entries().getFirst().originalFilename());
+        assertEquals(originalFilename, detail.entries().getFirst().title());
+        assertEquals(originalFilename, jobs.findById(first.jobId()).orElseThrow().getOriginalFilename());
         assertEquals("유지할 심사 메모", detail.entries().getFirst().memo());
         assertEquals(AuditDecision.HOLD, detail.entries().getFirst().decision());
     }

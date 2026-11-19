@@ -10,9 +10,10 @@ import { PdfReviewWorkbench } from "./pdf-review-workbench";
 const fixtures = vi.hoisted(() => ({
   unauthorized: () => {},
   review: { id: "review", title: "합성 심사", createdAt: "2026-10-31", roles: [], entries: [{
-    id: "entry", jobId: "job", originalFilename: "합성.pdf", applicantName: "합성가람", roleId: null,
+    id: "entry", jobId: "job", originalFilename: "합성.pdf", title: "합성.pdf", applicantName: "합성가람", roleId: null,
     matchStatus: "MATCHED" as const, matchEvidence: "", memo: "", decision: "PASS" as const,
-  }, ...[1, 2].map(index => ({ id: `pending-${index}`, jobId: `job-${index}`, originalFilename: `지원서-${index}.pdf`, applicantName: null,
+  }, ...[1, 2].map(index => ({ id: `pending-${index}`, jobId: `job-${index}`, originalFilename: `지원서-${index}.pdf`,
+    title: index === 2 ? "수동 제목" : `지원서-${index}.pdf`, applicantName: null,
     roleId: null, matchStatus: "MATCHED" as const, matchEvidence: "", memo: "", decision: "PENDING" as const,
   }))] },
 }));
@@ -85,10 +86,10 @@ describe("합격자 연락처 세션 경계", () => {
 });
 
 describe("지원자 카드 목록과 원본 상세", () => {
-  it("목록부터 표시하고 상세에서만 원본과 툴바 이동을 열며 파일명 경로를 갱신한다", async () => {
+  it("목록부터 표시하고 상세에서만 원본과 툴바 이동을 열며 목록과 상세에 일치하는 지원서 제목을 표시한다", async () => {
     await act(async () => root.render(<PdfReviewWorkbench />));
     await click("합성 심사");
-    expect([...container.querySelectorAll("article h2")].map(element => element.textContent)).toEqual(["지원서-1.pdf", "지원서-2.pdf"]);
+    expect([...container.querySelectorAll("article h2")].map(element => element.textContent)).toEqual(["지원서-1.pdf", "수동 제목"]);
     expect(container.querySelector('[aria-label="보기 방식"]')).toBeNull();
     expect(pager()).toBeNull();
     expect(fetchPdfExtraction).not.toHaveBeenCalled();
@@ -98,7 +99,7 @@ describe("지원자 카드 목록과 원본 상세", () => {
     expect(pager()?.parentElement?.parentElement?.querySelector('[aria-label="지원서 PDF 추가"]')).not.toBeNull();
     expect(pager()?.querySelector<HTMLButtonElement>('[aria-label="이전 지원서"]')?.disabled).toBe(true);
     await activate(pager()!.querySelector('[aria-label="다음 지원서"]'));
-    expect(breadcrumb().querySelector("h1")?.textContent).toBe("지원서-2.pdf");
+    expect(breadcrumb().querySelector("h1")?.textContent).toBe("수동 제목");
     expect(pager()?.querySelector<HTMLButtonElement>('[aria-label="다음 지원서"]')?.disabled).toBe(true);
     await activate(pager()!.querySelector('[aria-label="이전 지원서"]'));
     expect(breadcrumb().querySelector("h1")?.textContent).toBe("지원서-1.pdf");
@@ -137,7 +138,7 @@ describe("지원자 카드 목록과 원본 상세", () => {
     await click("합격1");
     expect(breadcrumb().querySelector("h1")?.textContent).toBe("지원서-1.pdf");
     await act(async () => request.resolve({ ...fixtures.review.entries[1], decision: "PASS" }));
-    expect(breadcrumb().querySelector("h1")?.textContent).toBe("지원서-2.pdf");
+    expect(breadcrumb().querySelector("h1")?.textContent).toBe("수동 제목");
   });
 
   it("배역 필터는 열려 있는 관리 메뉴에만 생기며 사이드바를 접어도 본문은 유지된다", async () => {

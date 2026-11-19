@@ -1,3 +1,4 @@
+import { reviewContactName } from "./types";
 import type { PassedContact } from "./use-passed-contacts";
 
 export const contactLabels = {
@@ -15,7 +16,7 @@ function cell(value: string) {
 
 export function contactsClipboardText(rows: readonly PassedContact[]): string {
   return [["이름", "배역", "전화번호", "이메일"], ...rows.map(({ entry, roleName, contact, email }) => [
-    entry.title || entry.applicantName || "이름 미입력", roleName,
+    reviewContactName(entry) || "이름 미입력", roleName,
     contact.status === "FOUND" ? contact.phone : contactLabels[contact.status],
     email.status === "FOUND" ? email.email : emailLabels[email.status],
   ])].map(row => row.map(cell).join("\t")).join("\n");
