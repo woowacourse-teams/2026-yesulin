@@ -6,10 +6,11 @@ import { fetchPdfExtraction, PdfExtractionApiError } from "@/features/pdf-extrac
 import { fetchPdfReview, updatePdfReviewEntry } from "@/features/pdf-reviews/api";
 import { SidebarSlotProvider, SidebarSlotTarget } from "@/components/producers/sidebar-slot";
 import { PdfReviewWorkbench } from "./pdf-review-workbench";
+import type { ReviewRole } from "@/features/pdf-reviews/types";
 
 const fixtures = vi.hoisted(() => ({
   unauthorized: () => {},
-  review: { id: "review", title: "합성 심사", createdAt: "2026-10-31", roles: [], entries: [{
+  review: { id: "review", title: "합성 심사", createdAt: "2026-10-31", roles: [] as readonly ReviewRole[], entries: [{
     id: "entry", jobId: "job", originalFilename: "합성.pdf", title: "합성.pdf", applicantName: "합성가람", roleId: null,
     matchStatus: "MATCHED" as const, matchEvidence: "", memo: "", decision: "PASS" as const,
   }, ...[1, 2].map(index => ({ id: `pending-${index}`, jobId: `job-${index}`, originalFilename: `지원서-${index}.pdf`,
@@ -50,6 +51,7 @@ beforeEach(() => {
   vi.stubGlobal("cancelAnimationFrame", clearTimeout);
   vi.stubGlobal("matchMedia", () => ({ matches: true }));
   vi.clearAllMocks();
+  fixtures.review.roles = [];
   container = document.createElement("div"); document.body.append(container); root = createRoot(container);
   vi.mocked(fetchPdfReview).mockResolvedValue(fixtures.review);
   vi.mocked(fetchPdfExtraction).mockResolvedValue({ jobId: "job", originalFilename: "합성.pdf", size: 1, createdAt: "2026-10-31", uploadedAt: null,
@@ -142,6 +144,7 @@ describe("지원자 카드 목록과 원본 상세", () => {
   });
 
   it("배역 필터는 열려 있는 관리 메뉴에만 생기며 사이드바를 접어도 본문은 유지된다", async () => {
+    fixtures.review.roles = [{ id: "lead", name: "주연" }];
     const previous = window.location.href; window.history.replaceState({}, "", "/producers/pdf-reviews");
     try {
       const renderWithMenus = (desktop: boolean, mobile: boolean) => <SidebarSlotProvider>
@@ -153,7 +156,7 @@ describe("지원자 카드 목록과 원본 상세", () => {
       await click("합성 심사");
       const slot = container.querySelector('[data-sidebar-slot="desktop"]')!;
       expect(slot.textContent).toContain("합성 심사");
-      expect(slot.querySelector('nav[aria-label="배역별 지원자"] button[aria-pressed="true"]')?.textContent).toBe("자유 배역3");
+      expect(slot.querySelector('nav[aria-label="배역별 지원자"] button[aria-pressed="true"]')?.textContent).toBe("전체 배역3");
       await activate(container.querySelector('button[aria-label^="지원서 열기:"]'));
       const path = breadcrumb();
       await act(async () => root.render(renderWithMenus(true, true)));
@@ -168,10 +171,18 @@ describe("지원자 카드 목록과 원본 상세", () => {
     } finally { window.history.replaceState({}, "", previous); }
   });
 
-  it("공연사 관리 메뉴가 없는 로컬 확인 화면에서도 배역 필터를 제공한다", async () => {
+  it("배역을 등록하지 않은 심사함은 카드와 로컬 화면에 기본 배역 표시를 만들지 않는다", async () => {
     await act(async () => root.render(<PdfReviewWorkbench local />));
     await click("합성 심사");
-    expect(container.querySelector('aside nav[aria-label="배역별 지원자"] button[aria-pressed="true"]')?.textContent).toBe("자유 배역3");
+    expect(container.querySelector('aside nav[aria-label="배역별 지원자"]')).toBeNull();
     expect(container.querySelectorAll("article")).toHaveLength(2);
+    expect(container.textContent).not.toContain("자유 배역");
+  });
+
+  it("등록한 배역은 공연사 관리 메뉴가 없는 로컬 화면에서도 필터로 제공한다", async () => {
+    fixtures.review.roles = [{ id: "lead", name: "주연" }];
+    await act(async () => root.render(<PdfReviewWorkbench local />));
+    await click("합성 심사");
+    expect(container.querySelector('aside nav[aria-label="배역별 지원자"] button[aria-pressed="true"]')?.textContent).toBe("전체 배역3");
   });
 });

@@ -27,7 +27,8 @@ export function screeningApplicant(review: ReviewDetail, entry: ReviewEntry, job
   const title = reviewEntryTitle(entry);
   return {
     id: submissionId(String(entry.id)), name: title,
-    roleId: roleId(String(entry.roleId ?? review.id)), roleName: review.roles.length === 0 ? "자유 배역" : review.roles.find(role => sameKey(role.id, entry.roleId))?.name ?? UNASSIGNED_ROLE,
+    roleId: roleId(String(entry.roleId ?? review.id)),
+    roleName: review.roles.find(role => sameKey(role.id, entry.roleId))?.name ?? UNASSIGNED_ROLE,
     gender: null, age: null, height: null, weight: null, birth: "", phone: "", email: "", address: "",
     educationLevel: null, school: "", major: "", links: linksFor(job?.result), nationality: "", specialty: "", hobbies: "", militaryServiceStatus: "",
     submittedAt: job?.uploadedAt ?? job?.createdAt ?? review.createdAt, career: [], coverLetter: "", questions: [], videos: [],
