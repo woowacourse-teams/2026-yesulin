@@ -130,35 +130,82 @@ PR CI의 `deploy/scripts/check_flyway_contract_changes.sh`는 새 마이그레�
 
 ### PROD Blue/Green 배포와 DEV 인플레이스 배포
 
-`yesulin-backend-prod-pipeline`의 Deploy 액션은 EC2용 CodeDeploy 배포 그룹 `yesulin-backend-prod`를 호출한다.
-CodeDeploy는 운영 Auto Scaling 그룹을 복제하고 새 인스턴스의 `ValidateService`와 ALB readiness를 확인한다.
-새 인스턴스가 `yesulin-backend-prod-tg`에서 정상 상태가 되면 이전 인스턴스의 트래픽을 드레이닝한다.
-운영 ASG는 평소에 앱 한 대를 유지한다. 배포와 이전 인스턴스 보존 기간에는 두 세대가 함께 실행된다.
-현재 CodeDeploy는 새 인스턴스의 검증을 마친 뒤 최대 1시간 동안 수동 전환을 기다린다.
-전환을 시작하기 전에 새 인스턴스의 프로파일과 readiness, 운영 경보 상태를 확인한다.
-트래픽 인계 후 이전 인스턴스는 복귀를 위해 실행 상태로 보존된다.
-활성 ASG 이름은 배포할 때 바뀌므로 CodeDeploy 배포 그룹에서 현재 ASG를 확인한다. 평소 한 대 구성에서는 인스턴스 장애 시
-ASG가 교체 인스턴스를 준비하는 동안 요청이 끊길 수 있다.
+아래 설정은 **2026-11-19 01:5x KST까지의 콘솔 확인·인계 기록 기준**이다. 시각의 `x`는 분 단위 원기록이
+없다는 뜻이다. 배포마다 바뀌는 ASG 이름·인스턴스 ID는 고정 설정으로 사용하지 않고 CodeDeploy 배포 그룹에서 확인한다.
 
-배포 그룹은 배포 실패와 CloudWatch 경보 발생 시 자동 롤백한다. `yesulin-backend-prod-deploy-no-healthy-target`은
-정상 타깃이 두 분 연속 1대 미만일 때, `yesulin-backend-prod-deploy-target-5xx`는 타깃이 분당 5xx를 3건 이상 반환할 때
-경보 상태가 된다. 배포마다 공개 헬스 상태와 핵심 API의 응답을 확인한다.
+| 환경 | 배포 방식·현재 대상 | ASG·시작 템플릿 |
+| --- | --- | --- |
+| PROD | `yesulin-backend-prod-pipeline` → `yesulin-backend-prod`, EC2 Blue/Green·ASG 자동 복사 | 활성 `CodeDeploy_yesulin-backend-prod_d-9XOU1EPZL`, 원하는 1 / 최소 1 / 최대 2, `yesulin-backend-prod-lt` 버전 **6 번호 고정**, t4g.small |
+| DEV | `yesulin-backend-staging`, In-place `CodeDeployDefault.AllAtOnce` | `yesulin-backend-asg`, `yesulin-backend-lt` 버전 **6 번호 고정**; 현재 서버는 버전 4로 생성됨 |
+| 부하 테스트 | CodePipeline 없이 S3의 배포본을 서버에서 직접 받아 실행 | `yesulin-loadtest-asg`, `yesulin-loadtest-lt` 버전 **5 번호 고정**, t4g.small·Unlimited, 원하는 용량 0↔1 |
 
-DEV 배포 그룹 `yesulin-backend-staging`은 `yesulin-backend-asg` 대상으로 인플레이스 `CodeDeployDefault.AllAtOnce`를 사용한다.
-유일한 인스턴스의 드레이닝과 재시작 중에는 DEV API가 잠시 끊길 수 있다.
+PROD는 평소 앱 1대이며, 배포 중에는 원본·복제 ASG의 두 세대가 함께 실행된다. 최대 2는 **각 ASG의 설정**이며
+Blue/Green 전체 인스턴스 수의 상한을 뜻하지 않는다. 한 대 구성에서는 장애 후 대체 서버 준비 중 요청이 끊길 수 있다.
+DEV는 유일한 인스턴스의 드레이닝·재시작 중 API가 잠시 끊길 수 있다.
+
+PROD·DEV의 배치 후보는 app-a(`10.0.20.0/24`)·app-b(`10.0.21.0/24`), 전략은 "균형 잡힌 최선 노력"이다.
+원하는 용량이 1이므로 두 AZ 중 한 곳에 1대가 뜨며, 두 AZ에서 2대를 상시 운영하는 고가용성 구성은 아니다.
+부하 테스트 ASG는 DB와의 AZ 차이가 회차 비교에 섞이지 않도록 **2a 고정**을 유지한다.
+
+- 11-18 19:55 `d-9XOU1EPZL`로 small 서버 `i-0f3887e1a68053707`에 트래픽을 넘겼다.
+  공개 `/api/v1/health`를 5초 간격 24회 확인해 모두 200이었다. 이 서버는 v5로 생성됐고 이후 ASG의 선택 버전만 v6로 고정했다.
+- 사양 변경 근거는 11-17 PROD 4주 관측의 swap 490~511MiB와, 11-18 같은 jar·20요청/초·350MiB 압박 3회 비교다.
+  신규 small 서버의 11-18 19:10~22:01 1분 표본 170개에서 최소 가용 메모리는 약 715MiB였다.
+  이 관측 구간에는 19:55 트래픽 전환 전도 포함된다. 상세 JVM 분석·설정과 비용 평가는 [PR #606](https://github.com/woowacourse-teams/2026-yesulin/pull/606) 범위다.
+- 11-19 `d-QWFVMXUZL`의 복제 ASG가 두 서브넷을 이어받았고 새 서버 `i-087176a14d4490446`은 2b에 생성됐다.
+  00:04 `ValidateService` 성공·DB 연결 포함 readiness 200으로 2b 기동을 확인했다. 이 배포는 아래 수동 전환 대기 만료로 중지됐다.
+- DEV는 11-19 01:5x에 app-a 단독에서 두 서브넷으로 바꾸고 `Latest(6)` 대신 **6**을 지정했다.
+  기존 `i-06ffa6d4f869ea6ea`는 2a에서 InService·Healthy였고 교체 활동은 없었다. 현재 서버는 v4이므로 v6 기동 검증과 혼동하지 않는다.
+  DEV 템플릿은 v5부터 CPU 크레딧 Standard다. 11-18 부하 테스트의 Standard 새 서버에서 크레딧 0·CPU steal 62~82%·3분 초과 기동 지연을 관측했다.
+  DEV가 교체될 때 같은 지연이 생길 가능성은 **추정이며 미확인**이다.
+
+#### 트래픽 전환과 원본 종료
+
+CodeDeploy가 새 ASG를 복제하고 `ValidateService`의 readiness(DB 포함) 200과 ALB 대상 상태를 검증한 뒤 트래픽을 인계한다.
+11-19 01:4x에 재라우팅을 최대 1시간 **수동 대기 → 즉시**, 원본 종료 대기를 **30분 → 15분**으로 바꾸고 저장을 확인했다.
+이전 "원본 계속 실행" 설정은 11-18 19:5x에 30분 뒤 종료로 변경했던 과거 상태다.
+
+15분은 롤백 실행에 걸리는 시간이 아니라, 트래픽 전환 후 원본을 남겨 두는 종료 대기다. 이 동안 배포 경보를 감시하고
+원본으로 롤백할 여유를 둔다. readiness·ALB·배포 경보가 있고 현재 사용자가 적다는 판단으로 30분에서 줄였으며,
+실사용자나 트래픽이 늘면 오류 발견·대응 시간을 기준으로 재검토한다. **즉시 전환부터 15분 뒤 원본 종료까지 실제 배포가
+끝까지 완료되는지는 아직 미확인**이다. 다음 main 배포에서 확인한다.
+
+배포 그룹은 배포 실패와 연결된 CloudWatch 경보 발생 시 자동 롤백한다.
+`yesulin-backend-prod-deploy-no-healthy-target`과 `yesulin-backend-prod-deploy-target-5xx`를 사용하며,
+운영 알림 경보와의 구분은 [운영 경보](monitoring.md#운영-경보)를 따른다. 배포마다 공개 health와 핵심 API의 응답도 확인한다.
+
+수동 대기 설정의 실제 실패 사례는 [PR #615](https://github.com/woowacourse-teams/2026-yesulin/pull/615)다.
+11-18 23:55 문서만 main에 병합해도 운영 파이프라인이 시작됐고, 11-19 00:00 배포 `d-QWFVMXUZL`은
+00:04 검증 성공 뒤 전환을 기다리다가 01:04 중지됐다. 새 서버는 트래픽 없이 남았고 기존 2a 서버가 계속 요청을 받았다.
+따라서 운영 문서 변경도 **dev 대상 PR로 검토**하고, main 병합은 새 운영 배포가 시작된다는 전제로 진행한다.
+
+#### 남은 ASG 정리와 후속 확인
+
+11-18의 `CodeDeploy_yesulin-backend-prod_d-XHMT89IZL`·`_d-QRHTX3BYL`은 원본 계속 실행으로 남았던 micro 그룹이고,
+11-19의 `_d-QWFVMXUZL`은 중지된 배포의 신규 그룹이다. 세 그룹은 삭제 전에 활성 그룹 `d-9XOU1EPZL`이 아님을 확인한 뒤
+ASG·인스턴스·웜 풀 범위에서 정리했다. 시작 템플릿은 삭제하지 않았다. 정리 후 공개 응답 200과 응답 서버 `10.0.20.104` 유지를 확인했다.
+
+원본 종료가 건너뛰어졌거나 중지된 배포가 그룹을 남기면 먼저 CodeDeploy의 활성 ASG와 ALB의 실제 정상 대상을 대조한다.
+정리 대상에 운영 트래픽이 없음을 확인한 뒤 원하는·최소 용량을 0으로 내려 인스턴스 종료를 확인하고 잔여 그룹을 삭제한다.
+이름이 오래됐다는 이유만으로 그룹·볼륨·시작 템플릿을 함께 지우지 않는다.
+
+후속은 다음 main 배포의 즉시 전환·15분 종료 확인, `BeforeAllowTraffic` 핵심 API 스모크 검사 추가 검토,
+운영 ASG의 **EC2 → ELB 상태 확인** 전환 검토다. 현재 EC2 상태 확인만으로는 앱만 멈춘 경우 자동 교체되지 않을 수 있다.
+서비스 장애 알림과 인스턴스 자동 교체는 별개다.
 
 앱 서버 루트 디스크가 차면 `DownloadBundle`에서 `No space left on device`로 실패하고, 그 서버에는 Session Manager도 붙지 않는다.
 EC2를 직접 종료할 수 없으므로 남길 서버에 축소 보호를 걸고 ASG 원하는 용량을 한 대 늘렸다가 되돌려 그 서버만 교체한 뒤 보호를
 해제한다. 실패 배포의 자동 롤백이 응답 없는 서버에 걸려 "진행 중"으로 남으면 배포 그룹이 잠기므로, 재시도 전에 그 롤백을
 "배포 중지"한다(2026-10-29 사례: [트러블슈팅 기록](../../../design/deploy-troubleshooting-record.md)).
 
-배포가 끝난 뒤 문제가 발견되면 CodeDeploy로 직전 성공 리비전을 다시 배포한다.
+트래픽 전환 후 원본 종료 대기 중 문제가 생기면 진행 중인 CodeDeploy 배포의 중지·롤백 절차를 사용하고,
+원본 종료 예약이 해소됐는지 확인한다. 원본 종료가 끝났거나 배포 완료 뒤 문제가 발견되면 직전 성공 리비전을 다시 배포한다.
 
 1. 배포 그룹 `yesulin-backend-prod`의 배포 내역에서 되돌아갈 직전 성공 배포를 열고 "배포 복사"를 누른다.
 2. 개정 위치는 그대로 두고 파일 형식 `.zip`과 되돌리는 이유를 입력한다. 배포 그룹의 Blue/Green 설정을 사용한다.
 3. 교체 인스턴스가 정상이고 대상 그룹에서 트래픽을 받은 뒤 `/api/v1/health`와 핵심 API가 200인지 확인한다.
-   기존 인스턴스가 아직 실행 중이고 긴급 복귀가 필요하면 이전 타깃을 등록해 Healthy를 확인한 뒤 문제 타깃을 드레이닝한다.
-   이 경우 다음 배포 전 CodeDeploy 배포 그룹이 실제 트래픽을 받는 인스턴스의 ASG를 가리키는지 확인한다.
+   이전 타깃을 수동 등록하는 것만으로 CodeDeploy의 원본 종료 예약이 취소되지는 않는다. 긴급 수동 복귀를 했다면
+   종료 예약 해소와 운영 타깃의 Healthy 상태를 함께 확인하고, 다음 배포 전 배포 그룹이 실제 운영 ASG를 가리키는지도 확인한다.
 
 되돌아갈 버전 이후에 컬럼·테이블 삭제 마이그레이션이 나갔다면 그 버전은 시작하지 못한다. 서버 안의 `ops/recover/rollback-release.sh`는
 한 대만 바꾸고 ASG가 새로 띄우는 서버에는 반영되지 않으므로 여러 대 운영에서는 쓰지 않는다. 배포 중 실패 요청과 응답 서버는
@@ -253,19 +300,31 @@ AMI에 평문 secret이 남지 않았는지는 별도로 검증해야 한다. pr
 `sops` 설치 및 배포 전용 키를 포함한 AMI를 지정해야 한다. 새 인스턴스에서 키를 읽을 수 없다면 `AfterInstall`이 실패하며,
 릴리스 환경 파일이 없으면 `ApplicationStart`가 실패한다.
 
-PROD Launch Template `yesulin-backend-prod-lt` 버전 4는 PDF 분석에 필요한 기존 `team-bedrock-service-yesulin`
-Instance Profile을 교체 EC2에 적용한다. 운영 트래픽 전환 전에 새 EC2에 적용된 프로파일을 확인한다.
-DEV Launch Template은 `ec2-project`를 쓰므로 DEV에서 Bedrock이 필요한 경우 콘솔에서 기존 팀 역할을 적용한다.
+현재 선택 버전·AZ·원하는 용량은 [환경별 배포 설정](#prod-bluegreen-배포와-dev-인플레이스-배포)을 따른다.
+PROD `yesulin-backend-prod-lt` v5는 11-18 17:58에 v4를 복사해 인스턴스 유형을 t4g.small로 바꾼 버전이다.
+기존 `team-bedrock-service-yesulin` Instance Profile·swap 512MiB·루트 20GiB를 유지했다.
+크레딧 사양은 미지정으로 t4g 기본 Unlimited를 사용한다. DEV의 현재 Instance Profile은 이번 인계에서 **미확인**이다.
 
-DEV ASG(`yesulin-backend-asg`)는 이 경로를 확인했다. 새 인스턴스가 뜨면 배포 그룹 `yesulin-backend-staging`의
-CodeDeploy 시작 후크가 마지막 성공 리비전을 배포한다. 2026-09-22에는 ELB 상태 확인 실패로 인스턴스가 자동 교체됐고,
-2026-10-09에는 용량을 늘려 띄운 t4g.micro 인스턴스가 배포까지 성공했다. PROD ASG(`yesulin-backend-prod-asg`)도
-2026-10-19에 같은 방식으로 t4g.micro를 띄워 배포 그룹 `yesulin-backend-prod`의 배포까지 성공했다.
-PROD Launch Template 버전 4는 버전 3의 20GiB 루트 볼륨과 기존 swap·배포본 설정을 사용한다.
-DEV Launch Template(`yesulin-backend-lt` 버전 4)은 t4g.micro이며, 사용자 데이터가 512MiB swap 파일을 만들고
-CodeDeploy 에이전트의 배포본 보관 수(`:max_revisions:`)를 2로 줄인다. 루트 디스크가 8GiB라 배포본을 5개씩 쌓으면
-여유가 부족하다. 계정 정책상 인스턴스를 직접 정지할 수 없으므로 인스턴스 유형은 Launch Template 새 버전으로
-새 인스턴스를 띄운 뒤 ASG 용량을 줄여 옛 인스턴스를 종료하는 방식으로 바꾼다.
+v6는 11-18 21:22에 v5 사용자 데이터에 다음 needrestart 예외를 추가한 버전이다.
+
+```perl
+# /etc/needrestart/conf.d/yesulin.conf
+$nrconf{override_rc}{qr(^yesulin\.service$)} = 0;
+```
+
+11-18 20:02~20:03에는 unattended-upgrade가 libnss3 등을 갱신한 뒤 needrestart가
+`systemctl restart yesulin.service`를 실행해 공개 API가 약 1~1.5분 502를 반환했다. apt history·syslog로 재시작을 확인했고
+20:03:43부터 200으로 돌아왔다. 원인은 Ubuntu 내부 업데이트 후 앱 재시작이며 ASG 템플릿 버전 변경 자체가 아니다.
+자동 보안 업데이트는 유지하고 **yesulin.service 재시작만 차단**한다. 갱신된 라이브러리는 다음 배포의 앱 재기동 때 반영된다.
+11-19 00:00 v6로 생성된 `i-087176a14d4490446`에서 위 파일 생성을 확인했다.
+
+ASG에는 `Latest` 대신 버전 **번호**를 지정한다. 11-18 14:58 부하 테스트 인스턴스 교체 도중 새 v5를 만들자,
+`Latest`를 따르던 ASG가 실험 중 micro를 small로 바꿨다. 그 회차 측정은 폐기했으며 운영 서비스 장애는 아니었다.
+번호 고정은 새 템플릿 생성과 실행 중 교체 작업이 서로 영향을 주는 것을 막고, Blue/Green 복제 ASG에도 같은 번호를 전달한다.
+
+DEV ASG의 CodeDeploy 시작 후크가 신규 EC2에 마지막 성공 리비전을 배포하는 경로는 2026-09-22·10-09에 확인했다.
+이 과거 성공은 현재 v6 교체 검증을 대신하지 않는다. 기존 DEV v4는 512MiB swap과 배포본 보관 수(`:max_revisions:`) 2를 사용했다.
+인스턴스 유형·부팅 설정을 바꿀 때는 새 버전 번호와 신규 서버의 실제 설정을 함께 확인한다.
 
 AMI를 만들기 전에는 원본 인스턴스에 `/etc/yesulin/yesulin.env`,
 `/opt/yesulin/releases/*/yesulin.env` 같은 평문 환경 파일이 없는지 확인한다. 현재 서비스가 읽는
