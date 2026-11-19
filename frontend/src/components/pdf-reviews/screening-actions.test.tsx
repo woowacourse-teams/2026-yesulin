@@ -41,7 +41,7 @@ it("목록에서 직접 열기·이동·저장은 각각 1회, 자동 이동·�
   try {
     await act(async () => root.render(<StrictMode><Harness /></StrictMode>));
     expect(actions()).toEqual([]);
-    const open = button("상세보기");
+    const open = button("지원서 열기");
     expect(open).toBeTruthy(); await act(async () => open.click());
     expect(actions()).toHaveLength(1);
     expect(actions()[0]).toEqual({ metric_version: 2, workflow: "producer_pdf", review_id: "review", item_id: "a", review_view: "list", review_action: "open", input_method: "button" });
@@ -74,7 +74,7 @@ it("원본 표시는 클릭으로 기록하지 않고 상세 열람으로 측정
   try {
     await act(async () => root.render(<Harness />));
     expect(capture.mock.calls.filter(c => c[0] === "review_item_viewed")).toHaveLength(0);
-    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="상세보기: synthetic-a.pdf"]')!.click());
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="지원서 열기: synthetic-a.pdf"]')!.click());
     expect(host.querySelector('[data-original-test]')).not.toBeNull();
     expect(capture.mock.calls.filter(c=>c[0]==="review_original_pdf_clicked")).toHaveLength(0);
     expect(capture.mock.calls.filter(c=>c[0]==="review_item_viewed").at(-1)?.[1]).toMatchObject({ metric_version: 2,review_id: "review",item_id: "a" });

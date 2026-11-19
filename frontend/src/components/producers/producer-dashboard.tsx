@@ -2,7 +2,6 @@
 
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { PiBookOpen, PiFileText, PiPlus, PiTicket, PiTray } from "react-icons/pi";
-import { useOtrAuditions } from "@/components/otr-auditions/otr-audition-context";
 import { PrimaryLink, SecondaryLink } from "@/components/ui/controls";
 import { fetchMyAuditionPosts } from "@/features/audition-posts/producer-api";
 import { producerAuditionPostRoutes } from "@/features/audition-posts/types";
@@ -49,11 +48,9 @@ export function ProducerDashboard() {
   const reviews = useAuditionQuery("dashboard-pdf", listPdfReviews, "심사함을 불러오지 못했어요.");
   const shows = useAuditionQuery("dashboard-shows", getProducerShows, "공연을 불러오지 못했어요.");
   const now = useScheduleClock(shows.data, shows.reload);
-  const intakes = useOtrAuditions();
-  const firstUse = !intakes.loading && !intakes.error && intakes.auditions.length === 0
-    && [posts.data?.length, reviews.data?.length, shows.data?.length].every((count) => count === 0);
+  const firstUse = [posts.data?.length, reviews.data?.length, shows.data?.length].every((count) => count === 0);
   const recent = getRecentDashboardWork(posts.data ?? [], reviews.data ?? [], now);
-  const schedule = getUpcomingDashboardSchedule(availableIntakes(intakes), shows.data ?? [], now);
+  const schedule = getUpcomingDashboardSchedule(shows.data ?? [], now);
   const postSource = { ...posts, label: "모집 중인 공고" };
   const reviewSource = { ...reviews, label: "PDF 심사함" };
   const showSource = { ...shows, label: "공개 무료 공연" };
@@ -87,18 +84,13 @@ export function ProducerDashboard() {
           <section className={`${styles.schedule} min-w-0`} aria-labelledby="dashboard-schedule">
             <h2 id="dashboard-schedule" className="mb-2 text-base font-bold">다가오는 일정</h2>
             <div className="rounded-card border border-border bg-card">
-              <DashboardList rows={schedule} sources={[{ ...intakes, label: "지원 마감" }, { ...shows, label: "공연 회차" }]} emptyTitle="다가오는 일정이 없어요" emptyDescription="예정된 지원 마감일이나 공연 회차가 있으면 여기에 표시돼요." />
+              <DashboardList rows={schedule} sources={[{ ...shows, label: "공연 회차" }]} emptyTitle="다가오는 일정이 없어요" emptyDescription="예정된 공연 회차가 있으면 여기에 표시돼요." />
             </div>
           </section>
         )}
       </div>
     </div>
   );
-}
-
-function availableIntakes(intakes: ReturnType<typeof useOtrAuditions>) {
-  if (intakes.error || intakes.loading) return [];
-  return intakes.auditions;
 }
 
 function PostCreateLink() {

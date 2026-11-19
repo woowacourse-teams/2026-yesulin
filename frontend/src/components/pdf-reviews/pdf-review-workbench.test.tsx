@@ -92,7 +92,7 @@ describe("지원자 카드 목록과 원본 상세", () => {
     expect(container.querySelector('[aria-label="보기 방식"]')).toBeNull();
     expect(pager()).toBeNull();
     expect(fetchPdfExtraction).not.toHaveBeenCalled();
-    await click("상세보기");
+    await activate(container.querySelector('button[aria-label^="지원서 열기:"]'));
     expect(breadcrumb().querySelector("h1")?.textContent).toBe("지원서-1.pdf");
     expect(pager()?.closest('section[aria-label$="심사"]')).toBeNull();
     expect(pager()?.parentElement?.parentElement?.querySelector('[aria-label="지원서 PDF 추가"]')).not.toBeNull();
@@ -113,7 +113,7 @@ describe("지원자 카드 목록과 원본 상세", () => {
     vi.mocked(updatePdfReviewEntry).mockRejectedValueOnce(new Error("Network"))
       .mockResolvedValueOnce({ ...fixtures.review.entries[1], memo: "검토 메모" });
     await act(async () => root.render(<PdfReviewWorkbench />));
-    await click("합성 심사"); await click("상세보기");
+    await click("합성 심사"); await activate(container.querySelector('button[aria-label^="지원서 열기:"]'));
     const field = container.querySelector("textarea")!;
     await act(async () => {
       Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field, "검토 메모");
@@ -131,7 +131,7 @@ describe("지원자 카드 목록과 원본 상세", () => {
     const request = Promise.withResolvers<Awaited<ReturnType<typeof updatePdfReviewEntry>>>();
     vi.mocked(updatePdfReviewEntry).mockReturnValueOnce(request.promise);
     await act(async () => root.render(<PdfReviewWorkbench />));
-    await click("합성 심사"); await click("상세보기");
+    await click("합성 심사"); await activate(container.querySelector('button[aria-label^="지원서 열기:"]'));
     await activate(container.querySelector('button[aria-label="합격 (D)"]'));
     await activate(breadcrumb().querySelector('button[title="합성 심사"]'));
     await click("합격1");
@@ -153,7 +153,7 @@ describe("지원자 카드 목록과 원본 상세", () => {
       const slot = container.querySelector('[data-sidebar-slot="desktop"]')!;
       expect(slot.textContent).toContain("합성 심사");
       expect(slot.querySelector('nav[aria-label="배역별 지원자"] button[aria-pressed="true"]')?.textContent).toBe("자유 배역3");
-      await click("상세보기");
+      await activate(container.querySelector('button[aria-label^="지원서 열기:"]'));
       const path = breadcrumb();
       await act(async () => root.render(renderWithMenus(true, true)));
       expect(container.querySelector('[data-sidebar-slot="mobile"] nav[aria-label="배역별 지원자"]')).not.toBeNull();

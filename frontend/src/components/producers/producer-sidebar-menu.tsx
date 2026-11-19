@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { OtrAuditionTreeNav } from "@/components/otr-auditions/otr-audition-tree";
 import { actorBookmarkRoutes } from "@/features/actor-pages/bookmark-api";
 import { producerAuditionPostRoutes } from "@/features/audition-posts/types";
 import { PRODUCER_DASHBOARD_PATH } from "@/features/auth/producer-navigation";
@@ -20,7 +19,6 @@ export function ProducerSidebarMenu({ onNavigate, reviewSlot }: { readonly onNav
       <SidebarGroup label="오디션">
         <ProducerSidebarItem href={producerAuditionPostRoutes.list} label="내 오디션 공고" onNavigate={onNavigate}
           createLink={{ href: producerAuditionPostRoutes.create, label: "공고 올리기" }} />
-        <OtrAuditionTreeNav onNavigate={onNavigate} />
         <ProducerSidebarItem href={PDF_REVIEW_PATH} label="PDF 지원서 심사" onNavigate={onNavigate}
           createLink={{ href: `${PDF_REVIEW_PATH}?create=1`, label: "심사함 추가하기" }} />
         {reviewSlot && <SidebarSlotTarget surface={reviewSlot} />}
