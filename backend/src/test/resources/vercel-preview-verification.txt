@@ -1,1 +1,1 @@
-Vercel preview path verification
+Vercel preview path verification for an open PR
