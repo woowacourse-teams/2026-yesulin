@@ -8,9 +8,6 @@ import { getProducerShows } from "@/features/shows/producer-api";
 import type { ProducerShowSummary } from "@/features/shows/types";
 import { ProducerDashboard } from "./producer-dashboard";
 
-vi.mock("@/components/otr-auditions/otr-audition-context", () => ({
-  useOtrAuditions: () => ({ auditions: [], loading: false, error: null, reload: vi.fn() }),
-}));
 vi.mock("@/features/audition-posts/producer-api", () => ({ fetchMyAuditionPosts: vi.fn() }));
 vi.mock("@/features/monitoring/report-error", () => ({ reportError: vi.fn() }));
 vi.mock("@/features/pdf-reviews/api", () => ({ listPdfReviews: vi.fn() }));
@@ -71,4 +68,11 @@ it("포커스 이동 없이 늦은 응답이 같은 회차를 다시 반환해�
 
   expect(getProducerShows).toHaveBeenCalledTimes(2);
   expect(container.querySelector('[aria-labelledby="dashboard-schedule"]')?.textContent).toContain("다가오는 일정이 없어요");
+});
+
+it("사용하지 않는 접수 심사의 가이드와 지원 마감 안내를 표시하지 않는다", async () => {
+  vi.mocked(getProducerShows).mockResolvedValue([show(secondStart)]);
+  await act(async () => root.render(<ProducerDashboard />));
+  expect(container.querySelector('a[href^="/producers/otr-auditions"]')).toBeNull();
+  expect(container.textContent).not.toMatch(/지원 링크 만들기|지원 마감|다른 사이트 공고로 지원서/);
 });

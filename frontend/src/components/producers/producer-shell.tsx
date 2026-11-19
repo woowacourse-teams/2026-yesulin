@@ -6,7 +6,6 @@ import { useAuthSession } from "@/components/auth/auth-session";
 import { SecondaryLink } from "@/components/ui/controls";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { ModalShell } from "@/components/auditions/modal-shell";
-import { OtrAuditionProvider } from "@/components/otr-auditions/otr-audition-context";
 import { SidebarResizer } from "./sidebar-resizer";
 import { MobileProducerNavigation } from "./mobile-producer-navigation";
 import { ProducerAccountPanel } from "./producer-account-panel";
@@ -19,17 +18,13 @@ import { ProducerDashboardLink } from "./producer-dashboard-link";
 import { useRouteDisclosure } from "./use-route-disclosure";
 
 const DESKTOP_NAVIGATION_TITLE = "focused-producer-navigation-title";
-const REVIEW_PATH = /^\/producers\/(?:roles\/[^/]+|otr-auditions\/[^/]+\/roles\/[^/]+)\/submissions\/[^/]+$/;
+const REVIEW_PATH = /^\/producers\/roles\/[^/]+\/submissions\/[^/]+$/;
 
 export function ProducerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { session } = useAuthSession();
   const accountKey = `${session?.credential ?? "mock"}:${session?.producerStatus ?? "ACTIVE"}`;
-  return (
-    <OtrAuditionProvider key={accountKey} enabled={session?.producerStatus !== "PENDING"}>
-      <ProducerShellFrame pathname={pathname} focusMode={REVIEW_PATH.test(pathname)}>{children}</ProducerShellFrame>
-    </OtrAuditionProvider>
-  );
+  return <ProducerShellFrame key={accountKey} pathname={pathname} focusMode={REVIEW_PATH.test(pathname)}>{children}</ProducerShellFrame>;
 }
 
 function ProducerShellFrame({

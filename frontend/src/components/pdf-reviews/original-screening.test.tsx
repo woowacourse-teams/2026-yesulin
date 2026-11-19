@@ -20,7 +20,7 @@ function Harness({ initialFocus = 'a' }: { initialFocus?: string | null }) {
   const navigating = useRef(false);
   const guarded = (action: () => void) => { if (navigating.current) return; navigating.current = true; action(); navigating.current = false; };
   const review: ReviewDetail = { id: 'review', title: '검증', createdAt: '2026-11-05', roles: [{ id: 'lead', name: '주연' }], entries: rows };
-  return <ScreeningBoard review={review} entries={rows.filter(r => r.decision === 'PENDING')} decision="PENDING" focusedId={focusedId} onFocusChange={setFocusedId} lastDecision={lastDecision} onLastDecisionChange={setLastDecision} refreshKey={0} onSaved={updated => setRows(current => current.map(row => row.id === updated.id ? updated : row))} onDirtyChange={mocks.dirty} onUnauthorized={() => {}} navigate={guarded} />;
+  return <><button onClick={() => setFocusedId(null)}>목록 복귀</button><ScreeningBoard review={review} entries={rows.filter(r => r.decision === 'PENDING')} decision="PENDING" focusedId={focusedId} onFocusChange={setFocusedId} lastDecision={lastDecision} onLastDecisionChange={setLastDecision} refreshKey={0} onSaved={updated => setRows(current => current.map(row => row.id === updated.id ? updated : row))} onDirtyChange={mocks.dirty} onUnauthorized={() => {}} navigate={guarded} /></>;
 }
 async function button(name: string) { const target = [...host.querySelectorAll('button')].find(b => b.getAttribute("aria-label") === name || b.getAttribute("aria-label")?.startsWith(`${name} (`) || b.textContent === name || b.textContent === `${name} →`)!; expect(target).toBeDefined(); await act(async () => target.click()); }
 async function memo(text: string) { const field = host.querySelector('textarea')!; await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value')!.set!.call(field,text); field.dispatchEvent(new Event('input',{ bubbles:true })); }); }
@@ -30,7 +30,7 @@ it('카드 목록은 프로필을 선조회하지 않고 추출 실패여도 상
   await act(async () => root.render(<Harness initialFocus={null} />));
   expect(host.querySelector('[data-job-id]')).toBeNull();
   expect(mocks.extraction).not.toHaveBeenCalled();
-  await button('상세보기: a.pdf');
+  await button('지원서 열기: a.pdf');
   expect(host.querySelector('[data-job-id]')?.getAttribute('data-job-id')).toBe('job-a');
   expect(host.textContent).not.toMatch(/사진을 자동으로|경력/);
 });
@@ -89,4 +89,44 @@ it('Z 단축키로 직전 판정을 되돌리고 되돌린 뒤에는 다시 눌�
   const calls = mocks.save.mock.calls.length;
   await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', code: 'KeyZ' })); });
   expect(mocks.save).toHaveBeenCalledTimes(calls);
+});
+
+it('선택 체크박스는 상세를 열지 않고 파일명 버튼으로만 상세를 연다', async () => {
+  await act(async () => root.render(<Harness initialFocus={null} />));
+  const card = host.querySelector('article')!;
+  await act(async () => card.querySelector<HTMLInputElement>('input')!.click());
+  expect(host.querySelector('[data-job-id]')).toBeNull();
+  expect(card.querySelector<HTMLInputElement>('input')!.checked).toBe(true);
+  expect(card.textContent).not.toMatch(/상세보기|PDF/);
+  expect(card.querySelectorAll('button')).toHaveLength(1);
+  await button('지원서 열기: a.pdf');
+  expect(host.querySelector('[data-job-id]')?.getAttribute('data-job-id')).toBe('job-a');
+});
+
+it.each(['검토 메모', '', '   '])('메모 %j의 존재를 판정과 별도로 표시하며 서버 반영을 갱신한다', async note => {
+  function CardHarness() {
+    const [memo, setMemo] = useState('');
+    const review: ReviewDetail = { id: 'review', title: '검증', createdAt: '2026-11-19', roles: [], entries: [{ ...entries[0], memo }] };
+    return <><button onClick={() => setMemo(note)}>서버 메모 반영</button><ScreeningBoard review={review} entries={review.entries} decision="PENDING" focusedId={null} onFocusChange={() => {}} lastDecision={null} onLastDecisionChange={() => {}} refreshKey={0} onSaved={() => {}} onDirtyChange={() => {}} onUnauthorized={() => {}} navigate={action => action()} /></>;
+  }
+  await act(async () => root.render(<CardHarness />));
+  expect(host.querySelector('article')?.textContent).toContain('메모 없음');
+  await button('서버 메모 반영');
+  let expected = '메모 없음';
+  if (note.trim()) expected = '메모 있음';
+  expect(host.querySelector('article')?.textContent).toContain(expected);
+  expect(host.querySelector('article')?.textContent).toContain('미검토');
+});
+
+it('자동 저장한 메모의 추가와 삭제가 목록 복귀 후에도 즉시 반영된다', async () => {
+  mocks.save.mockImplementation(async (_review,id,change)=>({...entries.find(entry=>entry.id===id)!,...change}));
+  await act(async () => root.render(<Harness />));
+  await memo('검토 메모'); await button('다음 지원서'); await button('목록 복귀');
+  expect(host.querySelector('article')?.textContent).toContain('메모 있음');
+  expect(host.querySelector('article')?.textContent).toContain('검토 메모');
+  await button('지원서 열기: a.pdf');
+  expect(host.querySelector('textarea')?.value).toBe('검토 메모');
+  await memo(''); await button('다음 지원서'); await button('목록 복귀');
+  expect(host.querySelector('article')?.textContent).toContain('메모 없음');
+  expect(host.querySelector('article')?.textContent).not.toContain('검토 메모');
 });

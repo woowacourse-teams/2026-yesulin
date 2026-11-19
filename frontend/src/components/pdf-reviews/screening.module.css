@@ -169,7 +169,7 @@
 .integrated .breadcrumb { flex:1; min-width:0; }
 .integrated .breadcrumb ol { flex-wrap:nowrap; gap:8px; }
 .integrated .breadcrumb li:last-child { flex:1; overflow:hidden; }
-.integrated .breadcrumb h1 { margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:20px; font-weight:700; line-height:1.5; letter-spacing:-.02em; }
+.integrated .breadcrumb h1 { margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:16px; font-weight:600; line-height:1.5; letter-spacing:-.01em; }
 .integrated .breadcrumbReview { max-width:40%; }
 .integrated .breadcrumbReview button { display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; }
 .integrated .breadcrumbSeparator { font-size:16px; }
@@ -184,11 +184,14 @@
 .boardActions { display:flex; align-items:center; flex-wrap:wrap; justify-content:flex-end; gap:12px; margin-left:auto; min-width:0; }
 .boardActions > button { min-height:44px; padding:10px 14px; font-size:14px; white-space:nowrap; }
 .boardToolbar button:focus-visible { outline:2px solid var(--brand); outline-offset:3px; }
-.decisionTabs { display:flex; flex-shrink:0; gap:4px; }
-.decisionTabs button { display:flex; align-items:center; gap:6px; min-height:44px; padding:10px 14px; border-bottom:2px solid transparent; color:var(--ink-60); font-size:14px; font-weight:600; }
-.decisionTabs button[aria-pressed=true] { border-color:var(--ink); color:var(--ink); }
-.decisionTabs span { min-width:20px; font-size:14px; text-align:center; }
-.decisionTabs button:hover { background:var(--paper); }
+.decisionTabs { display:flex; flex-shrink:0; gap:0; padding:4px; border:1px solid var(--line); border-radius:12px; background:var(--paper); }
+.decisionTabs button { position:relative; display:flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:8px 12px; border:1px solid transparent; border-radius:8px; color:var(--ink-60); font-size:14px; font-weight:600; cursor:pointer; }
+.decisionTabs button + button::before { content:""; position:absolute; left:-1px; top:12px; bottom:12px; width:1px; background:var(--line); }
+.decisionTabs button[aria-pressed=true] { z-index:1; border-color:var(--line); background:var(--white); color:var(--ink); box-shadow:0 1px 3px #1117220a; }
+.decisionTabs button[aria-pressed=true]::before, .decisionTabs button[aria-pressed=true] + button::before { display:none; }
+.decisionTabs span { min-width:24px; padding:1px 5px; border-radius:5px; background:var(--white); font-size:13px; text-align:center; }
+.decisionTabs button[aria-pressed=true] span { background:var(--ink); color:var(--white); }
+.decisionTabs button:hover:not([aria-pressed=true]) { background:var(--white); }
 .focusReview { max-width:1400px; }
 .focusGrid { display:grid; grid-template-columns:minmax(0,1fr); align-items:start; gap:24px; min-width:0; }
 .photoColumn { display:flex; flex-direction:column; align-items:center; gap:8px; min-width:0; }
@@ -233,7 +236,7 @@
   .boardActions > button { padding-inline:10px; }
   .decisionTabs { width:100%; }
   .decisionTabs button { flex:1; justify-content:center; }
-  .integrated .breadcrumb h1 { font-size:18px; }
+  .integrated .breadcrumb h1 { font-size:16px; }
   .profilePanel { padding:16px; }
 }
 @media(max-width:700px) {
