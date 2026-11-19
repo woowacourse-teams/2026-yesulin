@@ -51,7 +51,7 @@ it.each(["card", "table"] as const)("%s: 직접 열기·이동·저장은 각각
     await act(async () => button("보류").click());
     expect(actions()).toHaveLength(5);
     expect(actions()[4]).toMatchObject({ review_action: "decision_save", item_id: "b" });
-    expect(host.querySelector("section")?.getAttribute("aria-label")).toContain("synthetic-c.pdf");
+    expect(host.querySelector("section")?.getAttribute("aria-label")).toContain("지원서 3");
     await act(async () => root.render(<StrictMode><Harness /></StrictMode>));
     await act(async () => host.querySelector<HTMLElement>("[data-original-test]")!.click());
     expect(actions()).toHaveLength(5);
@@ -75,5 +75,30 @@ it.each(["single", "card", "table"] as const)("%s: 자동 원본 표시는 클�
     expect(capture.mock.calls.filter(c=>c[0]==="review_item_viewed").at(-1)?.[1]).toMatchObject({ metric_version: 2,review_id: "review",item_id: "a" });
     await act(async () => root.render(render()));
     expect(capture.mock.calls.filter(c=>c[0]==="review_original_pdf_clicked")).toHaveLength(0);
+  } finally { await act(async () => root.unmount()); host.remove(); }
+});
+
+it("판정 되돌리기는 버튼과 Z를 각각 한 번씩 기록하고 판정 값은 보내지 않는다", async () => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+  const host = document.createElement("div"); document.body.append(host);
+  const root = createRoot(host);
+  function Harness() {
+    const [entries, setEntries] = useState([entry("a"), entry("b")]);
+    const review: ReviewDetail = { id: "review", title: "Synthetic", createdAt: "2026-10-31", roles: [], entries };
+    return <ScreeningBoard review={review} entries={entries.filter(e => e.decision === "PENDING")} decision="PENDING" view="single"
+      refreshKey={0} onSaved={updated => setEntries(items => items.map(e => e.id === updated.id ? updated : e))}
+      onUnauthorized={() => {}} onDirtyChange={() => {}} navigate={action => action()} />;
+  }
+  const undoActions = () => capture.mock.calls.filter(c => c[0] === "review_basic_action" && c[1].review_action === "decision_undo").map(c => c[1]);
+  const button = (name: string) => [...host.querySelectorAll("button")].find(b => b.getAttribute("aria-label")?.startsWith(name))!;
+  try {
+    await act(async () => root.render(<Harness />));
+    await act(async () => button("합격").click());
+    await act(async () => button("되돌리기").click());
+    await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "s", code: "KeyS" })));
+    await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "z", code: "KeyZ" })));
+    expect(undoActions().map(a => [a.item_id, a.input_method])).toEqual([["a", "button"], ["a", "shortcut"]]);
+    expect(undoActions().every(a => !("decision" in a) && !("review_status" in a))).toBe(true);
   } finally { await act(async () => root.unmount()); host.remove(); }
 });

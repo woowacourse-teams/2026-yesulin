@@ -6,12 +6,13 @@ import { reportPdfError } from "@/features/pdf-extractions/report-pdf-error";
 import { PdfQrDecoder } from "./pdf-qr-decoder";
 import { PdfRenderQueue } from "./pdf-render-queue";
 import { layoutPageRows, type PdfFit } from "./pdf-page-rows";
+import { usePdfPager, type PdfPagerState } from "./pdf-pager";
 import { PdfScrollPage, type PdfPageSize } from "./pdf-scroll-page";
 import styles from "./pdf-viewer.module.css";
 
 export type { PdfFit } from "./pdf-page-rows";
 
-export function PdfCanvasViewer({ url, filename, onRetry, fit = "width", zoomScope = "" }: { readonly url: string; readonly filename: string; readonly onRetry?: () => void; readonly fit?: PdfFit; readonly zoomScope?: string }) {
+export function PdfCanvasViewer({ url, filename, onRetry, fit = "width", zoomScope = "", onPagerChange }: { readonly url: string; readonly filename: string; readonly onRetry?: () => void; readonly fit?: PdfFit; readonly zoomScope?: string; readonly onPagerChange?: (state: PdfPagerState) => void }) {
   const reader = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState<{ url: string; document: PDFDocumentProxy; pages: PdfPageSize[] } | null>(null);
   const [view, setView] = useState({ width: 0, height: 0, zoom: 1, revision: 0 });
@@ -104,10 +105,12 @@ export function PdfCanvasViewer({ url, filename, onRetry, fit = "width", zoomSco
     zoomRef.current = view.zoom;
   }, [view.zoom]);
   const ready = loaded?.url === url;
-  return <div ref={reader} tabIndex={0} role="region" aria-label="지원서 원본 연속 보기" className={styles.reader} data-pdf-zoom={view.zoom} data-pdf-fit={fit}>
+  const rows = ready ? layoutPageRows(view, loaded.pages, fit) : [];
+  usePdfPager(reader, rows, onPagerChange);
+  return <div ref={reader} tabIndex={0} role="region" aria-label="지원서 원본 연속 보기" className={styles.reader} data-pdf-zoom={view.zoom} data-pdf-fit={fit} data-pdf-paged={!!onPagerChange}>
     {!ready && failure !== url && <div role="status" className="p-8 text-center text-sm text-muted">PDF를 불러오고 있어요</div>}
     {failure === url && <p role="alert" className="p-6 text-sm text-fail">PDF를 불러오지 못했어요. {onRetry && <button type="button" onClick={onRetry} className="min-h-11 px-3 font-semibold">다시 시도</button>}</p>}
-    {ready && <div className={styles.document}>{layoutPageRows(view, loaded.pages, fit).map(row => <div key={row[0].index} className={styles.pageRow} data-pdf-row>
+    {ready && <div className={styles.document}>{rows.map(row => <div key={row[0].index} className={styles.pageRow} data-pdf-row>
       {row.map(({ index, width }) => <PdfScrollPage key={index} document={loaded.document} page={index + 1} size={loaded.pages[index]} width={width} zoom={view.zoom} revision={view.revision} reader={reader} queue={queue} scanQueue={scanQueue} decoder={decoder} filename={filename} onRetry={onRetry} />)}
     </div>)}</div>}
   </div>;

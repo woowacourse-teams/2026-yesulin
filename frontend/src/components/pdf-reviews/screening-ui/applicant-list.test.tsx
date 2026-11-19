@@ -45,8 +45,8 @@ describe("PDF 심사 카드와 표 목록", () => {
   it("표는 파일 이름과 직접 적은 이름을 보이고 배정하지 않은 배역은 —로 둔다", async () => {
     await render(<ApplicantTable rows={rows} />);
     const cells = [...container.querySelectorAll("tbody tr")].map(row => [row.querySelector("th")?.textContent, row.querySelectorAll("td")[1]?.textContent]);
-    expect(cells[0]).toEqual(["plain.pdf", "—"]);
-    expect(cells[1]).toEqual(["named.pdf가람", "남주"]);
+    expect(cells[0]).toEqual(["지원서 3plain.pdf", "—"]);
+    expect(cells[1]).toEqual(["지원서 2named.pdf가람", "남주"]);
     expect(cells[2][0]).toContain("업로드 중");
     expect(container.textContent).not.toMatch(/이름 미입력|미배정|자동 추출 이름/);
   });

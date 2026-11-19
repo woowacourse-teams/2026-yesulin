@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect, useEffectEvent, useRef, type MouseEvent, type ReactNode, type RefObject } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type MouseEvent, type ReactNode, type RefObject } from "react";
 import type { PdfFit } from "./pdf-canvas-viewer";
+import type { PdfPagerState } from "./pdf-pager";
 import styles from "./pdf-viewer.module.css";
 
-export type PdfFrameState = { readonly expanded: boolean; readonly onExpandedChange: (expanded: boolean) => void; readonly caption?: ReactNode };
+export type PdfFrameState = {
+  readonly expanded: boolean; readonly onExpandedChange: (expanded: boolean) => void; readonly caption?: ReactNode;
+  readonly dock?: (pager: PdfPagerState | null) => ReactNode;
+};
+export type PdfFrameContent = (fit: PdfFit, expanded: boolean, onPagerChange?: (state: PdfPagerState) => void) => ReactNode;
 type ElementRef<T extends HTMLElement> = RefObject<T | null>;
 
 const inlineLayout = { className: styles.expandable, fit: "page" } as const;
@@ -17,17 +22,25 @@ function layoutOf(expanded: boolean) {
 
 const isInteractiveTarget = (event: MouseEvent) => event.target instanceof Element && Boolean(event.target.closest("a, button, [role='alert']"));
 
-export function PdfExpandableFrame({ expanded, onExpandedChange, caption, children }: PdfFrameState & { readonly children: (fit: PdfFit, expanded: boolean) => ReactNode }) {
+export function PdfExpandableFrame({ expanded, onExpandedChange, caption, dock, children }: PdfFrameState & { readonly children: PdfFrameContent }) {
   const container = useRef<HTMLDivElement>(null);
   const openButton = useRef<HTMLButtonElement>(null);
   useExpandedLayer(expanded, () => onExpandedChange(false), container, openButton);
   const openFromPage = (event: MouseEvent) => { if (!expanded && !isInteractiveTarget(event)) onExpandedChange(true); };
   const { fit, ...layout } = layoutOf(expanded);
+  const [pager, setPager] = useState<PdfPagerState | null>(null);
+  const onPagerChange = expandedPager(expanded, setPager);
   return <div ref={container} data-pdf-frame data-pdf-expanded={expanded} {...layout} onClick={openFromPage}>
     {expanded && caption && <div className={styles.expandedCaption}>{caption}</div>}
     <ExpandToggle expanded={expanded} openButton={openButton} onToggle={onExpandedChange} />
-    {children(fit, expanded)}
+    {children(fit, expanded, onPagerChange)}
+    {expanded && dock?.(pager)}
   </div>;
+}
+
+function expandedPager(expanded: boolean, setPager: (state: PdfPagerState) => void) {
+  if (!expanded) return undefined;
+  return setPager;
 }
 
 function ExpandToggle({ expanded, openButton, onToggle }: { readonly expanded: boolean; readonly openButton: ElementRef<HTMLButtonElement>; readonly onToggle: (expanded: boolean) => void }) {

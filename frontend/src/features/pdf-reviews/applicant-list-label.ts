@@ -9,7 +9,14 @@ export function applicantListLabel(applicant: Applicant) {
   const document = applicant.sourceDocument;
   const filename = document?.filename || applicant.name;
   const name = (document?.title ?? "").trim();
-  return { filename, name, role: assignedRole(applicant.roleName), heading: name || filename, uploading: !!document?.uploading };
+  return { number: applicantNumberLabel(applicant, 0), filename, name, role: assignedRole(applicant.roleName), uploading: !!document?.uploading };
+}
+
+export function applicantNumberLabel(applicant: Applicant, fallback: number) {
+  const sequence = applicant.sourceDocument?.sequence;
+  if (sequence && sequence > 0) return `지원서 ${sequence}`;
+  if (fallback > 0) return `지원서 ${fallback}`;
+  return "";
 }
 
 function assignedRole(roleName: string) {

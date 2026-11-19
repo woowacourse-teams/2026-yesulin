@@ -26,6 +26,7 @@ function ApplicantCard({ applicant }: { readonly applicant: Applicant }) {
       </label>
       <PdfMark />
       <div className="min-w-0 flex-1">
+        {label.number && <p className="text-xs font-bold text-brand">{label.number}</p>}
         <h3 className="line-clamp-2 break-all text-sm font-semibold leading-5" title={label.filename}>{label.filename}</h3>
         <ApplicantMeta name={label.name} role={label.role} uploading={label.uploading} />
       </div>

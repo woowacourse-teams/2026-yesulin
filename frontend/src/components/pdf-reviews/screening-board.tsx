@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { reportReviewError } from "@/features/pdf-reviews/report-review-error";
 import { trackReviewAction } from "@/features/analytics/review-actions";
 import { roleId, postingId, type SubmissionId, type ReviewStatus } from "@/features/auditions/types";
-import { assignPdfReviewRoles, isUnauthorized, renamePdfReviewEntry, updatePdfReviewEntry } from "@/features/pdf-reviews/api";
+import { assignPdfReviewRoles, isUnauthorized, updatePdfReviewEntry } from "@/features/pdf-reviews/api";
 import { screeningApplicant } from "@/features/pdf-reviews/screening-adapter";
 import { matchesDecision, sameKey, type DecisionFilter, type ReviewDetail, type ReviewEntry } from "@/features/pdf-reviews/types";
 import { ReviewOriginalDocument } from "./review-original-document";
@@ -12,12 +12,14 @@ import { ApplicantFocusReview } from "./screening-ui/applicant-focus-review";
 import { ApplicantCards } from "./screening-ui/applicant-cards";
 import { ApplicantTable } from "./screening-ui/applicant-table";
 import { ReviewRoleSelect } from "./review-role-select";
+import type { LastDecision } from "./screening-ui/fullscreen-dock";
 
 type Props = { review: ReviewDetail; entries: readonly ReviewEntry[]; decision: DecisionFilter; view: "single" | "card" | "table";
   refreshKey: number; onSaved: (entry: ReviewEntry) => void; onUnauthorized: () => void;
-  onDirtyChange: (dirty: boolean) => void; registerNavigationSave?: (flush: () => Promise<boolean>) => () => void; onApplicantOpened?: () => void; navigate: (action: () => void) => void };
+  onDirtyChange: (dirty: boolean) => void; registerNavigationSave?: (flush: () => Promise<boolean>) => () => void; onApplicantOpened?: () => void; navigate: (action: () => void) => void;
+  lastDecision?: LastDecision | null; onLastDecisionChange?: (last: LastDecision | null) => void };
 
-export function ScreeningBoard({ review, entries, decision, view, refreshKey, onSaved, onUnauthorized, onDirtyChange, onApplicantOpened, navigate, registerNavigationSave }: Props) {
+export function ScreeningBoard({ review, entries, decision, view, refreshKey, onSaved, onUnauthorized, onDirtyChange, onApplicantOpened, navigate, registerNavigationSave, lastDecision, onLastDecisionChange }: Props) {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
@@ -66,13 +68,6 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
       review: { ...latest.current.review, entries: latest.current.review.entries.map(replace) } };
     onSaved(updated);
   };
-  const renameTitle = async (id: SubmissionId, title: string) => {
-    try {
-      const updated = await renamePdfReviewEntry(review.id, id, title);
-      const confirmed = updated.title ?? title;
-      publishField(id, { title: confirmed }); return confirmed;
-    } catch (cause) { reportReviewError(cause, "autosave"); if (isUnauthorized(cause)) onUnauthorized(); return null; }
-  };
   const saveMemo = async (id: SubmissionId, memo: string) => {
     const entry = entryFor(id); if (!entry) return null;
     try {
@@ -91,9 +86,9 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
     toggleSelected: id => setSelected(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; }),
     openApplicant: id => { trackReviewAction(String(review.id), String(id), view, "open"); navigate(() => setFocused(id)); }, roleOptions: review.roles,
     currentRole: id => review.entries.find(entry => sameKey(entry.id, id))?.roleId ?? null,
-    changeRole: (id, roleId) => void assignRole([id], roleId), renameTitle, saveMemo, registerNavigationSave, requestNavigation: navigate, onNoteDirty: noteDirty,
+    changeRole: (id, roleId) => void assignRole([id], roleId), saveMemo, registerNavigationSave, requestNavigation: navigate, onNoteDirty: noteDirty,
     onBasicAction: (id, action, input) => trackReviewAction(String(review.id), String(id), view, action, input),
-    onApplicantOpened,
+    onApplicantOpened, lastDecision, onLastDecisionChange,
     reviewFocused: (id, status, _memo, note) => save(id, status, note),
     renderDocument: (applicant, frame) => { const entry = entryFor(applicant.id); if (!entry) return null; return <ReviewOriginalDocument key={`${entry.jobId}:${refreshKey}`} jobId={entry.jobId} onUnauthorized={onUnauthorized} frame={frame} />; },
   }}>

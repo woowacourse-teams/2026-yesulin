@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screeningApplicant } from "@/features/pdf-reviews/screening-adapter";
 import { PdfExpandableFrame, type PdfFrameState } from "@/components/pdf-extractions/pdf-expandable-frame";
-import { ApplicantFocusReview } from "./applicant-focus-review";
+import { ApplicantFocusReview, DECISION_STAMP_MS } from "./applicant-focus-review";
 
 const state = vi.hoisted(() => ({ board: {} }));
 vi.mock('./board-context', () => ({ useBoard: () => state.board }));
@@ -75,7 +75,10 @@ describe('심사 키보드 조작', () => {
       expect(dialog()?.textContent).toContain('2 / 2');
       expect(document.activeElement).toBe(dialog());
       await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ㅁ', code: 'KeyA' })); });
-      expect(save.mock.calls[0].slice(0, 2)).toEqual([second.id, 'PASS']);
+      expect(dialog()?.querySelector('[data-status="FAIL"][aria-hidden="true"]')?.textContent).toBe('불합격');
+      expect(save).not.toHaveBeenCalled();
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, DECISION_STAMP_MS + 20)); });
+      expect(save.mock.calls[0].slice(0, 2)).toEqual([second.id, 'FAIL']);
       expect(dialog()).not.toBeNull();
       const blocker = document.createElement('div'); blocker.setAttribute('role', 'dialog'); blocker.setAttribute('aria-modal', 'true'); document.body.append(blocker);
       await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', code: 'KeyD' })); });
@@ -84,6 +87,32 @@ describe('심사 키보드 조작', () => {
       state.board = { ...board, saveError: '네트워크 오류' };
       await act(async () => root.render(<ApplicantFocusReview rows={[first, second]} />));
       expect(dialog()?.querySelector('[role="alert"]')?.textContent).toContain('네트워크 오류');
+    } finally { await act(async () => root.unmount()); host.remove(); }
+  });
+
+  it('전체화면 판정 저장이 실패하면 도장을 지우고 그 지원서에 머문다', async () => {
+    vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+    const review = { id: 'review', title: 'synthetic', createdAt: '2026-10-29', roles: [], entries: [] };
+    const entry = (id: string) => ({ id, jobId: `job-${id}`, originalFilename: 'synthetic.pdf', applicantName: null,
+      roleId: null, matchStatus: 'NEEDS_CHECK' as const, matchEvidence: null, memo: '', decision: 'PENDING' as const });
+    const first = screeningApplicant(review, entry('one'));
+    const second = screeningApplicant(review, entry('two'));
+    const save = vi.fn().mockResolvedValue(null);
+    state.board = { board: { role: { id: review.id } }, source: { kind: 'PDF' }, filters: { work: 'PENDING' }, saving: false, reviewLocked: false,
+      onBasicAction: vi.fn(), reviewFocused: save, openApplicant: vi.fn(),
+      renderDocument: (applicant: typeof first, frame: PdfFrameState) => <PdfExpandableFrame key={applicant.id} {...frame}>{() => <p>원본 {applicant.id}</p>}</PdfExpandableFrame> };
+    const host = document.createElement('div'); document.body.append(host);
+    const root = createRoot(host);
+    try {
+      await act(async () => root.render(<ApplicantFocusReview rows={[first, second]} />));
+      await act(async () => [...host.querySelectorAll('button')].find(item => item.textContent === '전체화면')!.click());
+      await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', code: 'KeyD' })); });
+      await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', code: 'KeyA' })); });
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, DECISION_STAMP_MS + 20)); });
+      expect(save).toHaveBeenCalledOnce();
+      expect(host.querySelector('[aria-hidden="true"][data-status]')).toBeNull();
+      expect(host.textContent).toContain(`원본 ${first.id}`);
+      expect(host.textContent).not.toContain('저장했어요');
     } finally { await act(async () => root.unmount()); host.remove(); }
   });
 });

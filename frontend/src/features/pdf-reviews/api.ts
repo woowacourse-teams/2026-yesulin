@@ -121,6 +121,3 @@ export function assignPdfReviewRoles(reviewId: ReviewKey, entryIds: readonly Rev
   return request<ReviewEntry[]>(`${reviewPath(reviewId)}/role-assignments`, "PATCH", { entryIds, roleId });
 }
 
-export function renamePdfReviewEntry(reviewId: ReviewKey, entryId: ReviewKey, title: string) {
-  return boundedSave<ReviewEntry>(`${reviewPath(reviewId)}/entries/${encodeURIComponent(String(entryId))}/title`, { title });
-}

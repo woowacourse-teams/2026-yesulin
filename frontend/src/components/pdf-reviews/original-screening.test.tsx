@@ -4,12 +4,12 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ScreeningBoard } from "./screening-board";
 import type { ReviewDetail, ReviewEntry } from "@/features/pdf-reviews/types";
-const mocks = vi.hoisted(() => ({ save: vi.fn(), role: vi.fn(), extraction: vi.fn(), rename: vi.fn(), dirty: vi.fn() }));
+const mocks = vi.hoisted(() => ({ save: vi.fn(), role: vi.fn(), extraction: vi.fn(), dirty: vi.fn() }));
 vi.mock("@/features/monitoring/report-error", () => ({ reportError: vi.fn() }));
 vi.mock('./review-original-document', () => ({ ReviewOriginalDocument: ({ jobId }: { jobId: string }) => <div data-job-id={jobId}>원본 PDF</div> }));
 vi.mock('@/features/analytics/product-analytics', () => ({ trackProductEvent: vi.fn() }));
 vi.mock('@/features/pdf-extractions/api', () => ({ fetchPdfExtraction: mocks.extraction }));
-vi.mock('@/features/pdf-reviews/api', () => ({ updatePdfReviewEntry: mocks.save, assignPdfReviewRoles: mocks.role, renamePdfReviewEntry: mocks.rename, isUnauthorized: (e: { status?: number }) => e?.status === 401 }));
+vi.mock('@/features/pdf-reviews/api', () => ({ updatePdfReviewEntry: mocks.save, assignPdfReviewRoles: mocks.role, isUnauthorized: (e: { status?: number }) => e?.status === 401 }));
 let host: HTMLDivElement, root: Root;
 const entries: ReviewEntry[] = ['a','b'].map(id => ({ id, jobId: `job-${id}`, originalFilename: `${id}.pdf`, applicantName: null, roleId: null, matchStatus: 'WAITING', memo: '', matchEvidence: null, decision: 'PENDING', processingStatus: 'FAILED' }));
 function Harness({ navigate, view = 'single', initialRows = entries, decision = 'PENDING' }: { navigate?: (action: () => void) => void; view?: 'single'|'card'|'table'; initialRows?: ReviewEntry[]; decision?: ReviewEntry['decision'] }) {
@@ -19,7 +19,7 @@ function Harness({ navigate, view = 'single', initialRows = entries, decision = 
   const review: ReviewDetail = { id: 'review', title: '검증', createdAt: '2026-11-05', roles: [{ id: 'lead', name: '주연' }], entries: rows };
   return <ScreeningBoard review={review} entries={rows.filter(r => r.decision === decision)} decision={decision} view={view} refreshKey={0} onSaved={updated => setRows(current => current.map(row => row.id === updated.id ? updated : row))} onDirtyChange={mocks.dirty} onUnauthorized={() => {}} navigate={navigate ?? guarded} />;
 }
-async function button(name: string) { const target = [...host.querySelectorAll('button')].find(b => b.getAttribute("aria-label") === name || b.textContent === name || b.textContent === `${name} →`)!; expect(target).toBeDefined(); await act(async () => target.click()); }
+async function button(name: string) { const target = [...host.querySelectorAll('button')].find(b => b.getAttribute("aria-label") === name || b.getAttribute("aria-label")?.startsWith(`${name} (`) || b.textContent === name || b.textContent === `${name} →`)!; expect(target).toBeDefined(); await act(async () => target.click()); }
 async function memo(text: string) { const field = host.querySelector('textarea')!; await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value')!.set!.call(field,text); field.dispatchEvent(new Event('input',{ bubbles:true })); }); }
 beforeEach(() => { vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT',true); vi.clearAllMocks(); host=document.createElement('div');document.body.append(host);root=createRoot(host); });
 afterEach(() => { act(() => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
@@ -63,30 +63,31 @@ it('배역 저장 실패는 기존 값을 유지하고 다시 선택해서 저�
 it('수동 저장·대기 복원·원본 파일명·설명 문구를 표시하지 않는다', async () => {
   await act(async () => root.render(<Harness />));
   for (const text of ['메모 저장','대기로 되돌리기','원본 파일 ·','심사 기록','저장됨','저장 대기 중']) expect(host.textContent).not.toContain(text);
-  expect(host.querySelector<HTMLInputElement>('[aria-label="배우 이름"]')?.value).toBe('');
+  expect(host.querySelector('[aria-label="배우 이름"]')).toBeNull();
+  expect(host.querySelector('h2')?.textContent).toBe('지원서 1');
 });
-async function title(value: string) {
-  const input=host.querySelector<HTMLInputElement>('[aria-label="배우 이름"]')!;
-  await act(async () => {Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(input,value);input.dispatchEvent(new Event('input',{bubbles:true}));});
-  return input;
-}
-it('항상 편집 가능한 제목은 blur에 저장하고 실패 입력을 유지해 재시도한다', async () => {
-  mocks.rename.mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce({...entries[0],title:'가람 배우 지원서'});
-  await act(async () => root.render(<Harness />)); const input=await title('가람 배우 지원서');
-  await act(async () => input.dispatchEvent(new FocusEvent('focusout',{bubbles:true})));
-  expect(host.textContent).toContain('저장하지 못했어요');expect(input.value).toBe('가람 배우 지원서');
-  await button('저장 재시도');expect(mocks.rename).toHaveBeenLastCalledWith('review','a','가람 배우 지원서');
-  expect(input.value).toBe('가람 배우 지원서');expect(host.querySelector('textarea')?.value).toBe('');
+it('판정을 되돌리면 이전 판정으로 다시 저장하고 그 지원서로 돌아간다', async () => {
+  mocks.save.mockImplementation(async (_review,id,change)=>({...entries.find(entry=>entry.id===id)!,...change}));
+  await act(async () => root.render(<Harness />)); await button('합격');
+  expect(host.querySelector('[data-job-id]')?.getAttribute('data-job-id')).toBe('job-b');
+  expect(host.textContent).toContain('지원서 1 합격으로 저장했어요');
+  await button('되돌리기');
+  expect(mocks.save).toHaveBeenLastCalledWith('review','a',{ decision:'PENDING',memo:'' },'decision');
+  expect(host.querySelector('[data-job-id]')?.getAttribute('data-job-id')).toBe('job-a');
+  expect(host.textContent).not.toContain('저장했어요');
 });
-it('제목 저장이 완료될 때까지 다음 이동을 기다리고 제목·메모 응답을 필드별 병합한다', async () => {
-  let resolve!: (entry: ReviewEntry) => void;
-  mocks.rename.mockReturnValue(new Promise<ReviewEntry>(r=>{resolve=r;}));
-  mocks.save.mockResolvedValue({...entries[0],memo:'최신 메모'});
-  const navigate=vi.fn(); await act(async () => root.render(<Harness navigate={navigate} />));
-  await title('최신 제목');await memo('최신 메모');await button('다음 지원서');expect(navigate).not.toHaveBeenCalled();
-  await act(async()=>resolve({...entries[0],title:'최신 제목'}));
-  expect(navigate).toHaveBeenCalledOnce();expect(host.querySelector<HTMLInputElement>('[aria-label="배우 이름"]')?.value).toBe('최신 제목');
-  expect(host.querySelector('textarea')?.value).toBe('최신 메모');expect(mocks.dirty).toHaveBeenLastCalledWith(false);
+
+it('Z 단축키로 직전 판정을 되돌리고 되돌린 뒤에는 다시 눌러도 저장하지 않는다', async () => {
+  mocks.save.mockImplementation(async (_review,id,change)=>({...entries.find(entry=>entry.id===id)!,...change}));
+  await act(async () => root.render(<Harness />));
+  await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', code: 'KeyA' })); });
+  expect(mocks.save).toHaveBeenLastCalledWith('review','a',{ decision:'FAIL',memo:'' },'decision');
+  expect(host.textContent).toContain('지원서 1 불합격으로 저장했어요');
+  await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ㅋ', code: 'KeyZ' })); });
+  expect(mocks.save).toHaveBeenLastCalledWith('review','a',{ decision:'PENDING',memo:'' },'decision');
+  const calls = mocks.save.mock.calls.length;
+  await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', code: 'KeyZ' })); });
+  expect(mocks.save).toHaveBeenCalledTimes(calls);
 });
 
 it.each(['card','table'] as const)('카드·표 원본 상세에서 목록 버튼은 이동 보호를 한 번만 거쳐 복귀한다: %s',async view=>{
@@ -95,9 +96,4 @@ it.each(['card','table'] as const)('카드·표 원본 상세에서 목록 버�
   await act(async()=>open.click());expect(host.querySelector('[data-job-id]')).not.toBeNull();
   await button('목록');expect(host.querySelector('[data-job-id]')).toBeNull();expect(host.textContent).toContain('전체 선택');
 });
-it('저장 실패를 해당 이름 입력과 연결하고 메모 오류와 구분한다',async()=>{
-  mocks.rename.mockRejectedValueOnce(new Error('private'));await act(async()=>root.render(<Harness />));const input=await title('수정 이름');
-  await act(async()=>input.dispatchEvent(new FocusEvent('focusout',{bubbles:true})));
-  expect(input.getAttribute('aria-invalid')).toBe('true');expect(input.getAttribute('aria-describedby')).toBe('pdf-review-save-error');
-  expect(host.querySelector('textarea')?.getAttribute('aria-invalid')).toBe('false');
-});
+
