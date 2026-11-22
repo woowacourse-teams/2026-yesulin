@@ -23,23 +23,33 @@ public class OpenChatVisitService {
     private final AuditionPostRepository posts;
     private final NoticeRepository notices;
     private final OpenChatVisitQuery query;
+    private final PendingCounts<Long> postVisits = new PendingCounts<>("audition post openchat visits");
+    private final PendingCounts<String> otrVisits = new PendingCounts<>("otr notice openchat visits");
 
-    @Transactional
     public void recordPost(long postId) {
-        if (posts.increaseOpenChatVisitCount(postId, AuditionPostStatus.PUBLISHED) == 0) {
+        if (!posts.isOpenChatVisitTarget(postId, AuditionPostStatus.PUBLISHED)) {
             throw notFound();
         }
+        postVisits.increase(postId);
     }
 
     /** 가져오기가 실패한 공고의 OTR 경유 방문은 알림에 세고, 나중에 가져오면 공고 통계에 합산한다. */
-    @Transactional
     public void recordOtr(String externalId) {
         if (externalId == null || !externalId.matches("[0-9]{1,30}")) {
             throw new IllegalArgumentException("OTR 공고 번호는 숫자 1~30자여야 합니다.");
         }
-        if (notices.increaseOpenChatVisitCount(OtrNoticeLink.SOURCE, externalId) == 0) {
+        if (!notices.existsBySourceAndExternalId(OtrNoticeLink.SOURCE, externalId)) {
             throw notFound();
         }
+        otrVisits.increase(externalId);
+    }
+
+    /** 그사이 방문을 셀 수 없게 된 공고의 증가분은 더하지 않고 버린다. */
+    public int flush() {
+        return postVisits.flush((postId, amount) ->
+                        posts.addOpenChatVisitCount(postId, amount, AuditionPostStatus.PUBLISHED))
+                + otrVisits.flush((externalId, amount) ->
+                        notices.addOpenChatVisitCount(OtrNoticeLink.SOURCE, externalId, amount));
     }
 
     @Transactional(readOnly = true)

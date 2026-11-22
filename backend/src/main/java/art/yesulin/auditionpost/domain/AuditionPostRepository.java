@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface AuditionPostRepository extends JpaRepository<AuditionPost, Long> {
 
@@ -184,16 +185,25 @@ public interface AuditionPostRepository extends JpaRepository<AuditionPost, Long
             + " group by p.source, p.sourceAuthorId, p.content.authorName")
     List<AuditionPostAuthorCount> countUnownedBySourceAuthor();
 
-    /** 동시 조회에도 빠짐없이 세도록 DB에서 1을 더한다. 공개 공고가 아니면 0을 돌려준다. */
+    boolean existsByIdAndStatus(long id, AuditionPostStatus status);
+
+    /** 메모리에 모아 둔 조회수를 한 번에 더한다. 그사이 공개가 끝난 공고면 0을 돌려준다. */
+    @Transactional
     @Modifying(clearAutomatically = true)
-    @Query("update AuditionPost p set p.viewCount = p.viewCount + 1 where p.id = :id and p.status = :status")
-    int increaseViewCount(@Param("id") long id, @Param("status") AuditionPostStatus status);
+    @Query("update AuditionPost p set p.viewCount = p.viewCount + :amount where p.id = :id and p.status = :status")
+    int addViewCount(@Param("id") long id, @Param("amount") long amount, @Param("status") AuditionPostStatus status);
 
     /** 공개 상세 또는 원문 이동이 가능한 공고의 공유용 링크 방문만 센다. */
-    @Modifying(clearAutomatically = true)
-    @Query("update AuditionPost p set p.openChatVisitCount = p.openChatVisitCount + 1"
+    @Query("select count(p) > 0 from AuditionPost p"
             + " where p.id = :id and (p.status = :published or p.sourceUrl is not null)")
-    int increaseOpenChatVisitCount(@Param("id") long id, @Param("published") AuditionPostStatus published);
+    boolean isOpenChatVisitTarget(@Param("id") long id, @Param("published") AuditionPostStatus published);
+
+    @Transactional
+    @Modifying(clearAutomatically = true)
+    @Query("update AuditionPost p set p.openChatVisitCount = p.openChatVisitCount + :amount"
+            + " where p.id = :id and (p.status = :published or p.sourceUrl is not null)")
+    int addOpenChatVisitCount(
+            @Param("id") long id, @Param("amount") long amount, @Param("published") AuditionPostStatus published);
 
     /** 원문 이동 수도 같은 방식으로 DB에서 1을 더한다. 공개 중이면 원문으로 보내지 않으므로 0을 돌려준다. */
     @Modifying(clearAutomatically = true)

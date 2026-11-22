@@ -59,6 +59,9 @@ class AuditionPostImportServiceTest {
     private AuditionPostService auditionPostService;
 
     @Autowired
+    private AuditionPostViewCountService viewCounts;
+
+    @Autowired
     private AuditionPostCountQuery countQuery;
 
     @Autowired
@@ -410,7 +413,7 @@ class AuditionPostImportServiceTest {
         auditionPostService.increaseRedirectCount(postId);
         auditionPostService.increaseRedirectCount(postId);
         importService.importPost(ADMIN_ID, OTR_ID);
-        assertCode(AuditionPostErrorCode.NOT_FOUND, () -> auditionPostService.increaseViewCount(postId));
+        assertCode(AuditionPostErrorCode.NOT_FOUND, () -> viewCounts.record(postId));
 
         auditionPostService.changeStatus(ADMIN_ID, postId, AuditionPostStatus.PUBLISHED);
         assertCode(AuditionPostErrorCode.NOT_FOUND, () -> auditionPostService.increaseRedirectCount(postId));
@@ -444,13 +447,14 @@ class AuditionPostImportServiceTest {
         AuditionPostImportResult imported = importAndPublish(OTR_ID);
         long postId = imported.post().id();
 
-        auditionPostService.increaseViewCount(postId);
-        auditionPostService.increaseViewCount(postId);
+        viewCounts.record(postId);
+        viewCounts.record(postId);
+        viewCounts.flush();
         importService.importPost(ADMIN_ID, OTR_ID);
 
         assertEquals(2, publishedDetail(postId).viewCount());
         auditionPostService.changeStatus(ADMIN_ID, postId, AuditionPostStatus.HIDDEN);
-        assertCode(AuditionPostErrorCode.NOT_FOUND, () -> auditionPostService.increaseViewCount(postId));
+        assertCode(AuditionPostErrorCode.NOT_FOUND, () -> viewCounts.record(postId));
     }
 
     @Test
