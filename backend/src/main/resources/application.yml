@@ -114,8 +114,6 @@ yesulin:
       max-open-duration: ${YESULIN_PDF_AI_CIRCUIT_MAX_OPEN_DURATION:PT5M}
   pdf-extraction:
     enabled: ${YESULIN_PDF_EXTRACTION_ENABLED:false}
-  pdf-review:
-    reset-enabled: false
   community:
     link-base-url: ${YESULIN_COMMUNITY_LINK_BASE_URL:}
     notifications-enabled: ${YESULIN_COMMUNITY_NOTIFICATIONS_ENABLED:true}
@@ -221,10 +219,6 @@ spring:
     activate:
       on-profile: dev
 yesulin:
-  pdf-review:
-    reset-enabled: true
-    # 우형 전시회(2026-11-20) 시연 계정만 초기화한다. 전시회가 끝나면 초기화 기능과 함께 지운다.
-    reset-allowed-member-ids: 59
   pdf-ai:
     # 우형 전시회(2026-11-20) 동안 dev는 AI 정리를 끄고 원문 추출만 쓴다. 전시회가 끝나면 이 주석과 아래 enabled 줄을 지운다.
     enabled: false
