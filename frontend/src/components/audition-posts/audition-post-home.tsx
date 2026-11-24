@@ -26,6 +26,6 @@ export function AuditionPostHome({ initialLatest = null, initialDeadline = null,
       <QuickBanners />
       <HomeShowSection initialShows={initialShows} />
       <HomeFaqSection />
-    </main><NotebookFooter />
+    </main><NotebookFooter prefetchInfoLinks={false} />
   </div>;
 }
