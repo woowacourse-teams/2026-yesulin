@@ -49,12 +49,14 @@
 - 신규 확정 문제 발견 1 / 해결 0 / 미해결 1 / P0 0 / P1 0 / P2 1 / P3 0.
 - PRECHECK 0 / INDEPENDENT_REVIEW 0 / POST_FIX_CHECK 0 / EXTERNAL 1, 오탐 0, 미확인 1.
 
+- PR 게시 전 별도 검토에서 `dev` 대비 5개 변경과 PNG의 동일 바이트 이동, C05·C07·F01의 집계, 기록 링크를 확인했다.
+
 ## 문제와 사건 이력
 
 | 문제 ID | 심각도·유형·유입 | 최초 확정 / 최초 PR | 해결 시각 | 근거 및 상태 |
 | --- | --- | --- | --- | --- |
-| `2026-11-24-og-openchat-check-F01` | P2·FLOW·UNKNOWN | 2026-11-24T12:17:29+09:00 / PENDING | 미해결 | 파일명을 변경하고 로컬 빌드에서 새 URL을 검증했다. 배포 후 같은 공고 링크를 공유한 결과 확인 대기. OPEN |
+| `2026-11-24-og-openchat-check-F01` | P2·FLOW·UNKNOWN | 2026-11-24T12:17:29+09:00 / [#633](https://github.com/woowacourse-teams/2026-yesulin/pull/633) | 미해결 | 파일명을 변경하고 로컬 빌드에서 새 URL을 검증했다. 배포 후 같은 공고 링크를 공유한 결과 확인 대기. OPEN |
 
 | 사건 ID | 문제 ID | 사건 | 발생 시각 | 근거 및 관련 PR |
 | --- | --- | --- | --- | --- |
-| `2026-11-24-og-openchat-check-F01-E01` | `2026-11-24-og-openchat-check-F01` | CONFIRMED | 2026-11-24T12:17:29+09:00 | 오픈채팅 캡처와 운영 HTTP 응답 대조, PR PENDING |
+| `2026-11-24-og-openchat-check-F01-E01` | `2026-11-24-og-openchat-check-F01` | CONFIRMED | 2026-11-24T12:17:29+09:00 | 오픈채팅 캡처와 운영 HTTP 응답 대조, PR [#633](https://github.com/woowacourse-teams/2026-yesulin/pull/633) |
