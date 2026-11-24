@@ -74,7 +74,7 @@ export function CategoryShortcuts({ posts = null }: { readonly posts?: readonly 
   const playing = useAutoplayScene(stage);
   const [counts, markSeen] = useNewPostCounts(posts);
   return <nav ref={stage} aria-label="분야 바로가기" className={classNames(styles.stage, playing !== null && styles.hasOn)}>
-    {scenes.map(({ category, className, art }, index) => <Link key={category} href={auditionPostRoutes.list({ category })}
+    {scenes.map(({ category, className, art }, index) => <Link key={category} href={auditionPostRoutes.list({ category })} prefetch={false}
       className={classNames(styles.act, className, playing === index && styles.on)} data-playing={playing === index || undefined} onClick={() => markSeen(category)}>
       <span className={styles.cone} aria-hidden="true" />
       <span className={styles.pool} aria-hidden="true" />
