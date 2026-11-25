@@ -370,7 +370,8 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 `deadline`(날짜일 때만 `YYYY-MM-DD`), `closed`(한국 날짜 기준), `postedAt`(Instant), `thumbnailUrl`(본문 첫 사진의 카드용 축소본 URL. 준비 전에는 원본 URL, 사진이 없으면 null),
 `attachmentCount`, `viewCount`, `alertChatMembers`(아래 공고 알림 오픈채팅방 인원)를 담는다. 공개 응답의 `authorName`은 기획사에 연결된 공고면 그 기획사의 지금 이름이고,
 아니면 저장된 작성자(원문 닉네임이나 운영자가 쓴 이름)다. 운영 목록과 수정 상세의 `authorName`은 저장된 작성자다. 조회수는 상세 화면이 열릴 때 브라우저가 탭 세션당 한 번 보내는 POST로만 늘고,
-서버 렌더링·메타데이터 조회는 세지 않는다. 다시 가져와도 유지한다. 상세는 여기에 `bodyHtml`, `tags`, `attachments(name, contentType, size, url)`, 원문 출처 `source`(예: `OTR`)·`sourceUrl`,
+서버 렌더링·메타데이터 조회는 세지 않는다. 서버는 조회를 메모리에 모았다가 3초마다 공고별로 한 번에 더하므로 응답의 조회수에 최대 3초 늦게 반영되고,
+서버가 비정상 종료되면 마지막 기록 뒤의 조회는 잃는다. 정상 종료 때는 남은 값을 기록한다. 다시 가져와도 유지한다. 상세는 여기에 `bodyHtml`, `tags`, `attachments(name, contentType, size, url)`, 원문 출처 `source`(예: `OTR`)·`sourceUrl`,
 `updatedAt`, 공연사 요약 `company`(아래 공연사 절, 연결이 없거나 공개 전이면 null)를 더한다. 상세에도 `alertChatMembers`가 있다. 운영자나 기획사가 직접 쓴 공고는 `source`가 `YESULIN`이고 `sourceUrl`이 null이다.
 공개 상태는 `PENDING`(검토 전), `PUBLISHED`(공개 중), `HIDDEN`(내림)이다. 공개 중이 아닌 공고 상세는 본문 없이
 `302 Location: {sourceUrl}`로 원문 공고에 보낸다. 원문 없이 쓴 공고는 보낼 곳이 없어 `404`다.
@@ -382,7 +383,8 @@ page·size 범위 오류와 지원하지 않는 category·sort는 `400 INVALID_R
 
 오픈채팅방 링크 방문은 상세 GET·메타데이터 조회가 아니라 공유용 출처 표시를 읽은 브라우저의 `openchat-visits` POST로만
 늘린다. 브라우저가 공고별 집계 표시를 저장해 중복 전송을 줄이며, 서버에는 방문자 ID·쿠키 값·개별 방문 이력을 저장하지 않는다.
-공고/알림 행의 `openchat_visit_count`만 원자적으로 증가하므로 서버에서 같은 브라우저인지 재검증하지 않는다.
+공고/알림 행의 `openchat_visit_count`만 늘리므로 서버에서 같은 브라우저인지 재검증하지 않는다. 조회수와 같이 메모리에 모았다가
+3초마다 더하므로 관리자 통계에 최대 3초 늦게 반영되고, 그사이 방문을 셀 수 없게 된 공고의 증가분은 버린다.
 관리자 로그인 상태면 증가 없이 `204`다. 일반 공고 POST는 공개 상세 또는 원문 이동이 가능한 공고만 허용하고 나머지는
 `404 AUDITION_POST_NOT_FOUND`다. OTR POST는 숫자 1~30자 원문 번호이며 해당 OTR 알림이 없으면 같은 404다.
 형식 오류는 `400 INVALID_REQUEST`다. GET·미리보기는 이 숫자를 늘리지 않는다.

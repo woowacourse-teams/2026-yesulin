@@ -137,14 +137,6 @@ public class AuditionPostService {
                 .toList();
     }
 
-    /** 공개 상세를 연 브라우저가 한 번 보낸다. 숨겼거나 없는 공고는 404다. */
-    @Transactional
-    public void increaseViewCount(long postId) {
-        if (repository.increaseViewCount(postId, PUBLISHED) == 0) {
-            throw notFound();
-        }
-    }
-
     /** 공개하지 않은 공고 상세를 원문으로 보내기 직전에 프론트 서버가 한 번 보낸다. 공개 중이거나 없는 공고는 404다. */
     @Transactional
     public void increaseRedirectCount(long postId) {
