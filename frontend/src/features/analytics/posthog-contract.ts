@@ -1,4 +1,5 @@
 import { ACQUISITION_CHANNELS, type AcquisitionChannel } from "./acquisition";
+import { isReminderCampaign, type ReminderCampaign } from "@/features/audition-posts/openchat-reminder-tag";
 
 /** PostHog에만 쓰는 계약. GA dataLayer에는 식별자를 전달하지 않는다. */
 export type ProductProperties = {
@@ -22,6 +23,7 @@ export type ProductProperties = {
   attachment_kind?: "application_form" | "reference" | "unknown";
   has_application_form?: boolean;
   source?: "openchat" | "other";
+  reminder_campaign?: ReminderCampaign;
   acquisition_channel?: AcquisitionChannel;
   attribution_version?: 1;
   workflow?: "actor_pdf" | "producer_pdf" | "standard" | "otr";
@@ -84,7 +86,7 @@ const PROPERTY_KEYS = new Set<keyof ProductProperties>([
   "pdf_open_source", "review_action", "input_method", "review_view",
   "metric_version", "pending_count", "held_count", "final_count", "save_kind", "processing_stage",
   "post_id", "show_id", "review_id", "item_id", "operation_id", "attachment_index", "attachment_kind",
-  "has_application_form", "source", "workflow", "step", "outcome", "error_code", "duration_ms", "active_ms",
+  "has_application_form", "source", "reminder_campaign", "workflow", "step", "outcome", "error_code", "duration_ms", "active_ms",
   "extraction_status", "ticket_count", "eligible", "round", "total_count", "completed_count", "missing_field_count",
   "capacity", "reserved_tickets", "cancelled_count", "reservation_count", "session_id",
   "acquisition_channel", "attribution_version", "liked", "community_target",
@@ -96,6 +98,7 @@ export function safeProductProperties(properties: ProductProperties): ProductPro
     if (!PROPERTY_KEYS.has(key as keyof ProductProperties)) return false;
     if (key === "banner_id") return value === "audition-alert" || value === "producer-partnership";
     if (key === "acquisition_channel") return ACQUISITION_CHANNELS.includes(value as AcquisitionChannel);
+    if (key === "reminder_campaign") return isReminderCampaign(value);
     if (key === "attribution_version") return value === 1;
     if (typeof value === "boolean") return true;
     if (typeof value === "number") return Number.isFinite(value) && value >= 0;

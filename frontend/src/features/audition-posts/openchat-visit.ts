@@ -1,7 +1,7 @@
 import { isAnalyticsEnabled, readAnalyticsConsent } from "@/features/analytics/consent";
 import { request } from "@/features/auditions/api-client";
+import { isReminderCampaign, OPENCHAT_SOURCE, REMINDER_CAMPAIGN_PARAM } from "./openchat-reminder-tag";
 
-export const OPENCHAT_SOURCE = "kakao_openchat";
 export const OPENCHAT_COUNTED_PREFIX = "yesulin:openchat-counted:v1:";
 const pendingVisits = new Map<string, Promise<void>>();
 
@@ -61,10 +61,11 @@ async function sendVisit(kind: OpenChatVisitTarget["kind"], id: string, key: str
   }
 }
 
-/** Next 라우터의 히스토리 상태와 다른 쿼리·fragment를 보존하고, 이 공고의 출처 표시만 걷어 낸다. */
 export function cleanOpenChatSource(postId: string) {
   const url = new URL(window.location.href);
   if (url.pathname !== `/posts/${postId}` || url.searchParams.get("src") !== OPENCHAT_SOURCE) return;
   url.searchParams.delete("src");
+  const campaigns = url.searchParams.getAll(REMINDER_CAMPAIGN_PARAM);
+  if (campaigns.length === 1 && isReminderCampaign(campaigns[0])) url.searchParams.delete(REMINDER_CAMPAIGN_PARAM);
   window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
 }

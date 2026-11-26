@@ -49,6 +49,18 @@ PostHog는 GA와 별도 수집 경로다. `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLI
   오픈채팅은 기존 `?src=kakao_openchat`을 유지한다. 이미 쿼리가 있으면 `&`로 붙인다.
   표시는 공유 채널일 뿐 실제 클릭한 앱이나 방 참여 여부의 증거가 아니다.
 
+### 오픈채팅 마감 안내
+
+관리자 오픈채팅방 관리에서 한국 시간 기준 오늘·내일 마감하는 공개 공고를 선택해 공유 문구를 복사한다.
+링크는 `?src=kakao_openchat&utm_campaign=deadline_reminder_20261127_d1` 형식이다. 캠페인 값의 날짜는 마감일이며
+`d1`은 하루 전, `d0`은 당일 안내다. 같은 마감일과 안내 시점에 반복 공유한 링크는 같은 캠페인으로 집계한다.
+공개 상세가 정상적으로 열릴 때 검증된 캠페인 값만 `openchat_landed.reminder_campaign`으로 보낸다.
+원문 이동·이후 공고 탐색·원본 주소는 해당 속성의 수집 대상에 포함하지 않는다.
+
+PostHog의 `01 예술in 한눈에 보기`의 마감 안내 표는 방문 발생 기간을 기준으로 캠페인별 또는 캠페인·공고별
+`person_id` 고유 수를 표시한다. 캠페인 전체에서 여러 공고를 열어 본 사용자는 한 번 센다. 분석 거부·운영 환경 분리·내부 및 테스트 제외를
+기존대로 적용한다. 집계는 속성 수집이 적용된 이후 시작한다. 기존 공고별 누적 오픈채팅 링크 방문과 기존 차트의 분모는 그대로다.
+
 ### PostHog 수집 경계
 
 자동 클릭·페이지·폼·오류 수집, 화면 녹화, 설문, 광고 추적을 끈다. 기존 분석 끄기 선택을 그대로 존중하며
@@ -66,7 +78,7 @@ PostHog 수집 항목·미국 리전·거부 방법은 `/privacy/analytics`의 �
 | 이벤트 | 기준 |
 | --- | --- |
 | `audition_post_viewed` | 공개 공고 상세가 실제 렌더링됨. 같은 컴포넌트의 effect 재실행은 중복 제거 |
-| `openchat_landed` | 표시된 알림 링크로 공고 상세 조회 |
+| `openchat_landed` | 표시된 알림 링크로 공고 상세 조회. 유효한 마감 안내 링크에서만 `reminder_campaign` 추가 |
 | `another_post_viewed` | 같은 알림 방문에서 최초 공고와 다른 공고 조회 |
 | `attachment_download_clicked` | 첨부 링크 클릭. `application_form`·`reference`·`unknown` 구분 |
 | `home_banner_clicked` | 홈의 오디션 알림·공연 제작팀 모집 배너의 오픈채팅 링크 활성화. `banner_id`는 `audition-alert` 또는 `producer-partnership` |
