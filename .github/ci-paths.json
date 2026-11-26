@@ -35,6 +35,7 @@
         "ops/backup/**",
         "ops/configure/**",
         "ops/diagnose/**",
+        "ops/document-preview-lambda/README.md",
         "ops/loadtest/**",
         "ops/monitor/app.sh",
         "ops/monitor/cloudwatch/install_database.sh",
@@ -60,6 +61,7 @@
       "run": "backend",
       "paths": [
         "backend/**",
+        "ops/document-preview-lambda/**",
         "ops/monitor/cloudwatch/database_metrics.py",
         "ops/monitor/cloudwatch/queries.json",
         "ops/monitor/cloudwatch/tests/**",

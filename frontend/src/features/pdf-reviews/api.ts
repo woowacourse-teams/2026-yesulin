@@ -4,6 +4,7 @@ import { withCsrfHeaders } from "../csrf";
 import { readErrorDetail, readErrorMessage } from "../api-error";
 import type { PreparedPdfUpload } from "../pdf-extractions/types";
 import type { ReviewDecision, ReviewDetail, ReviewEntry, ReviewKey, ReviewProgress, ReviewSummary } from "./types";
+import { acceptsDocument, LEGACY_EXTENSIONS } from "./upload-selection";
 
 const BASE = "/api/v1/pdf-reviews";
 
@@ -56,7 +57,9 @@ export async function listPdfReviews(signal?: AbortSignal) {
 
 export async function fetchPdfReview(id: ReviewKey, signal?: AbortSignal) {
   const detail = await request<ReviewDetail>(reviewPath(id), "GET", undefined, signal);
-  detail.entries.forEach(entry => registerPdfReviewJob(entry.jobId, String(id)));
+  for (const entry of detail.entries) {
+    if (acceptsDocument(entry.originalFilename, LEGACY_EXTENSIONS)) registerPdfReviewJob(entry.jobId, String(id));
+  }
 
   return detail;
 }

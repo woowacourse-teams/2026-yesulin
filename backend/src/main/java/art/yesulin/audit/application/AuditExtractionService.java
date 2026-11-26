@@ -27,6 +27,11 @@ public class AuditExtractionService {
     private final PdfAiQueueService aiJobs;
 
     @Transactional
+    public void failConversion(String jobId) {
+        entries.findByJobIdForUpdate(jobId).ifPresent(AuditApplicant::markFailed);
+    }
+
+    @Transactional
     public void startExtraction(String jobId) {
         entries.findByJobIdForUpdate(jobId).ifPresent(AuditApplicant::startExtraction);
     }

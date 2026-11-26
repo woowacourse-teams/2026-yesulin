@@ -36,7 +36,10 @@ export function completePdfUpload(jobId: string) {
   return json<PdfExtractionJob>(`/${encodeURIComponent(jobId)}/completion`, {});
 }
 
-export async function fetchPdfExtraction(jobId: string, includeResult = false, signal?: AbortSignal) {
+export async function fetchPdfExtraction(jobId: string, includeResult: boolean | "document" = false, signal?: AbortSignal) {
+  if (includeResult === "document") {
+    return json<PdfExtractionJob>(`/${encodeURIComponent(jobId)}?includeDocument=true`, undefined, signal);
+  }
   const job = await json<PdfExtractionJob>(`/${encodeURIComponent(jobId)}?includeResult=${includeResult}`, undefined, signal);
   if (!signal?.aborted) observePdfExtraction(job);
   return job;
@@ -57,7 +60,8 @@ export function retryPdfAnalysis(jobId: string, parameters: PdfAiRetryParameters
 /** 읽기/업로드 메모리는 이 함수가 실행되는 파일에만 할당한다. 전체 선택 파일을 한꺼번에 읽지 않는다. */
 export async function putPdf(file: File, target: PreparedPdfUpload["upload"]) {
   const buffer = await file.arrayBuffer();
-  const body = new Blob([buffer], { type: "application/pdf" });
+  const contentType = new Headers(target.headers).get("Content-Type") ?? "application/pdf";
+  const body = new Blob([buffer], { type: contentType });
   if (body.size !== file.size) throw new Error("파일을 읽지 못했습니다. 다시 선택해 주세요.");
   const response = await fetch(target.url, {
     method: target.method, headers: target.headers, body, signal: AbortSignal.timeout(120_000),

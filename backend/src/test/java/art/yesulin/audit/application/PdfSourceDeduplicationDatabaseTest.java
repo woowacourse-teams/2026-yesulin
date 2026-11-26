@@ -59,10 +59,11 @@ import tools.jackson.databind.json.JsonMapper;
 
 @DataJpaTest(showSql = false, properties = {
         "spring.datasource.url=jdbc:h2:mem:pdf-source-dedup;MODE=MySQL;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000",
-        "spring.jpa.hibernate.ddl-auto=validate", "yesulin.pdf-extraction.enabled=true"
+        "spring.jpa.hibernate.ddl-auto=validate", "yesulin.pdf-extraction.enabled=true",
+        "yesulin.pdf-extraction.review-document-extensions=docx"
 })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({AuditService.class, PdfExtractionService.class,
+@Import({AuditService.class, ReviewDocumentFormats.class, PdfExtractionService.class,
         PdfSourceDeduplicationDatabaseTest.Config.class, QueryDslConfiguration.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class PdfSourceDeduplicationDatabaseTest {
@@ -87,6 +88,18 @@ class PdfSourceDeduplicationDatabaseTest {
     private PlatformTransactionManager transactions;
     @Autowired
     private BlockingStorage storage;
+
+    @Test
+    void reviewPublishesAndEnforcesTheSameExtensions() {
+        long ownerId = owner();
+        String reviewId = review(ownerId);
+        assertEquals(List.of("pdf", "docx"), service.find(ownerId, reviewId).acceptedFileExtensions());
+        assertThrows(BusinessException.class, () -> service.prepareUpload(ownerId, reviewId, "a.hwpx", 100, SHA));
+        assertThrows(BusinessException.class, () -> service.prepareUpload(owner(), reviewId, "a.docx", 100, SHA));
+        PreparedUpload document = service.prepareUpload(ownerId, reviewId, "가상.DOCX", 100, SHA);
+        assertEquals(1, service.find(ownerId, reviewId).entries().size());
+        assertTrue(jobs.findById(document.jobId()).orElseThrow().requiresConversion());
+    }
 
     @Test
     void renamedSourceRetainsTheFirstOriginalFilenameAndManualReview() {

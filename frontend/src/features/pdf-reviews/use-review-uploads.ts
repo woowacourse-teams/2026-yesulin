@@ -4,7 +4,7 @@ import { completePdfUpload, PdfExtractionApiError, putPdf } from "../pdf-extract
 import type { PreparedPdfUpload } from "../pdf-extractions/types";
 import { isUnauthorized, preparePdfReviewUpload } from "./api";
 import { sameKey, type ReviewKey } from "./types";
-import { MAX_SELECTION } from "./upload-selection";
+import { acceptsDocument, LEGACY_EXTENSIONS, MAX_SELECTION, SELECTION_LIMIT_MESSAGE } from "./upload-selection";
 
 export const MAX_BYTES = 25 * 1024 * 1024;
 const CONCURRENCY = 2;
@@ -61,17 +61,22 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
     }
   };
 
-  function choose(reviewId: ReviewKey, selected: FileList | readonly File[] | null) {
+  function choose(reviewId: ReviewKey, selected: FileList | readonly File[] | null, extensions: readonly string[] = LEGACY_EXTENSIONS) {
     if (!selected?.length || running.current) return;
     setMessageReviewId(reviewId);
     setValidationError("");
-    if (selected.length > MAX_SELECTION) { setMessage("한 번에 PDF 300개까지 선택해 주세요."); setValidationError("한 번에 PDF 300개까지 선택해 주세요."); return; }
+    if (selected.length > MAX_SELECTION) { setMessage(SELECTION_LIMIT_MESSAGE); setValidationError(SELECTION_LIMIT_MESSAGE); return; }
     const next = Array.from(selected).map((file): UploadRow => {
-      const valid = /\.pdf$/i.test(file.name) && file.size > 0 && file.size <= MAX_BYTES;
-      return {
-        id: crypto.randomUUID(), reviewId, name: file.name, size: file.size, phase: valid ? "SELECTED" : "ERROR",
-        error: valid ? "" : "25MiB 이하의 PDF 파일만 올릴 수 있습니다.", file: valid ? file : undefined,
-      };
+      const id = crypto.randomUUID();
+      const name = file.name;
+      const size = file.size;
+      if (!acceptsDocument(name, extensions)) {
+        return { id, reviewId, name, size, phase: "ERROR", error: `지원하는 파일 형식은 ${extensions.join(", ").toUpperCase()}입니다.` };
+      }
+      if (!size || size > MAX_BYTES) {
+        return { id, reviewId, name, size, phase: "ERROR", error: "크기가 0보다 크고 25MiB 이하인 파일을 선택해 주세요." };
+      }
+      return { id, reviewId, name, size, phase: "SELECTED", error: "", file };
     });
     setRows(current => [...current, ...next]);
     setNotices(current => [...current, ...next.map(({ id, reviewId, name, size, phase, error }) => ({ id, reviewId, name, size, phase, error }))]);
@@ -87,10 +92,11 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
     patch(row.id, { phase: "UPLOADING", error: "" });
     let pendingJobId = row.pendingJobId;
     const file = row.file;
+    const isPdf = acceptsDocument(row.name, LEGACY_EXTENSIONS);
     async function prepare(source: File) {
       const prepared = await preparePdfReviewUpload(row.reviewId, source);
       pendingJobId = prepared.jobId;
-      registerPdfReviewJob(prepared.jobId, String(row.reviewId));
+      if (isPdf) registerPdfReviewJob(prepared.jobId, String(row.reviewId));
       if (prepared.upload) targets.current.set(row.id, prepared.upload);
       if (mounted.current) patch(row.id, { pendingJobId: prepared.jobId });
       return prepared;
@@ -138,14 +144,14 @@ export function useReviewUploads({ onUploaded, onUnauthorized }: Options) {
           await transfer;
         }
       }
-      if (!duplicate) void trackPdfStep({ workflow: "producer_pdf", review_id: String(row.reviewId), operation_id: pendingJobId, step: "upload", outcome: "success" }, true);
+      if (isPdf && !duplicate) void trackPdfStep({ workflow: "producer_pdf", review_id: String(row.reviewId), operation_id: pendingJobId, step: "upload", outcome: "success" }, true);
       targets.current.delete(row.id);
       if (mounted.current) setRows(current => current.filter(item => item.id !== row.id));
       if (mounted.current) setNotices(current => current.map(item => item.id === row.id ? { ...item, phase: duplicate ? "DUPLICATE" : "UPLOADED", error: "" } : item));
       if (mounted.current) callbacks.current.onUploaded();
       return duplicate ? "duplicate" : "uploaded";
     } catch (cause) {
-      void trackPdfStep({ workflow: "producer_pdf", review_id: String(row.reviewId), operation_id: pendingJobId, step: "upload", outcome: "failure", error_code: "upload" });
+      if (isPdf) void trackPdfStep({ workflow: "producer_pdf", review_id: String(row.reviewId), operation_id: pendingJobId, step: "upload", outcome: "failure", error_code: "upload" });
       if (mounted.current && isUnauthorized(cause)) callbacks.current.onUnauthorized();
       if (mounted.current) patch(row.id, { phase: "ERROR", pendingJobId, error: failure(cause) });
       return "failed";

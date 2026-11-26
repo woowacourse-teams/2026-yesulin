@@ -32,11 +32,12 @@ public class AuditService {
     private final AuditApplicantRepository entries;
     private final PdfExtractionService extraction;
     private final Clock clock;
+    private final ReviewDocumentFormats documentFormats;
 
     @Transactional
     public AuditDetail create(long ownerId, String title, List<String> roleNames) {
         Audit review = reviews.save(new Audit(ownerId, title, roleNames, clock.instant()));
-        return AuditDetail.of(review, List.of());
+        return AuditDetail.of(review, List.of(), documentFormats.extensions());
     }
 
     @Transactional(readOnly = true)
@@ -57,13 +58,15 @@ public class AuditService {
     @Transactional(readOnly = true)
     public AuditDetail find(long ownerId, String reviewId) {
         Audit review = findOwned(ownerId, reviewId);
-        return AuditDetail.of(review, entries.findByReviewIdOrderByOriginalFilenameAscIdAsc(reviewId));
+        return AuditDetail.of(review, entries.findByReviewIdOrderByOriginalFilenameAscIdAsc(reviewId),
+                documentFormats.extensions());
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public PreparedUpload prepareUpload(long ownerId, String reviewId, String filename, long size, String sha256) {
         Audit review = reviews.findOwnedForUpdate(reviewId, ownerId).orElseThrow(() ->
                 new BusinessException(PDF_REVIEW_NOT_FOUND, "PDF 심사를 찾을 수 없습니다."));
+        documentFormats.requireEnabled(filename);
         PreparedUpload upload = extraction.prepareReview(ownerId, review.getId(), filename, size, sha256);
         if (!upload.duplicate()) {
             if (entries.countByReviewId(review.getId()) >= 800) {
