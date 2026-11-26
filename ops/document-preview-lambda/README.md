@@ -1,7 +1,7 @@
 # 공연사 지원서 PDF 미리보기
 
 Spring이 심사 소유권과 원본 정보를 확인해 서명한 파일만 비공개 S3에 올린다.
-PDF는 기존 추출기가 직접 받는다. 비PDF는 원본 전용 경로의 S3 이벤트를 SQS에 넣고 파일당 한 호출로 변환한다.
+PDF는 기존 추출기가 직접 받는다. 기본 스택은 비PDF 원본 경로의 S3 이벤트를 SQS에 넣고 파일당 한 호출로 변환한다.
 변환기는 LibreOffice(DOCX·PPTX) 또는 ahwp(HWP·HWPX)로 PDF를 만든다. Spring에 파생본 정보를 먼저 확정한 뒤 동일한 바이트를 기존 추출기의 입력에 게시한다.
 공연사 원본과 미리보기는 각각 권한 확인 후 열람한다.
 
@@ -14,6 +14,27 @@ docker build --platform linux/amd64 --provenance=false -t yesulin-review-preview
 docker run --rm --platform linux/amd64 --network none --entrypoint python -v "$PWD/tests:/tests:ro" -v "$PWD/queue_notification.py:/var/task/queue_notification.py:ro" yesulin-review-preview -m unittest discover -s /tests
 cfn-lint stack.yaml
 ```
+
+### 개발 계정의 기존 엔진 레이어로 ZIP 만들기
+
+서울 개발 계정에 게시된 `yesulin-office-bench-20261126-part1`부터 `part4`까지 각각 버전 1을 함께 사용한다.
+네 레이어는 LibreOffice 엔진 조각이다. 함수 ZIP에는 서비스 핸들러, ahwp 2.1.1, 글꼴, 입력 형식 검사기와 PDF 페이지 수 검사기가 들어간다.
+AWS 런타임은 Python 3.12, x86_64다. `stack.yaml`은 ECR 이미지와 SQS 핸들러 `worker.handler`를 사용한다.
+
+```sh
+python -m pip download --no-deps --only-binary=:all: --platform manylinux_2_17_x86_64 \
+  --dest wheels olefile==0.47 pypdfium2==5.14.0
+python3 zip/build.py yesulin-office-ahwp-combined.zip wheels review-documents.zip
+```
+
+빌드에 Python 3.11 이상이 필요하다. 첫 인자는 개발 실험에서 검증한 통합 엔진 ZIP이다. 빌드 시 입력과 두 wheel의 SHA-256을 확인하고
+실험용 지원서 및 벤치 핸들러를 제외한다. DOCX·PPTX 처리 시 같은 실행 환경을 이전 문서가 사용했을 수 있으므로
+매 작업마다 읽기 전용 레이어에서 엔진을 복원하고 검증한다. 배포한 네 레이어와 함수 ZIP을 합쳐 250MiB 이하여야 한다.
+개발용 직접 알림은 `worker.direct_handler`에 연결한다. S3의 호출 권한은 해당 버킷 ARN과 소유 계정으로 제한하고,
+`s3:ObjectCreated:*`에는 `yesulin/dev/private/pdf-extractions/originals/` 접두사를 지정한다.
+이 경로에는 하나의 알림 대상만 둔다. 다른 환경과 기존 PDF 알림은 보존한다.
+핸들러는 S3 테스트 이벤트를 수락하고, 잘못된 경로·일시적 실패에는 예외를 반환해 Lambda의 비동기 재시도를 유도한다.
+같은 원본을 다시 받으면 이미 저장한 미리보기와 체크섬을 재사용한다. dev 전용 스토리지 권한과 인증된 Spring 콜백이 필요하다.
 
 ## 기존 버킷 연결
 

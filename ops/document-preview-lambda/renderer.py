@@ -15,6 +15,7 @@ MAX_FILE = 25 * 1024 * 1024
 MAX_EXPANDED = 256 * 1024 * 1024
 MAX_PACKAGE_ENTRIES = 4096
 MAX_PAGES = 50
+ZIP_TOOLS = Path(__file__).resolve().parent / "zip-tools"
 OFFICE_MAIN = {
     "docx": ("word/document.xml", "wordprocessingml.document"),
     "pptx": ("ppt/presentation.xml", "presentationml.presentation"),
@@ -150,6 +151,8 @@ def run_tool(command, workdir, timeout_seconds, *, capture=False):
         "http_proxy": "http://127.0.0.1:9", "https_proxy": "http://127.0.0.1:9",
         "all_proxy": "http://127.0.0.1:9",
     }
+    if ZIP_TOOLS.is_dir():
+        environment["PATH"] = str(ZIP_TOOLS) + ":" + environment["PATH"]
     # Signals must reach both the soffice launcher and the office process.
     output = subprocess.DEVNULL
     if capture:
@@ -162,7 +165,11 @@ def run_tool(command, workdir, timeout_seconds, *, capture=False):
         except subprocess.TimeoutExpired:
             os.killpg(process.pid, signal.SIGKILL)
             process.communicate()
+            if ZIP_TOOLS.is_dir() and command[0] == "soffice" and not (workdir / ".review-office-ready").is_file():
+                raise RuntimeError("ENGINE_PREPARATION_TIMED_OUT") from None
             raise InvalidDocument("RENDER_TIMED_OUT") from None
+        if ZIP_TOOLS.is_dir() and process.returncode == os.EX_TEMPFAIL:
+            raise RuntimeError("ENGINE_UNAVAILABLE")
         if process.returncode:
             raise InvalidDocument("RENDER_FAILED")
         return stdout
@@ -192,8 +199,10 @@ def render(source, timeout_seconds):
                    "--nologo", "--nodefault", "--norestore", "--convert-to", "pdf", "--outdir", str(workdir), str(source)]
         run_tool(command, workdir, timeout_seconds)
     if source.suffix in {".hwp", ".hwpx"}:
-        command = ["/opt/ahwp/ahwp", "convert", str(source), "--font-dir", "/usr/share/fonts/truetype/nanum",
-                   "-o", str(output)]
+        binary, fonts = "/opt/ahwp/ahwp", "/usr/share/fonts/truetype/nanum"
+        if ZIP_TOOLS.is_dir():
+            binary, fonts = str(ZIP_TOOLS / "ahwp"), str(ZIP_TOOLS / "fonts")
+        command = [binary, "convert", str(source), "--font-dir", fonts, "-o", str(output)]
         run_tool(command, workdir, timeout_seconds)
     if not output.is_file() or not 1 <= output.stat().st_size <= MAX_FILE:
         raise InvalidDocument("INVALID_PREVIEW_SIZE")

@@ -204,7 +204,7 @@ def consume(event, routes, storage, notify, remaining_ms):
     return {"batchItemFailures": failures}
 
 
-def handler(event, context):
+def services():
     routes = Routes(os.environ["PDF_BUCKET"], validated_prefix("DOCUMENT_ORIGINAL_PREFIX"),
                     validated_prefix("DOCUMENT_PREVIEW_PREFIX"), validated_prefix("PDF_INPUT_PREFIX"))
     if len({routes.original, routes.preview, routes.extraction}) != 3:
@@ -212,4 +212,19 @@ def handler(event, context):
     client = boto3.client("s3", config=Config(connect_timeout=3, read_timeout=15,
                                              retries={"total_max_attempts": 2, "mode": "standard"}))
     notify = Callback(os.environ["DOCUMENT_PREVIEW_CALLBACK_URL"], os.environ["DOCUMENT_PREVIEW_CALLBACK_TOKEN"])
-    return consume(event, routes, Storage(client, routes.bucket), notify, context.get_remaining_time_in_millis)
+    return routes, Storage(client, routes.bucket), notify
+
+
+def handler(event, context):
+    return consume(event, *services(), context.get_remaining_time_in_millis)
+
+
+def direct_handler(event, context):
+    """Lambda retries the entire asynchronous S3 invocation when processing raises."""
+    if event.get("Event") == "s3:TestEvent":
+        return
+    if not event.get("Records"):
+        raise ValueError("MISSING_S3_RECORDS")
+    routes, storage, notify = services()
+    for record in event["Records"]:
+        process(routes.job(record), storage, notify, context.get_remaining_time_in_millis)
