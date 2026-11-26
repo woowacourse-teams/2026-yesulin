@@ -69,3 +69,16 @@
 | E10 | F05 | FIXED | 2026-11-26T22:08:27+09:00 | #638 |
 
 게시 후 누적 발견 5, 해결 5, 미해결 0. P0 0 / P1 0 / P2 3 / P3 2. PRECHECK 0 / INDEPENDENT_REVIEW 2 / POST_FIX_CHECK 1 / EXTERNAL 2. 오탐 0. 최초 독립 평가 횟수와 한글 배치 판정은 위와 같다.
+
+### 원격 CI 재검증
+
+| 문제 ID | 경로·유형·유입 | 조치·검증 | 상태 |
+| --- | --- | --- | --- |
+| 2026-11-26-audit-review-documents-F06 | POST_FIX_CHECK · P2 TEST EXISTING | 같은 커밋의 [1차](https://github.com/woowacourse-teams/2026-yesulin/actions/runs/45823902371/job/139923105602)와 [2차](https://github.com/woowacourse-teams/2026-yesulin/actions/runs/45823902371/job/139927772415)에서 공용 로깅 테스트의 서로 다른 첫 로그 단언이 실패했다. 별도 스레드에서 정상 서비스를 호출하면 관련 없는 이벤트가 같은 테스트 수집기에 기록됨을 재현했다. 테스트 스레드만 수집하고 대상 호출의 정확한 이벤트 수·필드를 확인한다. 해당 클래스와 Checkstyle 통과. 원격 실패 당시 섞였던 개별 이벤트는 확인하지 못했다. | FIXED |
+
+| 사건 ID | 문제 | 사건 | 확인 시각 KST | 최초 PR |
+| --- | --- | --- | --- | --- |
+| E11 | F06 | CONFIRMED | 2026-11-26T22:10:00+09:00 (분 단위, 로컬 재현) | #638 |
+| E12 | F06 | FIXED | 2026-11-26T22:11:16+09:00 | #638 |
+
+원격 CI 재검증을 포함한 누적 발견 6, 해결 6, 미해결 0. P0 0 / P1 0 / P2 4 / P3 2. PRECHECK 0 / INDEPENDENT_REVIEW 2 / POST_FIX_CHECK 2 / EXTERNAL 2. 오탐 0.
