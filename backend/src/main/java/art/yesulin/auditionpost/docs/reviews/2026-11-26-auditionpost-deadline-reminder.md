@@ -20,11 +20,11 @@
 
 | 문제 ID | 심각도 · 유형 · 유입 | 발견 경로 · 최초 PR | 근거와 조치 | 상태 · 재검증 |
 | --- | --- | --- | --- | --- |
-| 2026-11-26-auditionpost-deadline-reminder-F01 | P2 · FLOW · INTRODUCED | INDEPENDENT_REVIEW · PENDING | 관리자 새로고침이 기존 방문 표만 갱신했다. 문구 생성기에도 갱신 값을 전달하고 응답 전과 내려간 공고의 복사를 제한한다. | FIXED · 화면 새로고침 회귀 테스트 PASS |
+| 2026-11-26-auditionpost-deadline-reminder-F01 | P2 · FLOW · INTRODUCED | INDEPENDENT_REVIEW · [#636](https://github.com/woowacourse-teams/2026-yesulin/pull/636) | 관리자 새로고침이 기존 방문 표만 갱신했다. 문구 생성기에도 갱신 값을 전달하고 응답 전과 내려간 공고의 복사를 제한한다. | FIXED · 화면 새로고침 회귀 테스트 PASS |
 
 | 사건 ID | 문제 ID | 사건 | 기록 시각 | 근거 · PR |
 | --- | --- | --- | --- | --- |
-| F01-E01 | 2026-11-26-auditionpost-deadline-reminder-F01 | CONFIRMED | 2026-11-26T11:27:28+09:00 | 독립 검토에서 확인한 문제를 기록 · PENDING |
-| F01-E02 | 2026-11-26-auditionpost-deadline-reminder-F01 | FIXED | 2026-11-26T11:27:28+09:00 | `admin-openchat-reminder.test.tsx` 새로고침 검증 및 최종 69개 테스트 PASS 기록 · PENDING |
+| F01-E01 | 2026-11-26-auditionpost-deadline-reminder-F01 | CONFIRMED | 2026-11-26T11:27:28+09:00 | 독립 검토에서 확인한 문제를 기록 · [#636](https://github.com/woowacourse-teams/2026-yesulin/pull/636) |
+| F01-E02 | 2026-11-26-auditionpost-deadline-reminder-F01 | FIXED | 2026-11-26T11:27:28+09:00 | `admin-openchat-reminder.test.tsx` 새로고침 검증 및 최종 69개 테스트 PASS 기록 · [#636](https://github.com/woowacourse-teams/2026-yesulin/pull/636) |
 
 필수 PASS 6 / FAIL 0 / UNVERIFIED 1 / N/A 0. 발견 1 / 해결 1 / 미해결 0 / P0 0 / P1 0 / P2 1 / P3 0. PRECHECK 0 / INDEPENDENT_REVIEW 1 / POST_FIX_CHECK 0 / EXTERNAL 0. 오탐 0.

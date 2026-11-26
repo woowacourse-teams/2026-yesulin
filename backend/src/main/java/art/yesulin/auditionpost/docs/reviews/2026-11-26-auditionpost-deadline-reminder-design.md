@@ -34,10 +34,10 @@
 
 | 문제 ID | 심각도 · 유형 · 유입 | 발견 경로 · 최초 확정 · 최초 PR | 근거와 조치 | 상태 · 해결 시각 · 재검증 |
 | --- | --- | --- | --- | --- |
-| 2026-11-26-auditionpost-deadline-reminder-design-F01 | P2 · FLOW · EXISTING | PRECHECK · 2026-11-26T11:14:22+09:00 · PENDING | [342](https://yesulin.art/posts/342) 상세 상단은 11월 27일, 본문은 충원 시 마감이다. 채팅 문구에 차이를 표시한다. 실제 모집 종료 조건은 모집처 확인이 필요하다. | OPEN · 미정 · 공개 상세에서 두 표기를 확인 |
+| 2026-11-26-auditionpost-deadline-reminder-design-F01 | P2 · FLOW · EXISTING | PRECHECK · 2026-11-26T11:14:22+09:00 · [#636](https://github.com/woowacourse-teams/2026-yesulin/pull/636) | [342](https://yesulin.art/posts/342) 상세 상단은 11월 27일, 본문은 충원 시 마감이다. 채팅 문구에 차이를 표시한다. 실제 모집 종료 조건은 모집처 확인이 필요하다. | OPEN · 미정 · 공개 상세에서 두 표기를 확인 |
 
 | 사건 ID | 문제 ID | 사건 | 시각 | 근거 · PR |
 | --- | --- | --- | --- | --- |
-| F01-E01 | 2026-11-26-auditionpost-deadline-reminder-design-F01 | CONFIRMED | 2026-11-26T11:14:22+09:00 | 공개 상세 342의 상단과 본문 대조 · PENDING |
+| F01-E01 | 2026-11-26-auditionpost-deadline-reminder-design-F01 | CONFIRMED | 2026-11-26T11:14:22+09:00 | 공개 상세 342의 상단과 본문 대조 · [#636](https://github.com/woowacourse-teams/2026-yesulin/pull/636) |
 
 필수 PASS 3 / FAIL 0 / UNVERIFIED 3 / N/A 0. 발견 1 / 해결 0 / 미해결 1 / P0 0 / P1 0 / P2 1 / P3 0. PRECHECK 1 / INDEPENDENT_REVIEW 0 / POST_FIX_CHECK 0 / EXTERNAL 0. 오탐 0.
