@@ -11,7 +11,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum PdfSourceFileType {
 
-    PDF("pdf", "application/pdf");
+    PDF("pdf", "application/pdf"),
+    DOCX("docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+    PPTX("pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation"),
+    HWP("hwp", "application/x-hwp"),
+    HWPX("hwpx", "application/hwp+zip");
 
     private final String extension;
     private final String contentType;
@@ -23,6 +27,6 @@ public enum PdfSourceFileType {
                 return type;
             }
         }
-        throw new BusinessException(INVALID_PDF, "현재 PDF 파일만 등록할 수 있습니다.");
+        throw new BusinessException(INVALID_PDF, "지원하지 않는 파일 형식입니다.");
     }
 }

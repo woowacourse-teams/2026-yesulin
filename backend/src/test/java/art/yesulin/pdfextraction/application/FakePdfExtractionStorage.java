@@ -56,7 +56,28 @@ public class FakePdfExtractionStorage implements PdfExtractionStorage {
 
     @Override
     public String sourceFileKey(PdfExtractionJob job) {
+        if (job.requiresConversion()) {
+            return "yesulin/originals/" + job.getId() + "/source." + job.getFileMetadata().getExtension();
+        }
         return "yesulin/inputs/" + job.getId() + "/source.pdf";
+    }
+
+    @Override
+    public String extractionInputFileKey(PdfExtractionJob job) {
+        return "yesulin/inputs/" + job.getId() + "/source.pdf";
+    }
+
+    @Override
+    public void verifyPreview(PdfExtractionJob job, String digest) {
+        if (rejectUpload) {
+            throw new IllegalArgumentException("preview mismatch");
+        }
+    }
+
+    @Override
+    public String originalDownloadUrl(PdfExtractionJob job) {
+        signedUrls++;
+        return "http://localhost/download";
     }
 
     @Override

@@ -42,14 +42,14 @@ describe("PDF 심사 지원자 목록", () => {
   });
 
   it("업로드 버튼은 올리는 동안 진행 표시를 보인다", async () => {
-    const props = { inputRef: createRef<HTMLInputElement>(), folderInputRef: createRef<HTMLInputElement>(), disabled: false, onChoose: vi.fn() };
+    const props = { extensions: ["pdf"], inputRef: createRef<HTMLInputElement>(), folderInputRef: createRef<HTMLInputElement>(), disabled: false, onChoose: vi.fn() };
     await render(<ReviewUploadPanel {...props} busy />);
     expect(container.textContent).toContain("파일 준비하고 올리는 중…");
     expect(container.querySelector(".animate-spin")).not.toBeNull();
     await render(<ReviewUploadPanel {...props} busy={false} />);
     expect(container.querySelector(".animate-spin")).toBeNull();
     expect([...container.querySelectorAll('button')].map(button => [button.textContent, button.querySelector('svg')?.getAttribute('aria-hidden')])).toEqual([
-      ['폴더 선택', 'true'], ['PDF 추가', 'true'],
+      ['폴더 선택', 'true'], ['파일 추가', 'true'],
     ]);
   });
 });

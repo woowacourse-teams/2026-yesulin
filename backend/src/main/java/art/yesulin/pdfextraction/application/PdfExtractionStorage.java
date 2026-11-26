@@ -14,6 +14,12 @@ public interface PdfExtractionStorage {
 
     String sourceFileKey(PdfExtractionJob job);
 
+    String extractionInputFileKey(PdfExtractionJob job);
+
+    void verifyPreview(PdfExtractionJob job, String digest);
+
+    String originalDownloadUrl(PdfExtractionJob job);
+
     String resultFileKey(PdfExtractionJob job);
 
     String imageFileKeyPrefix(PdfExtractionJob job);

@@ -70,7 +70,7 @@ describe("합격자 연락처 세션 경계", () => {
     expect(container.textContent).toContain("이메일 확인 1명");
     if (source === "원문 조회") {
       vi.mocked(fetchPdfExtraction).mockRejectedValueOnce(new PdfExtractionApiError(401, "로그인 필요"));
-      await click("PDF 보기");
+      await click("지원서 보기");
     } else await act(async () => fixtures.unauthorized());
     expect(container.textContent).toContain("로그인이 만료되어 연락처를 숨겼습니다");
     expect(container.textContent).not.toContain("합성가람"); expect(container.textContent).not.toContain("010-0000-0001");
@@ -98,7 +98,7 @@ describe("지원자 카드 목록과 원본 상세", () => {
     await activate(container.querySelector('button[aria-label^="지원서 열기:"]'));
     expect(breadcrumb().querySelector("h1")?.textContent).toBe("지원서-1.pdf");
     expect(pager()?.closest('section[aria-label$="심사"]')).toBeNull();
-    expect(pager()?.parentElement?.parentElement?.querySelector('[aria-label="지원서 PDF 추가"]')).not.toBeNull();
+    expect(pager()?.parentElement?.parentElement?.querySelector('[aria-label="지원서 추가"]')).not.toBeNull();
     expect(pager()?.querySelector<HTMLButtonElement>('[aria-label="이전 지원서"]')?.disabled).toBe(true);
     await activate(pager()!.querySelector('[aria-label="다음 지원서"]'));
     expect(breadcrumb().querySelector("h1")?.textContent).toBe("수동 제목");

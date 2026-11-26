@@ -31,6 +31,12 @@ describe("PDF 측정 흐름", () => {
       ["pdf_step_completed", { workflow: "actor_pdf", operation_id: "saved-job", step: "save", outcome: "success" }],
     ]);
   });
+  it("같은 바이트를 PDF로 다시 선택해도 기존 작업의 원본이 HWP면 PDF 처리로 기록하지 않는다", async () => {
+    const { registerPdfReviewJob, observePdfExtraction } = await import("./pdf-analytics");
+    registerPdfReviewJob("shared-job", "review");
+    observePdfExtraction({ jobId: "shared-job", extension: "hwp", status: "COMPLETED" } as PdfExtractionJob);
+    expect(capture).not.toHaveBeenCalled();
+  });
   it.each([['COMPLETED', 'success'], ['PARTIAL', 'success'], ['FAILED', 'failure'], ['UPLOAD_EXPIRED', 'failure']] as const)("공연사 %s 상태는 보존하고 원문·파일명은 보내지 않는다", async (status, outcome) => {
     const { registerPdfReviewJob, observePdfExtraction } = await import("./pdf-analytics");
     const job: PdfExtractionJob = { jobId: "synthetic-job", originalFilename: "private-name.pdf", size: 10,

@@ -12,9 +12,11 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import art.yesulin.global.exception.BusinessException;
+import art.yesulin.pdfextraction.domain.DocumentPreviewStatus;
 import art.yesulin.pdfextraction.domain.PdfExtractionJob;
 import art.yesulin.pdfextraction.domain.PdfExtractionJobRepository;
 import art.yesulin.pdfextraction.domain.PdfExtractionPayload;
@@ -28,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -74,8 +77,10 @@ class PdfExtractionServiceTest {
         String id = service.prepare(1L, "a.pdf", 100).jobId();
         assertThrows(BusinessException.class, () -> service.complete(2L, id));
         assertThrows(BusinessException.class, () -> service.find(2L, id, true));
+        assertThrows(BusinessException.class, () -> service.find(2L, id, false, true));
         assertEquals(0, storage.verifications());
-        verify(payloads, never()).findById(anyString());
+        assertEquals(0, storage.signedUrls());
+        verifyNoInteractions(payloads, aiJobs);
     }
 
     @Test
@@ -148,6 +153,33 @@ class PdfExtractionServiceTest {
         assertEquals("http://localhost/" + stored.pages().get(0).images().get(0).fileKey(),
                 detail.result().pages().get(0).images().get(0).url());
         assertNotNull(detail.sourceUrl());
+        assertEquals(detail, service.find(1L, id, true, true));
+    }
+
+    @Test
+    void documentLookupSignsOnlyAvailableFilesAndNeverLoadsExtractionOrAi() {
+        String id = service.prepare(1L, UUID.randomUUID().toString(), "resume.docx", 100).jobId();
+        PdfExtractionView uploading = service.find(1L, id, false, true);
+        assertNull(uploading.originalUrl());
+        assertNull(uploading.sourceUrl());
+
+        service.complete(1L, id);
+        PdfExtractionView pending = service.find(1L, id, false, true);
+        assertEquals(DocumentPreviewStatus.PENDING, pending.previewStatus());
+        assertEquals("http://localhost/download", pending.originalUrl());
+        assertNull(pending.sourceUrl());
+
+        jobs.get(id).acceptPreview("1".repeat(64), NOW);
+        jobs.get(id).receiveResult("COMPLETED", NOW);
+        PdfExtractionView finished = service.find(1L, id, false, true);
+        assertEquals("COMPLETED", finished.status());
+        assertEquals("docx", finished.extension());
+        assertEquals(DocumentPreviewStatus.READY, finished.previewStatus());
+        assertEquals("http://localhost/download", finished.originalUrl());
+        assertEquals("http://localhost/source.pdf", finished.sourceUrl());
+        assertNull(finished.result());
+        assertEquals(3, storage.signedUrls());
+        verifyNoInteractions(payloads, aiJobs);
     }
 
     @Test

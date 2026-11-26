@@ -1,5 +1,6 @@
 package art.yesulin.pdfextraction.presentation.api;
 
+import art.yesulin.pdfextraction.application.DocumentPreviewReceiver;
 import art.yesulin.pdfextraction.application.PdfExtractionResultReceiver;
 import art.yesulin.pdfextraction.application.ReceivePdfExtractionResultCommand;
 import jakarta.validation.Valid;
@@ -19,6 +20,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class PdfExtractionCallbackController {
 
     private final PdfExtractionResultReceiver receiver;
+
+    private final DocumentPreviewReceiver previews;
+
+    @PostMapping("/previews")
+    public ResponseEntity<Void> acceptPreview(@Valid @RequestBody CompleteDocumentPreviewRequest request) {
+        previews.receive(request.toCommand());
+        return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
+    }
 
     @PostMapping("/completions")
     public ResponseEntity<PdfExtractionResultReceiver.Receipt> complete(

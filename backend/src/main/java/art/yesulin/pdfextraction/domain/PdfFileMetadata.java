@@ -20,7 +20,7 @@ public class PdfFileMetadata {
     public static final long MAX_BYTES = 25L * 1024 * 1024;
 
     private static final String INVALID_UPLOAD_MESSAGE =
-            "PDF 파일을 선택해 주세요. 파일당 최대 25MiB까지 올릴 수 있습니다.";
+            "파일 이름을 확인해 주세요. 파일당 최대 25MiB까지 올릴 수 있습니다.";
 
     @Enumerated(EnumType.STRING)
     @Column(name = "file_type", nullable = false, updatable = false, length = 20)

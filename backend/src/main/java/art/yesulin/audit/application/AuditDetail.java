@@ -11,13 +11,14 @@ public record AuditDetail(
         String title,
         Instant createdAt,
         List<RoleView> roles,
-        List<AuditApplicantView> entries
+        List<AuditApplicantView> entries,
+        List<String> acceptedFileExtensions
 ) {
 
-    public static AuditDetail of(Audit review, List<AuditApplicant> entries) {
+    public static AuditDetail of(Audit review, List<AuditApplicant> entries, List<String> extensions) {
         return new AuditDetail(review.getId(), review.getTitle(), review.getCreatedAt(),
                 review.getRoles().stream().map(RoleView::of).toList(),
-                entries.stream().map(AuditApplicantView::of).toList());
+                entries.stream().map(AuditApplicantView::of).toList(), extensions);
     }
 
     public record RoleView(String id, String name) {

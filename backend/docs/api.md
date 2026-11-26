@@ -104,20 +104,23 @@ PDF 처리·오류·재시도 경계는 [공용 PDF 흐름](../src/main/java/art
 | Method | URL | 요청 / 응답 |
 | --- | --- | --- |
 | POST | `/api/v1/pdf-extractions/uploads` | `{originalFilename,size}` → 201 `{jobId,fileKey,duplicate:false,upload:{url,method,expiresAt,headers}}` |
-| POST | `/api/v1/pdf-extractions/{jobId}/completion` | 빈 JSON → 202 job. 원본 크기·형식·PDF 서명 확인. 이미 확인한 작업은 재사용 |
+| POST | `/api/v1/pdf-extractions/{jobId}/completion` | 빈 JSON → 202 job. 원본 크기·형식·파일 시그니처 확인. 이미 확인한 작업은 재사용 |
 | GET | `/api/v1/pdf-extractions` | 최근 본인 작업 최대 800개 `{jobs:[job]}`. DB 메타데이터만 반환 |
-| GET | `/api/v1/pdf-extractions/{jobId}?includeResult=false` | 파일별 상태 조회. DB 상태만 읽고 S3는 조회하지 않음 |
-| GET | `/api/v1/pdf-extractions/{jobId}?includeResult=true` | 원본 임시 GET URL과 페이지별 텍스트·추출 이미지 URL을 포함한 job. 최종 상태일 때만 DB에 저장된 결과를 읽음 |
+| GET | `/api/v1/pdf-extractions/{jobId}?includeResult=false` | 기본 응답. 파일별 상태만 반환 |
+| GET | `/api/v1/pdf-extractions/{jobId}?includeDocument=true` | 원본과 미리보기의 임시 URL을 요청. 추출 결과·AI 정보·페이지 이미지를 읽지 않으며 `result`는 null |
+| GET | `/api/v1/pdf-extractions/{jobId}?includeResult=true` | 미리보기 PDF·원본 다운로드 임시 URL과 페이지별 텍스트·추출 이미지 URL을 포함한 job. 최종 상태일 때만 DB에 저장된 결과를 읽음 |
 | POST | `/internal/v1/pdf-extractions/completions` | Lambda 전용. 아래 "Lambda 결과 전달" 참고. 성공 시 200 `{jobId,status}` |
 
-job은 `jobId,originalFilename,size,createdAt,uploadedAt,status,sourceFileKey,resultFileKey,sourceUrl,result`다.
-목록·상태 조회의 `sourceUrl,result`는 null이며, 상세 조회에서만 채운다. result는 `status,sourceSha256,errorCode,warnings,pages`와
+job은 `jobId,originalFilename,extension,size,createdAt,uploadedAt,status,sourceFileKey,resultFileKey,sourceUrl,originalUrl,previewStatus,result`다.
+`sourceFileKey`는 업로드된 원본의 물리 키다. `sourceUrl`은 준비된 PDF 미리보기, `originalUrl`은 확인된 원본의 첨부 다운로드 URL이다.
+extension은 접수 때 확인한 원본 형식(pdf, docx, pptx, hwp, hwpx)이다. 변환 진행 중이나 실패해도 원본을 받을 수 있다. `previewStatus`는 PENDING/READY/FAILED다.
+목록·기본 조회의 `sourceUrl,originalUrl,result`는 null이다. `includeResult=true`이면 `includeDocument` 값에 관계없이 상세 결과를 요청한다. result는 `status,sourceSha256,errorCode,warnings,pages`와
 선택적 `applicantInfo`(이전 워커는 생략)이고,
 page는 `number,text,needsOcr,images`, image는 `fileKey,url,classification=UNCLASSIFIED`다.
 URL은 응답 시 새로 서명하며 DB에는 저장하지 않는다. 원본·이미지는 공개 CDN으로 바꾸지 않는다.
 `resultFileKey`는 Lambda 재시도용 `result.json` 위치를 알려 줄 뿐 조회 API는 이 객체를 읽지 않는다. Lambda만 재시도 때 재사용한다.
 
-파일당 PDF 25MiB, 파일명 255자 이하를 받는다. 서버는 파일명과 크기를 검증하고 확장자 `pdf`와 미디어 타입 `application/pdf`를 고정한다.
+독립 추출·배우 업로드는 파일당 PDF 25MiB, 파일명 255자 이하를 받는다. 공연사 심사함은 [형식별 업로드 계약](pdf-reviews.md)을 따른다. 서버는 파일명과 크기를 검증하고 확장자 `pdf`와 미디어 타입 `application/pdf`를 고정한다.
 새 작업의 `originalFilename`에는 요청으로 받은 이름을 그대로 저장한다. 심사 프론트는 최대 300개를 선택하고 파일별로 URL을 발급해 제한된 수로 PUT한다. 독립 추출 진단 화면의 선택 상한은 별도다.
 URL은 파일 한 개의 PUT을 서명하며 파일 여러 개를 한 URL에 넣지 않는다. 크기·Content-Type·`If-None-Match: *`를 서명해
 같은 원본 키를 덮어쓰지 않는다. URL 만료는 새 PUT만 막는다. 본인 작업의 원본이 이미 있고 크기·형식·PDF 서명이 맞으면
@@ -134,11 +137,16 @@ PUT 완료가 Lambda 완료를 뜻하지 않는다. completion은 업로드만 �
 ### Lambda 결과 전달
 
 `POST /internal/v1/pdf-extractions/completions`는 `/api/v1`과 별도 보안 체인(`/internal/v1/pdf-extractions/**`, 전체 메서드)이며
-세션을 쓰지 않고 CSRF 예외는 이 POST 하나뿐이다. 모든 요청은 `Authorization: Bearer <secret>`을 요구하고, secret은 `YESULIN_PDF_EXTRACTION_CALLBACK_SECRET`
+세션을 쓰지 않고 CSRF 예외는 추출 및 미리보기 완료 POST 두 경로에만 적용한다. 모든 요청은 `Authorization: Bearer <secret>`을 요구하고, secret은 `YESULIN_PDF_EXTRACTION_CALLBACK_SECRET`
 (`yesulin.pdf-extraction.callback-secret`)과 상수 시간으로 비교한다. 32자 미만이거나 미설정이면 모든 요청을 거부한다.
 인증 실패는 본문 없는 `401`이며 secret과 본문은 기록하지 않는다. 로컬 프로필의 값은 가짜 토큰이다.
 
-요청은 `{jobId,sourceFileKey,pipelineVersion,result}`다. `sourceFileKey`는 응답 job의 `sourceFileKey`(물리 키)이고
+미리보기 워커는 `POST /internal/v1/pdf-extractions/previews`에
+`{jobId,originalFileKey,originalSha256,status,previewSha256}`를 보낸다. READY는 64자리 소문자 hex PDF 해시를 요구하고 FAILED는 null을 요구한다.
+서버가 원본 키·해시와 변환본 S3 체크섬·형식·크기를 확인하고 성공 및 동일 재전송은 204, 상충 결과는 409를 반환한다.
+FAILED는 원본 식별 정보만 확인한다. 없는 작업이나 삭제된 작업은 404다.
+
+기존 추출 완료 요청은 `{jobId,sourceFileKey,pipelineVersion,result}`다. `sourceFileKey`는 추출한 PDF의 물리 키(`inputs/.../source.pdf`)이고
 `pipelineVersion`은 `pdfium-v1`이다. `result`는 Lambda `result.json`과 같은 manifest(`jobId,pipelineVersion,source.key/sha256,
 status,warnings,pages[number,text,needsOcr,images[status,key]]`)다. 소유자는 `jobId`로 DB에서 찾으며 요청 값을 신뢰하지 않는다.
 요청에 포함된 URL은 읽지도 저장하지도 않는다.

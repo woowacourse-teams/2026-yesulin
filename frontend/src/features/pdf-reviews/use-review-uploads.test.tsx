@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useReviewUploads } from "./use-review-uploads";
 import { completePdfUpload, putPdf } from "../pdf-extractions/api";
 import { preparePdfReviewUpload } from "./api";
-import { trackPdfStep } from "@/features/analytics/pdf-analytics";
+import { registerPdfReviewJob, trackPdfStep } from "@/features/analytics/pdf-analytics";
 
 vi.mock("@/features/analytics/pdf-analytics", () => ({ trackPdfStep: vi.fn(), registerPdfReviewJob: vi.fn() }));
 
@@ -61,6 +61,26 @@ afterEach(() => {
 });
 
 describe("PDF 다중 업로드 접수", () => {
+  it("혼합 업로드에서 PDF 원본만 기존 PDF 성공·실패 및 처리 지표에 포함한다", async () => {
+    mount();
+    const original = vi.mocked(preparePdfReviewUpload).getMockImplementation()!;
+    vi.mocked(preparePdfReviewUpload).mockImplementation((id, file) => {
+      if (file.name.startsWith("failed")) return Promise.reject(new Error("preparation failed"));
+      return original(id, file);
+    });
+    const selected = ["ok.PDF", "ok.docx", "failed.pdf", "failed.pptx"].map(name => new File(["fixture"], name));
+    act(() => uploads.choose("review", selected, ["pdf", "docx", "pptx"]));
+    await settle(() => expect(preparePdfReviewUpload).toHaveBeenCalledTimes(4));
+
+    expect(uploaded).toHaveBeenCalledTimes(2);
+    expect(uploads.message).toContain("업로드 완료 2개, 중복 제외 0개, 실패 2개");
+    expect(registerPdfReviewJob).toHaveBeenCalledTimes(1);
+    expect(registerPdfReviewJob).toHaveBeenCalledWith("ok.PDF", "review");
+    expect(trackPdfStep).toHaveBeenCalledTimes(2);
+    expect(trackPdfStep).toHaveBeenCalledWith(expect.objectContaining({ step: "upload", outcome: "success", operation_id: "ok.PDF" }), true);
+    expect(trackPdfStep).toHaveBeenCalledWith(expect.objectContaining({ step: "upload", outcome: "failure" }));
+  });
+
   it("같은 묶음의 미확인 동일 작업은 한 번만 전송하고 두 번째는 중복 제외한다", async () => {
     mount();
     const gate = deferred();

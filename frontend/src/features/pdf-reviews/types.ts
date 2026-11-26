@@ -44,6 +44,7 @@ export function reviewContactName(entry: Pick<ReviewEntry, "title" | "originalFi
 }
 
 export type ReviewDetail = {
+  readonly acceptedFileExtensions?: readonly string[];
   readonly id: ReviewKey;
   readonly title: string;
   readonly createdAt: string;

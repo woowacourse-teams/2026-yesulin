@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.ChecksumMode;
 import software.amazon.awssdk.services.s3.model.Delete;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
@@ -84,6 +85,20 @@ public class S3PrivateObjects {
         }
     }
 
+    public Optional<VerifiedMetadata> inspectWithChecksum(String logicalKey) {
+        try {
+            HeadObjectResponse response = client.headObject(HeadObjectRequest.builder()
+                    .bucket(bucket).key(physicalKey(logicalKey)).checksumMode(ChecksumMode.ENABLED).build());
+            return Optional.of(new VerifiedMetadata(response.contentType(), response.contentLength(),
+                    response.checksumSHA256()));
+        } catch (S3Exception exception) {
+            if (exception.statusCode() == 404) {
+                return Optional.empty();
+            }
+            throw exception;
+        }
+    }
+
     public byte[] readPrefix(String logicalKey, int length) {
         GetObjectRequest request = GetObjectRequest.builder().bucket(bucket).key(physicalKey(logicalKey))
                 .range("bytes=0-" + (length - 1)).build();
@@ -129,6 +144,14 @@ public class S3PrivateObjects {
             token = Boolean.TRUE.equals(listing.isTruncated()) ? listing.nextContinuationToken() : null;
         } while (token != null);
         return deleted;
+    }
+
+    public String attachmentUrl(String logicalKey, String disposition) {
+        GetObjectRequest get = GetObjectRequest.builder().bucket(bucket).key(physicalKey(logicalKey))
+                .responseCacheControl("no-store").responseContentType("application/octet-stream")
+                .responseContentDisposition(disposition).build();
+        return presigner.presignGetObject(GetObjectPresignRequest.builder()
+                .signatureDuration(downloadExpiration).getObjectRequest(get).build()).url().toString();
     }
 
     public String downloadUrl(String logicalKey) {
@@ -224,6 +247,9 @@ public class S3PrivateObjects {
     }
 
     public record Upload(String url, String method, Instant expiresAt, Map<String, String> headers) {
+    }
+
+    public record VerifiedMetadata(String contentType, long size, String base64Sha256) {
     }
 
     public record Metadata(String contentType, long size) {

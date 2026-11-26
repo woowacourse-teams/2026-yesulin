@@ -7,6 +7,7 @@ import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { usePassedContacts, type PassedContact } from "@/features/pdf-reviews/use-passed-contacts";
 import { reviewContactName, reviewEntryTitle, type ReviewKey } from "@/features/pdf-reviews/types";
 import { contactLabels, emailLabels, contactsClipboardText } from "@/features/pdf-reviews/contact-copy";
+import { acceptsDocument, LEGACY_EXTENSIONS } from "@/features/pdf-reviews/upload-selection";
 import { ReviewOriginalDocument } from "./review-original-document";
 import { ReviewTimetablePanel } from "./review-timetable-panel";
 
@@ -17,7 +18,7 @@ export function ReviewPassedContacts({ reviewId, onBack, onUnauthorized, onDirty
   readonly onDirtyChange: (dirty: boolean) => void;
 }) {
   const { rows, loading, error, refresh } = usePassedContacts(reviewId, onUnauthorized);
-  const [documentJobId, setDocumentJobId] = useState<string | null>(null);
+  const [openedDocument, setOpenedDocument] = useState<Pick<PassedContact["entry"], "jobId" | "originalFilename"> | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [panelRows, setPanelRows] = useState<readonly PassedContact[] | null>(null);
   const [copying, setCopying] = useState(false);
@@ -41,6 +42,12 @@ export function ReviewPassedContacts({ reviewId, onBack, onUnauthorized, onDirty
     } catch {
       setManualCopy(text);
     } finally { setCopying(false); }
+  }
+  function openDocument(entry: PassedContact["entry"]) {
+    if (acceptsDocument(entry.originalFilename, LEGACY_EXTENSIONS)) {
+      trackOriginalPdfClick(String(reviewId), String(entry.id), "passed_contacts");
+    }
+    setOpenedDocument({ jobId: entry.jobId, originalFilename: entry.originalFilename });
   }
   if (panelRows !== null) return <ReviewTimetablePanel reviewId={reviewId} selected={panelRows} onUnauthorized={onUnauthorized} onDirtyChange={onDirtyChange} onClose={() => { setPanelRows(null); setSelected(new Set()); refresh(); }} />;
   return <section aria-labelledby="passed-contacts-title" className="py-4">
@@ -92,15 +99,15 @@ export function ReviewPassedContacts({ reviewId, onBack, onUnauthorized, onDirty
                 : <span className={contact.status === "ERROR" ? "text-fail" : "text-muted-strong"}>{contactLabels[contact.status]}</span>}</td>
               <td className="min-w-48 max-w-64 break-all px-4 py-4">{email.status === "FOUND" ? <span className="select-all font-medium">{email.email}</span>
                 : <span className={email.status === "ERROR" ? "text-fail" : "text-muted-strong"}>{emailLabels[email.status]}</span>}</td>
-              <td className="px-4 py-3"><SecondaryButton aria-label={`${reviewContactName(entry) || reviewEntryTitle(entry)} 원본 PDF 보기`} onClick={() => { trackOriginalPdfClick(String(reviewId), String(entry.id), "passed_contacts"); setDocumentJobId(entry.jobId); }}>PDF 보기</SecondaryButton></td>
+              <td className="px-4 py-3"><SecondaryButton aria-label={`${reviewContactName(entry) || reviewEntryTitle(entry)} 지원서 보기`} onClick={() => openDocument(entry)}>지원서 보기</SecondaryButton></td>
             </tr>)}</tbody>
           </table>
         </div>}
       </>}
-    <ModalShell open={documentJobId !== null} onClose={() => setDocumentJobId(null)} labelledBy="contacts-document-title"
+    <ModalShell open={openedDocument !== null} onClose={() => setOpenedDocument(null)} labelledBy="contacts-document-title"
       className="flex h-[90dvh] w-[calc(100vw-24px)] max-w-5xl flex-col overflow-hidden rounded-modal border border-border bg-card text-foreground shadow-[var(--shadow-modal)]">
-      <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3"><h2 id="contacts-document-title" className="font-semibold">지원서 원본 PDF</h2><SecondaryButton onClick={() => setDocumentJobId(null)}>닫기</SecondaryButton></header>
-      <div className="min-h-0 flex-1">{documentJobId && <ReviewOriginalDocument key={documentJobId} jobId={documentJobId} onUnauthorized={onUnauthorized} />}</div>
+      <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3"><h2 id="contacts-document-title" className="font-semibold">지원서 미리보기</h2><SecondaryButton onClick={() => setOpenedDocument(null)}>닫기</SecondaryButton></header>
+      <div className="min-h-0 flex-1">{openedDocument && <ReviewOriginalDocument key={openedDocument.jobId} reviewId={String(reviewId)} jobId={openedDocument.jobId} filename={openedDocument.originalFilename} onUnauthorized={onUnauthorized} />}</div>
     </ModalShell>
   </section>;
 }
