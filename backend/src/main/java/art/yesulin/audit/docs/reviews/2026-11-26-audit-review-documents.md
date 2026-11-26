@@ -53,3 +53,19 @@
 이 작업의 게시 전 누적 집계는 발견 3, 해결 3, 미해결 0. P0 0 / P1 0 / P2 2 / P3 1. PRECHECK 0 / INDEPENDENT_REVIEW 2 / POST_FIX_CHECK 1 / EXTERNAL 0. 오탐 0. R8의 한글 배치 판정은 FAIL이다.
 
 2026-11-26 최초 게시. 이 작업의 F01, F02, F03 최초 기록 PR은 [#638](https://github.com/woowacourse-teams/2026-yesulin/pull/638)이다. 위 사건의 PENDING은 게시 전 기록이다.
+
+### PR #638 게시 후 검토
+
+| 문제 ID | 경로·유형·유입 | 조치·검증 | 상태 |
+| --- | --- | --- | --- |
+| 2026-11-26-audit-review-documents-F04 | EXTERNAL · P3 TEST INTRODUCED | [지원서 콜백 테스트의 선언](https://github.com/woowacourse-teams/2026-yesulin/pull/638#discussion_r4708761042)을 명시적 타입으로 고쳤다. 콜백 테스트와 Checkstyle 통과. | FIXED |
+| 2026-11-26-audit-review-documents-F05 | EXTERNAL · P2 CODE INTRODUCED | [S3 알림 ID 충돌](https://github.com/woowacourse-teams/2026-yesulin/pull/638#discussion_r4708761076)을 막기 위해 전체 경로의 SHA-256으로 ID를 생성한다. 이전 ID에서 같은 경로·이벤트의 규칙만 이관한다. 두 경로 보존, 재실행, 다른 규칙 보존을 포함한 워커 검사 12개 통과. | FIXED |
+
+| 사건 ID | 문제 | 사건 | 확인 시각 KST | 최초 PR |
+| --- | --- | --- | --- | --- |
+| E07 | F04 | CONFIRMED | 2026-11-26T22:05:44+09:00 | #638 |
+| E08 | F05 | CONFIRMED | 2026-11-26T22:05:44+09:00 | #638 |
+| E09 | F04 | FIXED | 2026-11-26T22:07:30+09:00 | #638 |
+| E10 | F05 | FIXED | 2026-11-26T22:08:27+09:00 | #638 |
+
+게시 후 누적 발견 5, 해결 5, 미해결 0. P0 0 / P1 0 / P2 3 / P3 2. PRECHECK 0 / INDEPENDENT_REVIEW 2 / POST_FIX_CHECK 1 / EXTERNAL 2. 오탐 0. 최초 독립 평가 횟수와 한글 배치 판정은 위와 같다.

@@ -33,3 +33,16 @@
 전체 검증은 Node 24에서 테스트 1,276건, lint, 타입 검사, 프로덕션 빌드 통과. Gradle 전체 빌드에서 백엔드 테스트 1,576건 통과(실패·건너뜀 0).
 
 2026-11-26 최초 게시. 이 작업의 F01 최초 기록 PR은 [#638](https://github.com/woowacourse-teams/2026-yesulin/pull/638)이다. 위 사건의 PENDING은 게시 전 기록이다.
+
+### PR #638 게시 후 검토
+
+| 문제 ID | 경로·유형·유입 | 조치·검증 | 상태 |
+| --- | --- | --- | --- |
+| 2026-11-26-review-preview-observation-F02 | EXTERNAL · P2 FLOW INTRODUCED | [같은 서명 URL로 뷰어 재시도](https://github.com/woowacourse-teams/2026-yesulin/pull/638#discussion_r4708761064) 시 요청이 재개되지 않았다. 성공한 재조회 번호로 뷰어를 다시 열어 PDF.js 요청이 정확히 한 번 추가되고 다운로드·첫 열람 지표가 유지되는지 확인했다. | FIXED |
+
+| 사건 ID | 문제 | 사건 | 확인 시각 KST | 최초 PR |
+| --- | --- | --- | --- | --- |
+| E03 | F02 | CONFIRMED | 2026-11-26T22:05:44+09:00 | #638 |
+| E04 | F02 | FIXED | 2026-11-26T22:09:26+09:00 | #638 |
+
+누적 발견 2, 해결 2, 미해결 0. P0 0 / P1 0 / P2 2 / P3 0. PRECHECK 0 / INDEPENDENT_REVIEW 1 / POST_FIX_CHECK 0 / EXTERNAL 1. 오탐 0. 전체 프런트엔드 테스트 1,277개 통과.

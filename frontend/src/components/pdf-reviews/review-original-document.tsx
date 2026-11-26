@@ -17,7 +17,7 @@ export const SOURCE_WAIT_MS = 1500;
 export const SOURCE_WAIT_LIMIT = 40;
 
 type Snapshot = {
-  jobId: string; job?: PdfExtractionJob; originalFilename?: string; error?: string; timedOut?: boolean;
+  jobId: string; job?: PdfExtractionJob; originalFilename?: string; error?: string; timedOut?: boolean; confirmedReload?: number;
 };
 
 function httpStatus(cause: unknown) {
@@ -69,7 +69,7 @@ export function ReviewOriginalDocument({ reviewId, jobId, filename, onUnauthoriz
         const pending = documentPending(job);
         const timedOut = pending && polls >= SOURCE_WAIT_LIMIT;
         const originalFilename = job.originalUrl && job.originalFilename || undefined;
-        setSnapshot({ jobId, job, originalFilename, timedOut });
+        setSnapshot({ jobId, job, originalFilename, timedOut, confirmedReload: reload });
         if (pending && !timedOut) {
           polls += 1;
           timer = setTimeout(lookup, SOURCE_WAIT_MS);
@@ -99,7 +99,7 @@ export function ReviewOriginalDocument({ reviewId, jobId, filename, onUnauthoriz
     if (isUnauthorized(cause)) onUnauthorized();
   }
   const content: PdfFrameContent = (fit: PdfFit, expanded = false, onPagerChange) => {
-    if (job && job.sourceUrl) return <PdfOriginalViewer key={job.sourceUrl} url={job.sourceUrl} filename={job.originalFilename} onRefresh={retry} fit={fit} zoomScope={String(expanded)} onPagerChange={onPagerChange} />;
+    if (job && job.sourceUrl) return <PdfOriginalViewer key={`${current?.confirmedReload}:${job.sourceUrl}`} url={job.sourceUrl} filename={job.originalFilename} onRefresh={retry} fit={fit} zoomScope={String(expanded)} onPagerChange={onPagerChange} />;
     if (job && documentPending(job) && !current?.timedOut) return <LoadingStatus>{waitingCopy(job)}</LoadingStatus>;
     if (job) return <DocumentNotice message={unavailableCopy(job)} retry={retry} />;
     if (current && current.error) return <DocumentNotice message={current.error} retry={retry} />;

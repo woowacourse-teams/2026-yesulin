@@ -11,7 +11,7 @@ PDF는 기존 추출기가 직접 받는다. 비PDF는 원본 전용 경로의 S
 
 ```sh
 docker build --platform linux/amd64 --provenance=false -t yesulin-review-preview .
-docker run --rm --platform linux/amd64 --network none --entrypoint python -v "$PWD/tests:/tests:ro" yesulin-review-preview -m unittest discover -s /tests
+docker run --rm --platform linux/amd64 --network none --entrypoint python -v "$PWD/tests:/tests:ro" -v "$PWD/queue_notification.py:/var/task/queue_notification.py:ro" yesulin-review-preview -m unittest discover -s /tests
 cfn-lint stack.yaml
 ```
 

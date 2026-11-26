@@ -2,6 +2,8 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PdfCanvasViewer } from "@/components/pdf-extractions/pdf-canvas-viewer";
+import { PdfOriginalViewer } from "@/components/pdf-extractions/pdf-original-viewer";
 import { fetchPdfExtraction } from "@/features/pdf-extractions/api";
 import type { PdfExtractionJob } from "@/features/pdf-extractions/types";
 import { observeReviewDocumentPreview, trackReviewDocumentDownload } from "@/features/analytics/review-document";
@@ -11,10 +13,13 @@ import { ReviewOriginalDocument, SOURCE_WAIT_LIMIT, SOURCE_WAIT_MS } from "./rev
 vi.mock("@/features/analytics/review-document", () => ({ observeReviewDocumentPreview: vi.fn(), trackReviewDocumentDownload: vi.fn() }));
 vi.mock("@/features/analytics/product-analytics", () => ({ trackProductEvent: vi.fn() }));
 vi.mock("@/features/pdf-extractions/api", () => ({ fetchPdfExtraction: vi.fn() }));
+const { loadPdf } = vi.hoisted(() => ({ loadPdf: vi.fn() }));
+vi.mock("@/features/monitoring/report-error", () => ({ reportError: vi.fn() }));
+vi.mock("pdfjs-dist", () => ({ GlobalWorkerOptions: {}, version: "test", getDocument: loadPdf }));
 vi.mock("@/components/pdf-extractions/pdf-original-viewer", () => ({
-  PdfOriginalViewer: ({ url, onRefresh }: { url: string; onRefresh: () => void }) => <>
+  PdfOriginalViewer: vi.fn(({ url, onRefresh }: { url: string; onRefresh: () => void }) => <>
     <a href={url}>원본</a><button type="button" onClick={onRefresh}>주소 새로고침</button>
-  </>,
+  </>),
 }));
 
 let root: Root;
@@ -188,6 +193,36 @@ describe("원본 PDF 서명 주소", () => {
     await open();
     await act(async () => container.querySelector("button")!.click());
     expect(container.querySelector("a")?.getAttribute("href")).toContain("renewed.pdf");
+  });
+
+  it("PDF.js 실패 후 같은 서명 주소도 메타데이터 갱신이 성공한 시점에 한 번 다시 연다", async () => {
+    const url = "https://s3.example.test/preview.pdf?signature=same";
+    const ready = { ...job(url), originalFilename: "합성.docx", originalUrl: "https://s3.example.test/original.docx", uploadedAt: "2026-11-26" };
+    let completeLookup!: (value: PdfExtractionJob) => void;
+    vi.mocked(fetchPdfExtraction).mockResolvedValueOnce(ready)
+      .mockReturnValueOnce(new Promise(resolve => { completeLookup = resolve; }));
+    vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+    const destroy = vi.fn().mockResolvedValue(undefined);
+    loadPdf.mockImplementationOnce(() => ({ promise: Promise.reject(Object.assign(new Error("Expired"), { status: 403 })), destroy }))
+      .mockImplementationOnce(() => ({ promise: Promise.resolve({ numPages: 0 }), destroy }));
+
+    await vi.mocked(PdfOriginalViewer).withImplementation(
+      ({ url, filename, onRefresh }) => <PdfCanvasViewer url={url} filename={filename} onRetry={onRefresh} />,
+      async () => {
+        await open(ready.originalFilename);
+        const retryButton = container.querySelector<HTMLButtonElement>('[role="alert"] button');
+        expect(retryButton?.textContent).toBe("다시 시도");
+        await act(async () => retryButton!.click());
+        expect(fetchPdfExtraction).toHaveBeenCalledTimes(2);
+        expect(loadPdf).toHaveBeenCalledTimes(1);
+        expect(container.textContent).toContain("원본 다운로드");
+
+        await act(async () => completeLookup(ready));
+        expect(loadPdf.mock.calls.map(([request]) => request.url)).toEqual([url, url]);
+        expect(container.querySelector('[role="alert"]')).toBeNull();
+        expect(observeReviewDocumentPreview).toHaveBeenCalledTimes(1);
+      },
+    );
   });
 
   it("한글 원본은 PDF 뷰어에 전달하지 않고 변환 중에도 내려받을 수 있다", async () => {

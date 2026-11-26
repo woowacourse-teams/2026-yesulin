@@ -76,7 +76,7 @@ class DocumentPreviewReceiverTest {
         final ObjectNode source = manifest.putObject("source").put("key", key).put("sha256", PREVIEW);
         manifest.putArray("pages");
         PdfExtractionResultParser parser = new PdfExtractionResultParser(storage, MAPPER);
-        var command = new ReceivePdfExtractionResultCommand(job.getId(), key,
+        ReceivePdfExtractionResultCommand command = new ReceivePdfExtractionResultCommand(job.getId(), key,
                 PdfExtractionResultParser.PIPELINE_VERSION, manifest);
         assertThrows(BusinessException.class, () -> parser.parse(job, command));
         receiver.receive(completion(DocumentPreviewStatus.READY, PREVIEW));
