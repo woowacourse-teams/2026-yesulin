@@ -11,8 +11,8 @@ from zipfile import ZIP_BZIP2, ZIP_DEFLATED, ZipFile
 
 from botocore.response import StreamingBody
 
-from renderer import InvalidDocument, bounded_stream_size, validate_input
-from worker import Routes, consume, process
+from renderer import InvalidDocument, bounded_stream_size, run_tool, validate_input
+from worker import Routes, consume, direct_handler, process
 
 
 ROUTES = Routes("private-files", "env/originals/", "env/previews/", "env/inputs/")
@@ -57,6 +57,42 @@ def convert(path, timeout):
 
 
 class WorkerChecks(unittest.TestCase):
+    def test_direct_s3_notification_validates_the_route_and_retries_the_whole_event(self):
+        store, notify = Store(), Mock(side_effect=[RuntimeError("callback unavailable"), True, True])
+        context = Mock()
+        context.get_remaining_time_in_millis.return_value = 120000
+        render = Mock(side_effect=convert)
+
+        def process_record(job, storage, callback, remaining_ms):
+            return process(job, storage, callback, remaining_ms, render)
+
+        with patch("worker.services", return_value=(ROUTES, store, notify)) as services, patch("worker.process", process_record):
+            direct_handler({"Event": "s3:TestEvent"}, context)
+            services.assert_not_called()
+            with self.assertRaisesRegex(RuntimeError, "callback unavailable"):
+                direct_handler({"Records": [RECORD]}, context)
+            self.assertNotIn(JOB.extraction, store.objects)
+            direct_handler({"Records": [RECORD, RECORD]}, context)
+            with self.assertRaisesRegex(ValueError, "UNEXPECTED_EVENT"):
+                direct_handler({"Records": [{**RECORD, "s3": {**RECORD["s3"], "bucket": {"name": "other"}}}]}, context)
+            with self.assertRaisesRegex(ValueError, "MISSING_S3_RECORDS"):
+                direct_handler({"Records": []}, context)
+        render.assert_called_once()
+        self.assertEqual(store.objects[JOB.preview], store.objects[JOB.extraction])
+
+    def test_unavailable_zip_engine_leaves_sqs_message_for_retry(self):
+        with TemporaryDirectory() as dirname, patch("renderer.ZIP_TOOLS", Path(dirname)):
+            launcher = Path(dirname) / "prlimit"
+            launcher.write_text("#!/bin/sh\nexit 75\n")
+            launcher.chmod(0o755)
+            store, notify = Store(), Mock()
+            with patch("worker.staged_preview", side_effect=lambda job, directory, *args:
+                       run_tool(["soffice"], directory, 1)):
+                message = {"eventSource": "aws:sqs", "messageId": "a", "body": json.dumps({"Records": [RECORD]})}
+                result = consume({"Records": [message]}, ROUTES, store, notify, lambda: 120000)
+        self.assertEqual({"batchItemFailures": [{"itemIdentifier": "a"}]}, result)
+        notify.assert_not_called()
+
     def test_original_immutable_and_retry_reuses_staged_pdf_before_publication(self):
         store, render = Store(), Mock(side_effect=convert)
         notify = Mock(side_effect=[RuntimeError("interrupted"), True, True])
