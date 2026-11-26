@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { AdminApiError, fetchAlertChatMembers } from "@/features/admin/api";
 import { getAuditionPosts } from "@/features/audition-posts/api";
 import type { AuditionPostSummary } from "@/features/audition-posts/types";
+import { reportError } from "@/features/monitoring/report-error";
 import { AdminAlertChatMembers } from "./admin-alert-chat-members";
 
 vi.mock("@/features/monitoring/report-error", () => ({ reportError: vi.fn() }));
@@ -126,6 +127,48 @@ it("화면 새로고침은 공고를 다시 읽고 내려간 공고가 들어간
   expect(checkbox("오디션 4")).toBeTruthy();
   expect(button("문구 복사").disabled).toBe(true);
   expect(preview().value).toBe("편집한 안내");
+});
+
+it("인원 조회 새로고침이 실패해도 편집한 문구를 재시도 뒤에 복사할 수 있다", async () => {
+  await render();
+  await act(async () => checkbox("오디션 2").click());
+  await act(async () => button("문구 만들기").click());
+  await editMessage("편집한 안내");
+  vi.mocked(fetchAlertChatMembers).mockRejectedValueOnce(new AdminApiError(500, "인원 조회 실패"));
+  await act(async () => button("새로고침").click());
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain("인원 조회 실패");
+  expect(preview()?.value).toBe("편집한 안내");
+  await act(async () => button("다시 시도").click());
+  expect(container.querySelector('[role="alert"]')).toBeNull();
+  expect(preview().value).toBe("편집한 안내");
+  await act(async () => button("문구 복사").click());
+  expect(writeText).toHaveBeenCalledWith("편집한 안내");
+});
+
+it("편집 중 세션이 만료되면 문구 편집기를 닫는다", async () => {
+  await render();
+  await act(async () => checkbox("오디션 2").click());
+  await act(async () => button("문구 만들기").click());
+  vi.mocked(fetchAlertChatMembers).mockRejectedValueOnce(new AdminApiError(401, "로그인이 필요합니다."));
+  await act(async () => button("새로고침").click());
+  expect(preview()).toBeNull();
+});
+
+it("자동 복사 실패는 문구와 브라우저 예외 원문 없이 기록하고 직접 복사를 안내한다", async () => {
+  const message = "편집한 안내";
+  await render();
+  await act(async () => checkbox("오디션 2").click());
+  await act(async () => button("문구 만들기").click());
+  await editMessage(message);
+  writeText.mockRejectedValueOnce(new Error(message));
+  await act(async () => button("문구 복사").click());
+  expect(reportError).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({ message: "Open chat reminder clipboard copy failed" }),
+    { feature: "admin", operation: "copy_openchat_reminder" },
+  );
+  expect(vi.mocked(reportError).mock.calls[0][0]).not.toHaveProperty("cause");
+  expect(preview().value).toBe(message);
+  expect(container.querySelector('[role="status"]')?.textContent).toContain("문구를 직접 복사해 주세요.");
 });
 
 it("관리자 조회가 거부되면 문구 생성 화면을 열거나 공개 목록을 조회하지 않는다", async () => {

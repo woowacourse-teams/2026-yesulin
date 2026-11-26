@@ -132,7 +132,7 @@ export function AdminAlertChatMembers() {
       ) : null}
       {phase === "loading" ? <p role="status" className="text-sm text-muted">오픈채팅방 인원을 불러오는 중이에요.</p> : null}
 
-      {phase === "ready" && <AdminOpenChatReminder refreshToken={reloadToken} />}
+      {members && <AdminOpenChatReminder refreshToken={reloadToken} />}
       <AdminOpenChatVisits key={reloadToken} onUnauthorized={endSession} />
 
       {members ? (

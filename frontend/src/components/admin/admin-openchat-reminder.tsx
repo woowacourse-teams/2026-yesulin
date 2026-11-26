@@ -8,6 +8,7 @@ import {
 import { kstToday } from "@/features/audition-posts/format";
 import type { ReminderTiming } from "@/features/audition-posts/openchat-reminder-tag";
 import { auditionPostRoutes, type AuditionPostSummary } from "@/features/audition-posts/types";
+import { reportError } from "@/features/monitoring/report-error";
 import { AdminActionButton, AdminFilterButton } from "./admin-shell";
 
 const TIMINGS = ["d0", "d1"] as const;
@@ -81,6 +82,9 @@ export function AdminOpenChatReminder({ refreshToken }: { readonly refreshToken:
       await navigator.clipboard.writeText(draft.text);
       setStatus("오픈채팅에 보낼 문구를 복사했어요.");
     } catch {
+      reportError(new Error("Open chat reminder clipboard copy failed"), {
+        feature: "admin", operation: "copy_openchat_reminder",
+      });
       setStatus("자동 복사를 할 수 없어요. 미리보기에서 문구를 직접 복사해 주세요.");
     }
   }
