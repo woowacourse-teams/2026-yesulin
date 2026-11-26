@@ -7,6 +7,7 @@ import { ANALYTICS_READY_EVENT } from "@/features/analytics/consent";
 import { trackPostView } from "@/features/analytics/product-analytics";
 import { getAuditionPost, recordAuditionPostView } from "@/features/audition-posts/api";
 import { deadlineBadge, formatDeadline, formatPostedDate, kstToday } from "@/features/audition-posts/format";
+import type { ReminderCampaign } from "@/features/audition-posts/openchat-reminder-tag";
 import type { AuditionPost } from "@/features/audition-posts/types";
 import { publicViewCount, viewCountClock } from "@/features/audition-posts/view-count";
 import { CompanyPendingCard, CompanySummaryCard } from "@/components/companies/company-summary-card";
@@ -24,9 +25,10 @@ type DetailState =
   | { readonly status: "ready"; readonly post: AuditionPost };
 
 /** 상세는 서버가 미리 읽은 공고를 쓰고, 목 환경·서버 API 미설정 시 브라우저에서 읽는다. */
-export function AuditionPostRoute({ postId, initialPost }: {
+export function AuditionPostRoute({ postId, initialPost, reminderCampaign }: {
   readonly postId: string;
   readonly initialPost: AuditionPost | null;
+  readonly reminderCampaign?: ReminderCampaign;
 }) {
   const [state, setState] = useState<DetailState>(
     initialPost ? { status: "ready", post: initialPost } : { status: "loading" },
@@ -51,21 +53,24 @@ export function AuditionPostRoute({ postId, initialPost }: {
       {state.status === "loading" ? <DetailSkeleton /> : null}
       {state.status === "missing" ? <MissingAuditionPost /> : null}
       {state.status === "error" ? <ScreenError message="공고를 불러오지 못했어요." onRetry={() => { setState({ status: "loading" }); setReloadToken((value) => value + 1); }} /> : null}
-      {state.status === "ready" ? <AuditionPostDetail post={state.post} /> : null}
+      {state.status === "ready" && <AuditionPostDetail post={state.post} reminderCampaign={reminderCampaign} />}
     </AuditionPostScreen>
   );
 }
 
-function AuditionPostDetail({ post }: { readonly post: AuditionPost }) {
+function AuditionPostDetail({ post, reminderCampaign }: {
+  readonly post: AuditionPost;
+  readonly reminderCampaign?: ReminderCampaign;
+}) {
   const analyticsViewKey = useRef<string | null>(null);
   useEffect(() => {
     analyticsViewKey.current ??= crypto.randomUUID();
     const key = `${post.id}:${analyticsViewKey.current}`;
-    const record = () => { void trackPostView(post.id, key, post.sourceUrl); };
+    const record = () => { void trackPostView(post.id, key, post.sourceUrl, reminderCampaign); };
     record();
     window.addEventListener(ANALYTICS_READY_EVENT, record);
     return () => window.removeEventListener(ANALYTICS_READY_EVENT, record);
-  }, [post.id, post.sourceUrl]);
+  }, [post.id, post.sourceUrl, reminderCampaign]);
   const [today] = useState(() => kstToday());
   const [now] = useState(() => viewCountClock());
   const [viewCount, setViewCount] = useState(post.viewCount);

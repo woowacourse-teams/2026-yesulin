@@ -7,6 +7,7 @@ export function dashboardDefinitions(environment = "production") {
     { key: "test_object", value: false, operator: "exact", type: "event" },
   ];
   const base = `properties.environment = '${environment}' AND properties.internal = false AND properties.test_object = false`;
+  const reminderVisits = `event = 'openchat_landed' AND notEmpty(toString(properties.reminder_campaign)) AND ${base} AND {filters}`;
   const week = "toStartOfWeek(toTimeZone(timestamp, 'Asia/Seoul'), 1)";
   const nowWeek = "toStartOfWeek(toTimeZone(now(), 'Asia/Seoul'), 1)";
   const trend = (name, event, description, extra = [], math = "dau") => ({ name, description, query: {
@@ -100,6 +101,14 @@ ORDER BY \`주 시작일\` WITH FILL STEP INTERVAL 1 WEEK` },
         trend("오픈채팅 알림으로 얼마나 들어오나요?", "openchat_landed", "src=kakao_openchat 또는 utm_source=kakao_openchat으로 표시된 링크 유입. 방 인원 대비 비율은 메시지 열람자 기준 클릭률이 아닙니다."),
         homeBannerClicks,
         table("어떤 공고 알림을 많이 열어 보나요?", `SELECT properties.post_id AS \`공고 번호\`, uniq(person_id) AS \`유입 사용자\` FROM events WHERE event = 'openchat_landed' AND ${base} AND {filters} GROUP BY properties.post_id ORDER BY \`유입 사용자\` DESC`, "선택 기간, 공고별 중복 제거. 공고 번호는 사이트 상세 주소 /posts/번호와 대응합니다. 공고 제목·본문은 분석에 보내지 않습니다."),
+        table("마감 안내별로 얼마나 들어오나요?", `SELECT properties.reminder_campaign AS \`마감 안내\`,
+          uniqExact(person_id) AS \`유입 사용자\` FROM events WHERE ${reminderVisits}
+          GROUP BY properties.reminder_campaign ORDER BY \`마감 안내\` DESC`,
+          "선택한 방문 기간 동안 여러 공고를 본 사용자를 안내당 한 번 셉니다. 안내 키의 날짜는 마감일, d1은 하루 전, d0은 당일입니다. 같은 마감일·시점에 재공유한 링크도 합산합니다. 적용 후 관측한 방문만 표시합니다."),
+        table("마감 안내에서 어떤 공고를 열어 보나요?", `SELECT properties.reminder_campaign AS \`마감 안내\`,
+          properties.post_id AS \`공고 번호\`, uniqExact(person_id) AS \`유입 사용자\` FROM events WHERE ${reminderVisits}
+          GROUP BY properties.reminder_campaign, properties.post_id ORDER BY \`마감 안내\` DESC, \`유입 사용자\` DESC, \`공고 번호\``,
+          "선택한 방문 기간 동안 같은 사용자를 안내·공고 조합별로 한 번 셉니다. 공고 번호는 /posts/번호와 대응합니다."),
         table("알림을 보고 다른 공고도 살펴보나요?", `WITH visits AS (
           SELECT person_id, properties.$session_id AS session_id,
             max(if(event = 'openchat_landed', 1, 0)) AS landed,

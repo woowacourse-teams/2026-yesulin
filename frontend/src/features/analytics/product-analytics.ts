@@ -1,6 +1,7 @@
 "use client";
 
 import { clearAcquisition, observeAcquisition, rememberOpenchatAcquisition } from "./acquisition";
+import { OPENCHAT_SOURCE, type ReminderCampaign } from "@/features/audition-posts/openchat-reminder-tag";
 import type { PostHog } from "posthog-js";
 import { isAnalyticsEnabled, readAnalyticsConsent } from "./consent";
 import {
@@ -128,10 +129,11 @@ export async function trackProductEvent(event: ProductEvent, properties: Product
 }
 
 type Visit = { at: number; source: "openchat" | "other"; firstPost?: string };
-export async function trackPostView(postId: number, viewKey: string, sourceUrl?: string | null) {
+export async function trackPostView(postId: number, viewKey: string, sourceUrl?: string | null, reminderCampaign?: ReminderCampaign) {
   const post_id = String(postId);
   const query = new URLSearchParams(window.location.search);
-  let tagged = query.get("utm_source") === "kakao_openchat" || query.get("src") === "kakao_openchat";
+  let tagged = Boolean(reminderCampaign) || query.get("utm_source") === OPENCHAT_SOURCE || query.get("src") === OPENCHAT_SOURCE;
+  if (reminderCampaign && enabled()) rememberOpenchatAcquisition();
   try {
     const entry = JSON.parse(sessionStorage.getItem(OPENCHAT_ENTRY) ?? "null") as { kind: string; id: string; at: number } | null;
     const source = sourceUrl ? new URL(sourceUrl) : null;
@@ -151,7 +153,7 @@ export async function trackPostView(postId: number, viewKey: string, sourceUrl?:
   const sent = await trackProductEvent("audition_post_viewed", props, `view:${viewKey}`);
   if (!sent) return false;
   if (tagged) {
-    await trackProductEvent("openchat_landed", props, `landing:${viewKey}`);
+    await trackProductEvent("openchat_landed", { ...props, reminder_campaign: reminderCampaign }, `landing:${viewKey}`);
     try { sessionStorage.removeItem(OPENCHAT_ENTRY); } catch { /* optional storage */ }
   }
   if (visit.source === "openchat" && visit.firstPost && visit.firstPost !== post_id) {
