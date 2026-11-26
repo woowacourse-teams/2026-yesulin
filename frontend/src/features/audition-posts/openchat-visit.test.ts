@@ -107,6 +107,16 @@ describe("공유용 출처 표시 정리", () => {
     expect(replaceState).toHaveBeenCalledWith({ next: "router-state" }, "", "/posts/123?other=1#role");
   });
 
+  it("리마인드 표시만 정리하고 유효하지 않은 다른 캠페인은 보존한다", () => {
+    window.location.href = "https://yesulin.art/posts/123?src=kakao_openchat&utm_campaign=deadline_reminder_20261127_d1&other=1#role";
+    cleanOpenChatSource("123");
+    expect(replaceState).toHaveBeenLastCalledWith({ next: "router-state" }, "", "/posts/123?other=1#role");
+
+    window.location.href = "https://yesulin.art/posts/123?src=kakao_openchat&utm_campaign=other-campaign";
+    cleanOpenChatSource("123");
+    expect(replaceState).toHaveBeenLastCalledWith({ next: "router-state" }, "", "/posts/123?utm_campaign=other-campaign");
+  });
+
   it("기록 중 다른 공고로 이동했으면 새 주소를 바꾸지 않는다", () => {
     cleanOpenChatSource("456");
     expect(replaceState).not.toHaveBeenCalled();

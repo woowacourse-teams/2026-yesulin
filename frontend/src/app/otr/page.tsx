@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { OpenChatLinkVisit } from "@/components/audition-posts/openchat-link-visit";
-import { OPENCHAT_SOURCE } from "@/features/audition-posts/openchat-visit";
+import { OPENCHAT_SOURCE } from "@/features/audition-posts/openchat-reminder-tag";
 
 export const metadata: Metadata = {
   title: "공고",

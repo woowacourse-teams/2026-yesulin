@@ -2,31 +2,33 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { reportReviewError } from "@/features/pdf-reviews/report-review-error";
 import { trackReviewAction } from "@/features/analytics/review-actions";
-import { roleId, postingId, type SubmissionId, type ReviewStatus } from "@/features/auditions/types";
-import { assignPdfReviewRoles, isUnauthorized, renamePdfReviewEntry, updatePdfReviewEntry } from "@/features/pdf-reviews/api";
+import type { SubmissionId, ReviewStatus } from "@/features/auditions/types";
+import { assignPdfReviewRoles, isUnauthorized, updatePdfReviewEntry } from "@/features/pdf-reviews/api";
 import { screeningApplicant } from "@/features/pdf-reviews/screening-adapter";
 import { matchesDecision, sameKey, type DecisionFilter, type ReviewDetail, type ReviewEntry } from "@/features/pdf-reviews/types";
 import { ReviewOriginalDocument } from "./review-original-document";
 import { BoardProvider } from "./screening-ui/board-context";
 import { ApplicantFocusReview } from "./screening-ui/applicant-focus-review";
 import { ApplicantCards } from "./screening-ui/applicant-cards";
-import { ApplicantTable } from "./screening-ui/applicant-table";
 import { ReviewRoleSelect } from "./review-role-select";
+import type { LastDecision } from "./screening-ui/fullscreen-dock";
 
-type Props = { review: ReviewDetail; entries: readonly ReviewEntry[]; decision: DecisionFilter; view: "single" | "card" | "table";
+type Props = { review: ReviewDetail; entries: readonly ReviewEntry[]; decision: DecisionFilter;
+  focusedId: string | null; onFocusChange: (id: string) => void;
   refreshKey: number; onSaved: (entry: ReviewEntry) => void; onUnauthorized: () => void;
-  onDirtyChange: (dirty: boolean) => void; registerNavigationSave?: (flush: () => Promise<boolean>) => () => void; onApplicantOpened?: () => void; navigate: (action: () => void) => void };
+  onDirtyChange: (dirty: boolean) => void; registerNavigationSave?: (flush: () => Promise<boolean>) => () => void; onApplicantOpened?: () => void; navigate: (action: () => void) => void;
+  lastDecision: LastDecision | null; onLastDecisionChange: (last: LastDecision | null) => void; pagerSlot?: HTMLElement | null };
 
-export function ScreeningBoard({ review, entries, decision, view, refreshKey, onSaved, onUnauthorized, onDirtyChange, onApplicantOpened, navigate, registerNavigationSave }: Props) {
+export function ScreeningBoard({ review, entries, decision, focusedId, onFocusChange, refreshKey, onSaved, onUnauthorized, onDirtyChange, onApplicantOpened, navigate, registerNavigationSave, lastDecision, onLastDecisionChange, pagerSlot }: Props) {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const [selected, setSelected] = useState<Set<SubmissionId>>(new Set());
-  const [focused, setFocused] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState("");
   const latest = useRef({ review, entries, onUnauthorized });
   useEffect(() => { latest.current = { review, entries, onUnauthorized }; });
   const rows = useMemo(() => entries.map(entry => screeningApplicant(review, entry)), [review, entries]);
+  const focused = rows.find(row => row.id === focusedId);
   const entryFor = (id: string) => latest.current.review.entries.find(entry => sameKey(entry.id, id));
   const save = async (id: SubmissionId, status: ReviewStatus, note?: string, saveKind: "decision" | "memo" = "decision") => {
     if (savingRef.current) return null;
@@ -37,7 +39,6 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
       onSaved(updated); onDirtyChange(false); setSavedMessage("저장했습니다.");
       const next = latest.current.entries.map(item => sameKey(item.id, updated.id) ? updated : item)
         .filter(item => matchesDecision(item, decision));
-      if (focused && next.length === 0) setFocused(null);
       return { applicants: next.map(item => screeningApplicant(review, item)) };
     } catch (cause) {
       reportReviewError(cause, "review_save");
@@ -66,13 +67,6 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
       review: { ...latest.current.review, entries: latest.current.review.entries.map(replace) } };
     onSaved(updated);
   };
-  const renameTitle = async (id: SubmissionId, title: string) => {
-    try {
-      const updated = await renamePdfReviewEntry(review.id, id, title);
-      const confirmed = updated.title ?? title;
-      publishField(id, { title: confirmed }); return confirmed;
-    } catch (cause) { reportReviewError(cause, "autosave"); if (isUnauthorized(cause)) onUnauthorized(); return null; }
-  };
   const saveMemo = async (id: SubmissionId, memo: string) => {
     const entry = entryFor(id); if (!entry) return null;
     try {
@@ -80,32 +74,27 @@ export function ScreeningBoard({ review, entries, decision, view, refreshKey, on
       publishField(id, { memo: updated.memo ?? "" }); return updated.memo ?? "";
     } catch (cause) { reportReviewError(cause, "autosave"); if (isUnauthorized(cause)) onUnauthorized(); return null; }
   };
-  const allEntries = review.entries;
-  const done = allEntries.filter(entry => entry.decision === "PASS" || entry.decision === "FAIL").length;
-  const counts = { all: allEntries.length, pending: allEntries.filter(entry => entry.decision === "PENDING").length, done,
-    pass: allEntries.filter(entry => entry.decision === "PASS").length,
-    fail: allEntries.filter(entry => entry.decision === "FAIL").length,
-    etc: allEntries.filter(entry => entry.decision === "HOLD").length };
-  return <BoardProvider value={{ source: { kind: "PDF" }, board: { role: { id: roleId(String(review.id)), postingId: postingId(String(review.id)), name: "PDF 지원자", description: "", quota: 0, gender: "ANY", ageMin: 0, ageMax: 0, applicantCount: allEntries.length, activeRound: 1, allRoundsClosed: false, counts, progress: { done, total: allEntries.length, percent: allEntries.length ? Math.round(done / allEntries.length * 100) : 0 } } },
-    filters: { work: decision === "PENDING" ? "PENDING" : "DONE" }, selected, saving, saveError: error, reviewLocked: false,
+  const reviewId = String(review.id);
+  return <BoardProvider value={{ reviewId, selected, saving, saveError: error, reviewLocked: false,
     toggleSelected: id => setSelected(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; }),
-    openApplicant: id => { trackReviewAction(String(review.id), String(id), view, "open"); navigate(() => setFocused(id)); }, roleOptions: review.roles,
+    openApplicant: id => { trackReviewAction(reviewId, id, "open"); navigate(() => onFocusChange(id)); }, roleOptions: review.roles,
     currentRole: id => review.entries.find(entry => sameKey(entry.id, id))?.roleId ?? null,
-    changeRole: (id, roleId) => void assignRole([id], roleId), renameTitle, saveMemo, registerNavigationSave, requestNavigation: navigate, onNoteDirty: noteDirty,
-    onBasicAction: (id, action, input) => trackReviewAction(String(review.id), String(id), view, action, input),
-    onApplicantOpened,
+    changeRole: (id, roleId) => void assignRole([id], roleId), saveMemo, registerNavigationSave, requestNavigation: navigate, onNoteDirty: noteDirty,
+    onBasicAction: (id, action, input) => trackReviewAction(reviewId, id, action, input),
+    onApplicantOpened, lastDecision, onLastDecisionChange, pagerSlot,
     reviewFocused: (id, status, _memo, note) => save(id, status, note),
     renderDocument: (applicant, frame) => { const entry = entryFor(applicant.id); if (!entry) return null; return <ReviewOriginalDocument key={`${entry.jobId}:${refreshKey}`} jobId={entry.jobId} onUnauthorized={onUnauthorized} frame={frame} />; },
   }}>
     {error && <p role="alert" className="mb-3 rounded-control bg-fail-bg p-3 text-sm text-fail">{error}</p>}
     <p role="status" className="sr-only">{saving ? "저장 중…" : savedMessage}</p>
-    {view === "single" || focused ? <ApplicantFocusReview key={focused ?? "single"} rows={rows} initialId={focused ?? undefined} onBack={focused ? () => setFocused(null) : undefined} /> : <>
-      <div className="mb-4 flex min-h-11 flex-wrap items-center gap-3 rounded-control border border-border bg-surface px-3 py-2 text-sm">
+    {focused && <ApplicantFocusReview rows={rows} applicant={focused} onMove={onFocusChange} />}
+    {!focused && <>
+      <div className="mb-4 flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 rounded-control border border-border bg-surface px-4 py-2 text-sm">
         <label className="flex min-h-11 cursor-pointer items-center gap-2.5 font-medium"><input className="h-5 w-5 accent-brand" type="checkbox" checked={rows.length > 0 && rows.every(row => selected.has(row.id))} onChange={event => setSelected(new Set(event.target.checked ? rows.map(row => row.id) : []))} />전체 선택</label>
-        <span>{selected.size}명 선택</span>{review.roles.length > 0 && <ReviewRoleSelect label="선택한 지원자 배역" allowReselect roles={review.roles} value={null} disabled={!selected.size || selected.size > 300 || saving} onChange={roleId => void assignRole([...selected], roleId)} />}
+        <span className="num whitespace-nowrap text-muted-strong">{selected.size}명 선택</span>{review.roles.length > 0 && <div className="ml-auto"><ReviewRoleSelect label="선택한 지원자 배역" inline allowReselect roles={review.roles} value={null} disabled={!selected.size || selected.size > 300 || saving} onChange={roleId => void assignRole([...selected], roleId)} /></div>}
         {selected.size > 300 && <p role="alert" className="text-fail">배역은 한 번에 300명까지 설정해 주세요.</p>}
       </div>
-      {view === "card" ? <ApplicantCards rows={rows} /> : <ApplicantTable rows={rows} />}
+      <ApplicantCards rows={rows} />
     </>}
   </BoardProvider>;
 }

@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { AuditionPostRoute } from "@/components/audition-posts/audition-post-detail";
 import { OpenChatLinkVisit } from "@/components/audition-posts/openchat-link-visit";
-import { OPENCHAT_SOURCE, openChatPostKey } from "@/features/audition-posts/openchat-visit";
+import { OPENCHAT_SOURCE, readOpenChatReminder, REMINDER_CAMPAIGN_PARAM } from "@/features/audition-posts/openchat-reminder-tag";
+import { openChatPostKey } from "@/features/audition-posts/openchat-visit";
 import { auditionPostForServer, recordAuditionPostRedirect } from "@/features/audition-posts/server";
 import { auditionPostRoutes } from "@/features/audition-posts/types";
 import { auditionPostMetadata } from "@/features/seo/audition-metadata";
@@ -22,10 +23,12 @@ export async function generateMetadata({ params }: { params: Promise<{ postId: s
 
 export default async function AuditionPostPage({ params, searchParams }: {
   params: Promise<{ postId: string }>;
-  searchParams: Promise<{ src?: string | string[] }>;
+  searchParams: Promise<{ src?: string | string[]; [REMINDER_CAMPAIGN_PARAM]?: string | string[] }>;
 }) {
   const { postId } = await params;
-  const fromOpenChat = (await searchParams).src === OPENCHAT_SOURCE;
+  const { src, [REMINDER_CAMPAIGN_PARAM]: campaign } = await searchParams;
+  const fromOpenChat = src === OPENCHAT_SOURCE;
+  const reminderCampaign = readOpenChatReminder(src, campaign);
   if (!POST_ID.test(postId)) notFound();
   const found = await auditionPostForServer(postId);
   if (found.kind === "missing") notFound();
@@ -37,10 +40,12 @@ export default async function AuditionPostPage({ params, searchParams }: {
     await recordAuditionPostRedirect(postId);
     redirect(found.originalUrl);
   }
+  const initialPost = (found.kind === "published" && found.post) || null;
   return (
     <>
-      {fromOpenChat ? <OpenChatLinkVisit kind="post" id={postId} dedupKey={openChatPostKey(postId, found.kind === "published" ? found.post.sourceUrl : null)} /> : null}
-      <AuditionPostRoute postId={postId} initialPost={found.kind === "published" ? found.post : null} />
+      {fromOpenChat && <OpenChatLinkVisit key={reminderCampaign} kind="post" id={postId} dedupKey={openChatPostKey(postId, initialPost?.sourceUrl ?? null)} />}
+      <AuditionPostRoute key={`${postId}:${reminderCampaign ?? ""}`} postId={postId}
+        initialPost={initialPost} reminderCampaign={reminderCampaign} />
     </>
   );
 }

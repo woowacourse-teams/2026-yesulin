@@ -238,6 +238,7 @@ public class AuditionPostImportService implements AuditionImporter {
                     countQuery.invalidateAfterCommit();
                     post.recordSourceAuthor(sourceAuthorId);
                     connectByAuthorLink(post);
+                    fileStorage.enqueueCard(post.images());
                     audit(adminId, post, "%s %s 원문으로 다시 가져옴");
                     return new Saved(
                             AdminAuditionPostResult.from(post, today, owners.nameOf(post)), false, discarded
@@ -247,6 +248,7 @@ public class AuditionPostImportService implements AuditionImporter {
                 created.recordSourceAuthor(sourceAuthorId);
                 connectByAuthorLink(created);
                 AuditionPost post = repository.saveAndFlush(created);
+                fileStorage.enqueueCard(post.images());
                 countQuery.invalidateAfterCommit();
                 audit(adminId, post, "%s %s 처음 가져옴");
                 return new Saved(AdminAuditionPostResult.from(post, today, owners.nameOf(post)), true, List.of());

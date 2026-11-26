@@ -14,8 +14,6 @@ public interface PdfExtractionJobRepository extends JpaRepository<PdfExtractionJ
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<PdfExtractionJob> findByReviewIdAndSourceSha256(String reviewId, String sourceSha256);
 
-    List<PdfExtractionJob> findByReviewId(String reviewId);
-
     boolean existsByReviewIdAndSourceSha256(String reviewId, String sourceSha256);
 
     Optional<PdfExtractionJob> findByIdAndOwnerIdAndPurpose(String id, long ownerId, PdfExtractionPurpose purpose);

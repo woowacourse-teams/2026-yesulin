@@ -117,8 +117,8 @@ page는 `number,text,needsOcr,images`, image는 `fileKey,url,classification=UNCL
 URL은 응답 시 새로 서명하며 DB에는 저장하지 않는다. 원본·이미지는 공개 CDN으로 바꾸지 않는다.
 `resultFileKey`는 Lambda 재시도용 `result.json` 위치를 알려 줄 뿐 조회 API는 이 객체를 읽지 않는다. Lambda만 재시도 때 재사용한다.
 
-파일당 PDF 25MiB, 파일명 255자 이하를 받는다. 서버는 파일명(NFC 정규화, `.pdf`)과 크기를 검증하고 확장자 `pdf`·`application/pdf`를
-고정하며 생성 후 바꾸지 않는다. 심사 프론트는 최대 300개를 선택하고 파일별로 URL을 발급해 제한된 수로 PUT한다. 독립 추출 진단 화면의 선택 상한은 별도다.
+파일당 PDF 25MiB, 파일명 255자 이하를 받는다. 서버는 파일명과 크기를 검증하고 확장자 `pdf`와 미디어 타입 `application/pdf`를 고정한다.
+새 작업의 `originalFilename`에는 요청으로 받은 이름을 그대로 저장한다. 심사 프론트는 최대 300개를 선택하고 파일별로 URL을 발급해 제한된 수로 PUT한다. 독립 추출 진단 화면의 선택 상한은 별도다.
 URL은 파일 한 개의 PUT을 서명하며 파일 여러 개를 한 URL에 넣지 않는다. 크기·Content-Type·`If-None-Match: *`를 서명해
 같은 원본 키를 덮어쓰지 않는다. URL 만료는 새 PUT만 막는다. 본인 작업의 원본이 이미 있고 크기·형식·PDF 서명이 맞으면
 만료 후 시간이 지나도 completion이 확인하며, 확인을 마친 작업의 재확인은 멱등이다. 조회(GET)는 원본을 찾거나 확인하지 않는다.
@@ -367,10 +367,11 @@ OTR 심사는 기존 심사 화면의 계약을 사용하되 별도 경로와 �
 `totalElements`·`totalPages`는 요청 조건 기준이고, `openCount`·`allCount`는 페이지·마감 포함 조건과 관계없이
 선택한 분야의 모집 중·전체 공개 공고 수다.
 목록 항목은 `id`, `category`, `title`, `authorName`, `pay`, `deadlineText`(원문 표현),
-`deadline`(날짜일 때만 `YYYY-MM-DD`), `closed`(한국 날짜 기준), `postedAt`(Instant), `thumbnailUrl`(본문 첫 사진, 없으면 null),
+`deadline`(날짜일 때만 `YYYY-MM-DD`), `closed`(한국 날짜 기준), `postedAt`(Instant), `thumbnailUrl`(본문 첫 사진의 카드용 축소본 URL. 준비 전에는 원본 URL, 사진이 없으면 null),
 `attachmentCount`, `viewCount`, `alertChatMembers`(아래 공고 알림 오픈채팅방 인원)를 담는다. 공개 응답의 `authorName`은 기획사에 연결된 공고면 그 기획사의 지금 이름이고,
 아니면 저장된 작성자(원문 닉네임이나 운영자가 쓴 이름)다. 운영 목록과 수정 상세의 `authorName`은 저장된 작성자다. 조회수는 상세 화면이 열릴 때 브라우저가 탭 세션당 한 번 보내는 POST로만 늘고,
-서버 렌더링·메타데이터 조회는 세지 않는다. 다시 가져와도 유지한다. 상세는 여기에 `bodyHtml`, `tags`, `attachments(name, contentType, size, url)`, 원문 출처 `source`(예: `OTR`)·`sourceUrl`,
+서버 렌더링·메타데이터 조회는 세지 않는다. 서버는 조회를 메모리에 모았다가 3초마다 공고별로 한 번에 더하므로 응답의 조회수에 최대 3초 늦게 반영되고,
+서버가 비정상 종료되면 마지막 기록 뒤의 조회는 잃는다. 정상 종료 때는 남은 값을 기록한다. 다시 가져와도 유지한다. 상세는 여기에 `bodyHtml`, `tags`, `attachments(name, contentType, size, url)`, 원문 출처 `source`(예: `OTR`)·`sourceUrl`,
 `updatedAt`, 공연사 요약 `company`(아래 공연사 절, 연결이 없거나 공개 전이면 null)를 더한다. 상세에도 `alertChatMembers`가 있다. 운영자나 기획사가 직접 쓴 공고는 `source`가 `YESULIN`이고 `sourceUrl`이 null이다.
 공개 상태는 `PENDING`(검토 전), `PUBLISHED`(공개 중), `HIDDEN`(내림)이다. 공개 중이 아닌 공고 상세는 본문 없이
 `302 Location: {sourceUrl}`로 원문 공고에 보낸다. 원문 없이 쓴 공고는 보낼 곳이 없어 `404`다.
@@ -382,7 +383,8 @@ page·size 범위 오류와 지원하지 않는 category·sort는 `400 INVALID_R
 
 오픈채팅방 링크 방문은 상세 GET·메타데이터 조회가 아니라 공유용 출처 표시를 읽은 브라우저의 `openchat-visits` POST로만
 늘린다. 브라우저가 공고별 집계 표시를 저장해 중복 전송을 줄이며, 서버에는 방문자 ID·쿠키 값·개별 방문 이력을 저장하지 않는다.
-공고/알림 행의 `openchat_visit_count`만 원자적으로 증가하므로 서버에서 같은 브라우저인지 재검증하지 않는다.
+공고/알림 행의 `openchat_visit_count`만 늘리므로 서버에서 같은 브라우저인지 재검증하지 않는다. 조회수와 같이 메모리에 모았다가
+3초마다 더하므로 관리자 통계에 최대 3초 늦게 반영되고, 그사이 방문을 셀 수 없게 된 공고의 증가분은 버린다.
 관리자 로그인 상태면 증가 없이 `204`다. 일반 공고 POST는 공개 상세 또는 원문 이동이 가능한 공고만 허용하고 나머지는
 `404 AUDITION_POST_NOT_FOUND`다. OTR POST는 숫자 1~30자 원문 번호이며 해당 OTR 알림이 없으면 같은 404다.
 형식 오류는 `400 INVALID_REQUEST`다. GET·미리보기는 이 숫자를 늘리지 않는다.
@@ -734,6 +736,7 @@ false로 바꿔도 종료일과 정원 조건을 다시 검사한다. 변경은 
 
 관객 목록·상세는 숨기지 않은 `OPEN`·`CLOSED` 공연을 반환하고 `DRAFT`·숨긴 공연은 `404 SHOW_NOT_FOUND`다.
 목록 항목에는 `status`(`OPEN`·`CLOSED`)가 포함된다. 미래 회차가 있어도 `CLOSED`는 예매 마감으로 표시한다.
+목록의 `posterUrl`은 준비된 카드용 축소본을 우선한다. 준비 전의 목록과 공연 상세는 원본 포스터 URL을 반환한다.
 `ProducerShowResponse`, `ProducerShowListResponse` 항목과 운영 대시보드의 `AdminShowRow`는 `hidden`(boolean)을 반환한다.
 `visibility`는 필수 boolean `hidden`만 받는다(누락·null은 `400 INVALID_REQUEST`). 공개 이력이 있는 공연만 바꿀 수 있고,
 초안은 `409 SHOW_INVALID_STATUS`다. 숨김 여부만 바꾸므로 기존 예매·예매 상태는 유지하고 회차 시각을 검사하지 않는다.
@@ -1264,6 +1267,7 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 | GET | `/api/v1/admin/files/unreferenced` | Admin | `status` (`PENDING`/`READY`/`DELETING`), `page`(0부터), `size`(1~100) query, 모두 선택 | `200 UnusedFilesResult` |
 | DELETE | `/api/v1/admin/files/{fileId}` | Admin | `DeleteAdminFileRequest(confirmationPassword)` | `204` |
 | POST | `/api/v1/admin/files/deletions` | Admin | `BatchDeleteAdminFilesRequest(fileIds, confirmationPassword)` | `200 BatchFileDeletionResult` |
+| POST | `/api/v1/admin/poster-thumbnails/backfill` | Admin | `auditionPostIds`, `showIds` 배열, 선택 `retryFailed` | `200` 항목별 상태 배열 |
 | PATCH | `/api/v1/admin/members/{memberId}/status` | Admin | `ChangeMemberStatusRequest(status)` | `200 MemberStatusResult` |
 | POST | `/api/v1/admin/members/{memberId}/email-verifications` | Admin | 없음 | `204` |
 | PUT | `/api/v1/admin/shows/{showId}/host-name` | Admin | `ChangeShowHostNameRequest(hostName)` | `200 AdminShowHostNameResult` |
@@ -1282,6 +1286,12 @@ submission ID와 변경할 status·memo·note 중 하나 이상을 요구한다.
 | DELETE | `/api/v1/admin/submissions/{submissionId}` | Admin | `DeleteAdminSubmissionRequest(confirmationPassword)` | `204` |
 | GET | `/api/v1/admin/timetable-messages` | Admin | `status` query (`PENDING`/`SENT`, 기본 `PENDING`) | `200 AdminTimetableMessagesResult` |
 | POST | `/api/v1/admin/timetable-messages/completion` | Admin | `CompleteTimetableMessagesRequest(messageIds)` | `200 AdminTimetableMessagesResponse` |
+
+포스터 백필은 기존 CSRF 헤더를 요구한다. 두 ID 배열을 모두 보내며 합계 1~27건을 지원한다. 공개 공고의 첫 사진과 공개
+공연의 현재 포스터만 대상으로 삼는다. 응답 항목은 `type`(`AUDITION_POST`·`SHOW`), `id`(문자열), `state`다.
+`PENDING`은 대기, `READY`는 준비 완료, `SKIPPED`는 원본 사용, `FAILED`는 자동 재시도 소진이다.
+요청 시점에 공개 이미지가 없으면 `NO_PUBLIC_POSTER`를 반환하며, 삭제와 경합한 작업은 `REMOVING`·`REMOVED`일 수 있다.
+같은 항목을 다시 제출하면 기존 작업의 상태를 돌려주고, `retryFailed: true`는 `FAILED`만 다시 예약한다.
 
 관리자 메일 재전송은 CSRF 검증을 거친 뒤 `PENDING` 기획사/제작사의 등록 주소에 새 코드를 보낸다.
 대상이 없거나 상태·유형이 다르면 `400 AUTH_INVALID_EMAIL_VERIFICATION`, 발급 후 60초 이내면

@@ -1,5 +1,6 @@
 package art.yesulin.file.application.storage;
 
+import java.time.Duration;
 import java.util.Optional;
 
 public interface ObjectStorage {
@@ -11,6 +12,10 @@ public interface ObjectStorage {
 
     /** 서버가 외부에서 받은 파일을 그대로 올린다. 키마다 내용이 바뀌지 않는 객체에만 쓴다. */
     void put(String objectKey, ObjectUpload upload);
+
+    default void put(String objectKey, ObjectUpload upload, Duration timeout) {
+        put(objectKey, upload);
+    }
 
     /**
      * 브라우저가 올린 객체의 응답 헤더를 서버가 직접 올린 객체와 같게 바꾼다. 내용은 그대로 두고 저장소 안에서 복사하므로
@@ -30,6 +35,11 @@ public interface ObjectStorage {
     String createDownloadUrl(String objectKey);
 
     Optional<StoredObjectContent> read(String objectKey);
+
+    default Optional<StoredObjectContent> read(String objectKey, int maxBytes, Duration timeout) {
+        return inspect(objectKey).filter(metadata -> metadata.size() <= maxBytes)
+                .flatMap(metadata -> read(objectKey)).filter(object -> object.bytes().length <= maxBytes);
+    }
 
     void delete(String objectKey);
 

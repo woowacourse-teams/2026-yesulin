@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
 
-export const sidebarActionClass = "grid h-11 w-11 shrink-0 place-items-center rounded-control text-sidebar-muted hover:bg-sidebar-hover hover:text-white";
+const sidebarActionClass = "grid h-11 w-11 shrink-0 place-items-center rounded-control text-sidebar-muted hover:bg-sidebar-hover hover:text-white";
 
 type SidebarItemProps = {
   readonly href: string;
@@ -10,10 +9,9 @@ type SidebarItemProps = {
   readonly exact?: boolean;
   readonly createLink?: { readonly href: string; readonly label: string };
   readonly onNavigate?: () => void;
-  readonly children?: ReactNode;
 };
 
-export function ProducerSidebarItem({ href, label, exact = false, createLink, onNavigate, children }: SidebarItemProps) {
+export function ProducerSidebarItem({ href, label, exact = false, createLink, onNavigate }: SidebarItemProps) {
   const pathname = usePathname();
   let current: "page" | "location" | undefined;
   if (!exact && pathname.startsWith(`${href}/`)) current = "location";
@@ -30,7 +28,6 @@ export function ProducerSidebarItem({ href, label, exact = false, createLink, on
       >
         {label}
       </Link>
-      {children}
       {createLink && (
         <Link href={createLink.href} onClick={onNavigate} aria-label={createLink.label} title={createLink.label} className={`${sidebarActionClass} text-lg`}>
           <span aria-hidden="true">+</span>

@@ -133,6 +133,7 @@ public class AuditionPostWriteService {
             AuditionPost post = repository.saveAndFlush(
                     AuditionPost.write(content, command.tags(), postFiles, adminId, now)
             );
+            fileStorage.enqueueCard(post.images());
             audit(adminId, post, AdminAction.AUDITION_POST_WRITTEN, "직접 작성");
             countQuery.invalidateAfterCommit();
             return AdminAuditionPostResult.from(post, LocalDate.ofInstant(now, KOREA), null);
@@ -156,6 +157,7 @@ public class AuditionPostWriteService {
             AuditionPost post = repository.saveAndFlush(
                     AuditionPost.publishByOwner(content, command.tags(), postFiles, ownerId, now)
             );
+            fileStorage.enqueueCard(post.images());
             eventPublisher.publishEvent(new ProducerAuditionPostPublishedEvent(
                     post.getId(), producer.getCompanyName(), content.getCategory(), content.getTitle(),
                     content.getPay(), content.getDeadlineText()
@@ -216,10 +218,11 @@ public class AuditionPostWriteService {
     /** 잠근 공고에 고친 내용을 넣는다. 본문을 보내지 않았으면 본문과 사진은 그대로 둔다. */
     private Applied applyEdit(AuditionPost post, long editorId, AuditionPostWriteCommand command, String authorName) {
         AuditionPostContent current = post.getContent();
-        AuditionPostChange.Before before = AuditionPostChange.Before.of(post);
+        final AuditionPostChange.Before before = AuditionPostChange.Before.of(post);
         FileLookup files = new FileLookup(editorId, post.getFiles());
         String bodyHtml = current.getBodyHtml();
-        List<AuditionPostFile> images = post.images();
+        final List<AuditionPostFile> originalImages = post.images();
+        List<AuditionPostFile> images = originalImages;
         if (command.bodyHtml() != null) {
             AuditionPostEditorBody.Result body = AuditionPostEditorBody.toStored(command.bodyHtml(), files::image);
             bodyHtml = body.bodyHtml();
@@ -230,6 +233,7 @@ public class AuditionPostWriteService {
                 content(command, authorName, current.getSourcePostedAt(), bodyHtml), command.tags(),
                 files.withAttachments(images, command.attachmentUrls()), editorId, now
         );
+        fileStorage.enqueueReplacedCard(originalImages, post.images());
         countQuery.invalidateAfterCommit();
         return new Applied(removed, before.changesTo(post), LocalDate.ofInstant(now, KOREA));
     }

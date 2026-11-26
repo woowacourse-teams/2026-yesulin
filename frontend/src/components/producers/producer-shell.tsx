@@ -6,7 +6,6 @@ import { useAuthSession } from "@/components/auth/auth-session";
 import { SecondaryLink } from "@/components/ui/controls";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { ModalShell } from "@/components/auditions/modal-shell";
-import { OtrAuditionProvider } from "@/components/otr-auditions/otr-audition-context";
 import { SidebarResizer } from "./sidebar-resizer";
 import { MobileProducerNavigation } from "./mobile-producer-navigation";
 import { ProducerAccountPanel } from "./producer-account-panel";
@@ -14,21 +13,18 @@ import { ProducerNavigationProvider } from "./producer-navigation-context";
 import { ProducerSidebarHeader } from "./producer-sidebar-header";
 import { ProducerSidebarMenu } from "./producer-sidebar-menu";
 import { ProducerSidebarToggle } from "./producer-sidebar-toggle";
+import { SidebarSlotProvider } from "./sidebar-slot";
 import { ProducerDashboardLink } from "./producer-dashboard-link";
 import { useRouteDisclosure } from "./use-route-disclosure";
 
 const DESKTOP_NAVIGATION_TITLE = "focused-producer-navigation-title";
-const REVIEW_PATH = /^\/producers\/(?:roles\/[^/]+|otr-auditions\/[^/]+\/roles\/[^/]+)\/submissions\/[^/]+$/;
+const REVIEW_PATH = /^\/producers\/roles\/[^/]+\/submissions\/[^/]+$/;
 
 export function ProducerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { session } = useAuthSession();
   const accountKey = `${session?.credential ?? "mock"}:${session?.producerStatus ?? "ACTIVE"}`;
-  return (
-    <OtrAuditionProvider key={accountKey} enabled={session?.producerStatus !== "PENDING"}>
-      <ProducerShellFrame pathname={pathname} focusMode={REVIEW_PATH.test(pathname)}>{children}</ProducerShellFrame>
-    </OtrAuditionProvider>
-  );
+  return <ProducerShellFrame key={accountKey} pathname={pathname} focusMode={REVIEW_PATH.test(pathname)}>{children}</ProducerShellFrame>;
 }
 
 function ProducerShellFrame({
@@ -59,6 +55,7 @@ function ProducerShellFrame({
         },
       }}
     >
+      <SidebarSlotProvider>
       <div className="min-h-screen">
         <a
           href="#producer-main"
@@ -71,7 +68,7 @@ function ProducerShellFrame({
           <>
             <aside className="fixed bottom-0 left-0 top-0 z-30 hidden flex-col overflow-hidden rounded-r-modal border-r border-sidebar-line bg-sidebar text-sidebar-text lg:flex lg:w-[var(--sidebar-width)]">
               <ProducerSidebarHeader onClose={() => setDesktopSidebarOpen(false)} />
-              <ProducerSidebarMenu />
+              <ProducerSidebarMenu reviewSlot="desktop" />
               <ProducerAccountPanel />
             </aside>
             <SidebarResizer />
@@ -93,19 +90,20 @@ function ProducerShellFrame({
 
         <div className={`min-w-0 ${focusMode || !desktopSidebarOpen ? "" : "lg:ml-[var(--sidebar-width)]"}`}>
           <MobileProducerNavigation />
-          <div className="glass-surface hidden min-h-16 items-center gap-2 border-b border-border px-6 py-2 lg:flex">
+          {(focusMode || !desktopSidebarOpen) && <div className="glass-surface hidden min-h-16 items-center gap-2 border-b border-border px-6 py-2 lg:flex">
             {!focusMode ? <ProducerSidebarToggle /> : null}
             <ProducerDashboardLink />
             <div className="ml-auto flex items-center gap-2">
               <SecondaryLink href="/">예술in 홈</SecondaryLink>
               <LogoutButton className="min-h-11 rounded-control px-3 text-sm font-semibold text-muted-strong hover:bg-brand-soft hover:text-brand" />
             </div>
-          </div>
+          </div>}
           <main id="producer-main" className="min-h-screen">
             {children}
           </main>
         </div>
       </div>
+      </SidebarSlotProvider>
     </ProducerNavigationProvider>
   );
 }

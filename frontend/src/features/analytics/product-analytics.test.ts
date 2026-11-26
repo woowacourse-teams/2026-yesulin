@@ -88,6 +88,29 @@ describe("PostHog 수집 경계", () => {
     await trackPostView(12, "exploration");
     expect(sdk.capture.mock.calls.filter(c => c[0] === "another_post_viewed")).toHaveLength(1);
   });
+  it("주소 정리 뒤에도 리마인드 속성을 해당 공고의 유입 이벤트 한 건에만 보낸다", async () => {
+    window.history.replaceState(null, "", "/posts/10");
+    const { trackPostView } = await import("./product-analytics");
+    await trackPostView(10, "reminder-view", null, "deadline_reminder_20261127_d1");
+    await trackPostView(10, "reminder-view", null, "deadline_reminder_20261127_d1");
+    await trackPostView(11, "exploration");
+    window.history.replaceState(null, "", "/posts/10?src=kakao_openchat");
+    await trackPostView(10, "regular-view");
+    const landings = sdk.capture.mock.calls.filter(c => c[0] === "openchat_landed");
+    expect(landings).toHaveLength(2);
+    expect(landings[0][1]).toMatchObject({ post_id: "10", reminder_campaign: "deadline_reminder_20261127_d1", acquisition_channel: "openchat" });
+    expect(landings[1][1]).not.toHaveProperty("reminder_campaign");
+    const otherEvents = sdk.capture.mock.calls.filter(c => c[0] !== "openchat_landed");
+    expect(otherEvents.every(c => !("reminder_campaign" in c[1]))).toBe(true);
+  });
+
+  it("리마인드 방문도 분석 거부 상태에서는 저장하거나 보내지 않는다", async () => {
+    localStorage.setItem("yesulin:analytics-consent:v1", "denied");
+    const { trackPostView } = await import("./product-analytics");
+    expect(await trackPostView(10, "reminder-view", null, "deadline_reminder_20261127_d1")).toBe(false);
+    expect(sdk.capture).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem("yesulin:acquisition:v1")).toBeNull();
+  });
   it("거부한 브라우저에서는 세션 조회와 SDK 초기화도 하지 않는다", async () => {
     localStorage.setItem("yesulin:analytics-consent:v1", "denied");
     const { trackProductEvent } = await import("./product-analytics");
@@ -126,7 +149,7 @@ describe("PostHog 수집 경계", () => {
     const { startProductAnalytics } = await import("./product-analytics"); await startProductAnalytics();
     const clean = init.mock.calls[0][1].before_send({ event: "audition_post_viewed", properties: {
       token: "phc_test", distinct_id: "anonymous", post_id: "10", acquisition_channel: "private-name", attribution_version: 42, $current_url: "https://example.com/private", $title: "지원자 이름",
-      email: "private@example.com", $referrer: "https://example.com/token",
+      email: "private@example.com", $referrer: "https://example.com/token", reminder_campaign: "deadline_reminder_20261199_d1",
     }, $set_once: { $initial_current_url: "https://private" }, $set: { name: "홍길동" } });
     expect(clean.properties).toEqual({ token: "phc_test", distinct_id: "anonymous", post_id: "10" });
     expect(clean.$set_once).toBeUndefined(); expect(clean.$set).toBeUndefined();

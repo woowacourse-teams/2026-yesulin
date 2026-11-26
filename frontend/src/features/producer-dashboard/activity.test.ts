@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import type { ProducerAuditionPost } from "@/features/audition-posts/producer-api";
-import type { OtrAudition } from "@/features/otr-auditions/types";
 import type { ReviewSummary } from "@/features/pdf-reviews/types";
 import type { ProducerShowSummary } from "@/features/shows/types";
 import { getRecentDashboardWork, getUpcomingDashboardSchedule, hasStartedShowSession, isPublicProducerShow, isRecruitingPost } from "./activity";
@@ -26,10 +25,6 @@ function show(overrides: Partial<ProducerShowSummary> = {}): ProducerShowSummary
   };
 }
 
-function intake(id: string, deadline: string): OtrAudition {
-  return { id, title: "접수 공고", deadline, otrId: "1", otrLink: "", applicationPath: "", roles: [], createdAt: "2026-10-01T00:00:00Z" };
-}
-
 describe("공연사 대시보드", () => {
   it("공개 상태로 모집 중인 공고와 숨김·작성 중이 아닌 무료 공연을 집계한다", () => {
     expect([post(), post({ closed: true }), post({ status: "PENDING" }), post({ status: "HIDDEN" })].filter(isRecruitingPost)).toHaveLength(1);
@@ -45,13 +40,12 @@ describe("공연사 대시보드", () => {
     expect(getRecentDashboardWork([post({ updatedAt: "2026-10-18T05:59:59Z" })], [review("invalid")], now)).toEqual([]);
   });
 
-  it("한국 시간의 당일 지원 마감은 포함하고 시작한 회차나 비공개 공연을 빼고 가까운 일정을 보여준다", () => {
+  it("시작한 회차나 비공개 공연을 빼고 가까운 공연 일정을 보여준다", () => {
     const shows = [show(), show({ hidden: true, nextSessionStartsAt: "2026-11-17T07:00:00Z" }), show({ nextSessionStartsAt: "2026-11-17T06:00:00Z" })];
-    const auditions = [intake("past", "2026-11-16"), intake("today", "2026-11-17"), intake("tomorrow", "2026-11-18")];
-    const rows = getUpcomingDashboardSchedule(auditions, shows, now);
-    expect(rows.map((row) => row.key)).toEqual(["show-show-1", "deadline-today"]);
-    expect(rows[0]?.detail).toBe("공연 회차 · 21:00");
-    expect(getUpcomingDashboardSchedule([auditions[1]!], [], Date.parse("2026-11-17T15:00:00Z"))).toEqual([]);
+    const rows = getUpcomingDashboardSchedule(shows, now);
+    expect(rows.map((row) => row.key)).toEqual(["show-show-1"]);
+    expect(rows[0]?.detail).toBe("공연 회차 21:00");
+    expect(getUpcomingDashboardSchedule(shows, Date.parse("2026-11-17T15:00:00Z"))).toEqual([]);
   });
 
   it("열어 둔 대시보드에서 공개 공연의 회차가 시작되는 경계만 감지한다", () => {

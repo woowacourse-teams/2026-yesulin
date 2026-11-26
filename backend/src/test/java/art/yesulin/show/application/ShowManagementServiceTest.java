@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import art.yesulin.file.application.thumbnail.PosterThumbnails;
 import art.yesulin.file.domain.FileAssetRepository;
 import art.yesulin.file.domain.FileErrorCode;
 import art.yesulin.file.domain.FileReferenceRepository;
@@ -102,6 +103,9 @@ class ShowManagementServiceTest {
     private FileAssetRepository fileAssetRepository;
 
     @Autowired
+    private PosterThumbnails thumbnails;
+
+    @Autowired
     private FileReferenceRepository fileReferenceRepository;
 
     @Autowired
@@ -137,6 +141,10 @@ class ShowManagementServiceTest {
                 "SHOW_POSTER", showId, posterFileId));
         assertTrue(fileReferenceRepository.existsByReferenceTypeAndReferenceIdAndFileId(
                 "SHOW_IMAGE", showId, imageFileId));
+        assertEquals("PENDING", thumbnails.stateOf(fileAssetRepository.findById(posterFileId)
+                .orElseThrow().getObjectKey()));
+        assertEquals("UNQUEUED", thumbnails.stateOf(fileAssetRepository.findById(imageFileId)
+                .orElseThrow().getObjectKey()));
     }
 
     @Test

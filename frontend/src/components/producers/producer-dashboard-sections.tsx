@@ -100,7 +100,7 @@ function DashboardListRow({ row }: { readonly row: DashboardRow }) {
 }
 
 function RowMarker({ row }: { readonly row: DashboardRow }) {
-  if (row.kind === "show" || row.kind === "deadline") return <DateTile row={row} />;
+  if (row.kind === "show") return <DateTile row={row} />;
   let Icon = PiFileText;
   if (row.kind === "pdf") Icon = PiTray;
   return <span className="grid size-10 place-items-center rounded-control bg-surface text-muted-strong sm:size-11"><Icon aria-hidden="true" className="size-[18px]" /></span>;
@@ -108,8 +108,7 @@ function RowMarker({ row }: { readonly row: DashboardRow }) {
 
 function DateTile({ row }: { readonly row: DashboardRow }) {
   const [, month, day] = toKstDateTimeInput(new Date(row.at).toISOString()).slice(0, 10).split("-");
-  let tone = "border-border bg-surface text-foreground";
-  if (row.kind === "deadline") tone = "border-brand-line bg-brand-soft text-brand-pressed";
+  const tone = "border-border bg-surface text-foreground";
   return (
     <time dateTime={row.dateTime} className={`num grid h-12 place-content-center justify-items-center rounded-control border leading-none ${tone}`}>
       <span className="text-[11px] font-semibold">{Number(month)}월</span>{" "}
@@ -122,7 +121,7 @@ function RowDetail({ row }: { readonly row: DashboardRow }) {
   return (
     <p className="num mt-1 text-xs text-muted-strong">
       {row.detail}
-      {row.kind === "post" && <> · <time dateTime={row.dateTime}>{formatShowDate(row.dateTime)}</time> 업데이트</>}
+      {row.kind === "post" && <>, <time dateTime={row.dateTime}>{formatShowDate(row.dateTime)}</time> 업데이트</>}
     </p>
   );
 }

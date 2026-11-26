@@ -33,12 +33,12 @@ const post: AuditionPost = {
 
 describe("공유 이미지 주소", () => {
   it("Vercel preview에서는 dev 배포의 이미지를 가리킨다", () => {
-    expect(shareImageUrl("preview")).toBe("https://dev.yesulin.art/images/og-image.png?v=20261106-open-door");
+    expect(shareImageUrl("preview")).toBe("https://dev.yesulin.art/images/og-image-20261124-open-door.png");
   });
 
   it("production과 local에서는 메타데이터 base의 같은 origin 이미지 경로를 쓴다", () => {
-    expect(shareImageUrl("production")).toBe("/images/og-image.png?v=20261106-open-door");
-    expect(shareImageUrl(undefined)).toBe("/images/og-image.png?v=20261106-open-door");
+    expect(shareImageUrl("production")).toBe("/images/og-image-20261124-open-door.png");
+    expect(shareImageUrl(undefined)).toBe("/images/og-image-20261124-open-door.png");
   });
 });
 

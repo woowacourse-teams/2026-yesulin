@@ -43,7 +43,7 @@ export function RosterScheduleEditor({ actors, value, onChange, disabled }: {
       </div>
       {!value.selected.length && !value.batchDate && !value.batchTime && <p className="text-sm text-muted-strong">사람을 선택하면 한 번에 배정할 수 있어요.</p>}
     </div>
-    <div className={styles.columnHead} aria-hidden="true"><span>이름 · 배역</span><span>날짜</span><span>시간</span><span className="text-right">배정 관리</span></div>
+    <div className={styles.columnHead} aria-hidden="true"><span>이름과 배역</span><span>날짜</span><span>시간</span><span className="text-right">배정 관리</span></div>
     <ul className="divide-y divide-border">{actors.map(actor => {
       const draft = draftFor(value, actor);
       const error = slotError(draft.date, draft.time);
@@ -60,7 +60,7 @@ export function RosterScheduleEditor({ actors, value, onChange, disabled }: {
           </div>
           <p className="sr-only">저장된 시간: {slotLabel(actor.slot)}</p>
           {dirty && <p className="ml-7 mt-1 text-xs text-muted-strong num">저장된 시간: {slotLabel(actor.slot)}</p>}
-          {actor.sourceDecision !== "PASS" && <p className="text-sm text-warn">서류 판정 변경 · 확인 필요</p>}
+          {actor.sourceDecision !== "PASS" && <p className="text-sm text-warn">서류 판정 변경, 확인 필요</p>}
           {dirty && <span className="ml-7 mt-1 inline-block text-xs font-semibold text-brand">저장 전 변경</span>}
         </div>
         <label className="min-w-0 text-sm font-medium"><span className={styles.fieldLabel}>날짜</span><FieldInput aria-label={`${actor.name} 배정 날짜`} type="date" min="1000-01-01" max="9999-12-31"
@@ -85,7 +85,7 @@ export function RosterScheduleActions({ value, onChange, onSave, disabled, feedb
   const invalid = Object.values(value.drafts).some(draft => !!slotError(draft.date, draft.time));
   return <div aria-label="배정 저장 도구" className={`sticky bottom-0 z-10 space-y-2 border-t bg-card px-3 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] ${changed ? "border-brand-line shadow-[var(--shadow-1)]" : "border-border"}`}>
     {feedback}
-    {context && <p className="text-xs font-semibold text-brand">날짜·시간 배정의 저장 전 변경</p>}
+    {context && <p className="text-xs font-semibold text-brand">날짜와 시간 배정의 저장 전 변경</p>}
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div><p role="status" className="text-sm font-semibold">{changed ? `${changed}명의 배정이 변경되었습니다.` : "저장할 배정 변경이 없습니다."}</p>
         {(value.batchDate || value.batchTime) && <p className="mt-1 text-sm text-muted-strong">일괄 입력은 ‘선택한 사람에게 적용’을 눌러야 저장 대상에 포함됩니다.</p>}

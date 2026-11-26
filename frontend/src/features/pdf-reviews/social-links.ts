@@ -8,7 +8,7 @@ export function socialLink(value: string): PdfSocialLink | null {
     const host = url.hostname.toLowerCase().replace(/^(www|m)\./, "");
     if (host === "instagram.com") {
       const path = url.pathname.split('/').filter(Boolean);
-      const account = path[0] && !['p', 'reel', 'reels', 'stories'].includes(path[0]) ? ` · @${path[0]}` : "";
+      const account = path[0] && !['p', 'reel', 'reels', 'stories'].includes(path[0]) ? ` @${path[0]}` : "";
       return { url: url.href, platform: "INSTAGRAM", label: `인스타그램${account}` };
     }
     if (host === "youtube.com" || host === "youtu.be") return { url: url.href, platform: "YOUTUBE", label: "유튜브" };

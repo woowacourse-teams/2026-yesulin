@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { ModalShell } from "@/components/auditions/modal-shell";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/controls";
 import { usePassedContacts, type PassedContact } from "@/features/pdf-reviews/use-passed-contacts";
-import type { ReviewKey } from "@/features/pdf-reviews/types";
+import { reviewContactName, reviewEntryTitle, type ReviewKey } from "@/features/pdf-reviews/types";
 import { contactLabels, emailLabels, contactsClipboardText } from "@/features/pdf-reviews/contact-copy";
 import { ReviewOriginalDocument } from "./review-original-document";
 import { ReviewTimetablePanel } from "./review-timetable-panel";
@@ -37,7 +37,7 @@ export function ReviewPassedContacts({ reviewId, onBack, onUnauthorized, onDirty
     setCopying(true); setCopied(""); setManualCopy("");
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(`${targets.length}명의 이름·배역·전화번호·이메일을 복사했습니다. 원하는 곳에 붙여 넣으세요.`);
+      setCopied(`${targets.length}명의 이름, 배역, 전화번호, 이메일을 복사했습니다. 원하는 곳에 붙여 넣으세요.`);
     } catch {
       setManualCopy(text);
     } finally { setCopying(false); }
@@ -72,27 +72,27 @@ export function ReviewPassedContacts({ reviewId, onBack, onUnauthorized, onDirty
           <textarea ref={manualField} id="manual-contact-copy" readOnly value={manualCopy} rows={5} className="w-full rounded-control border border-border bg-card p-3 text-sm" onFocus={event => event.currentTarget.select()} />
           <SecondaryButton onClick={() => setManualCopy("")}>복사 내용 닫기</SecondaryButton>
         </div>}
-        <p role="status" className="mb-3 text-sm text-muted-strong">{loading && !rows.length ? "합격자 명단을 불러오는 중…" : `합격 ${rows.length}명 · 번호 확인 ${found}명 · 이메일 확인 ${emailsFound}명${loading ? " · 연락처를 불러오는 중…" : ""}`}</p>
+        <p role="status" className="mb-3 text-sm text-muted-strong">{loading && !rows.length ? "합격자 명단을 불러오는 중…" : `합격 ${rows.length}명, 번호 확인 ${found}명, 이메일 확인 ${emailsFound}명${loading ? ", 연락처를 불러오는 중…" : ""}`}</p>
         {!loading && !rows.length ? <div className="rounded-card border border-border bg-card px-5 py-12 text-center">
           <p className="font-semibold">아직 합격 처리한 지원자가 없습니다.</p><p className="mt-2 text-sm text-muted">심사에서 합격으로 저장한 지원자가 여기에 표시됩니다.</p>
         </div> : rows.length > 0 && <div className="overflow-x-auto rounded-card border border-border bg-card">
           <table className="w-full min-w-[800px] text-left text-sm">
-            <caption className="sr-only">전체 배역 합격자 이름과 전화번호·이메일</caption>
+            <caption className="sr-only">전체 배역 합격자 이름과 전화번호, 이메일</caption>
             <thead className="border-b border-border bg-surface text-muted-strong"><tr>
               <th scope="col" className="px-3 py-3"><span className="sr-only">선택</span></th>
               <th scope="col" className="px-4 py-3 font-semibold">이름</th><th scope="col" className="px-4 py-3 font-semibold">배역</th>
               <th scope="col" className="px-4 py-3 font-semibold">전화번호</th><th scope="col" className="px-4 py-3 font-semibold">이메일</th><th scope="col" className="px-4 py-3 font-semibold">원문</th>
             </tr></thead>
             <tbody className="divide-y divide-border-soft">{rows.map(({ entry, roleName, contact, email }) => <tr key={entry.id}>
-              <td className="px-2"><label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center"><span className="sr-only">{entry.title || entry.applicantName || entry.originalFilename} 대상 선택</span><input type="checkbox" className="h-5 w-5 accent-brand" disabled={loading || copying} checked={selected.has(String(entry.id))} onChange={event => { setCopied(""); setManualCopy(""); setSelected(current => { const next = new Set(current); if (event.target.checked) next.add(String(entry.id)); else next.delete(String(entry.id)); return next; }); }} /></label></td>
-              <th scope="row" className="max-w-[280px] px-4 py-4 font-normal"><span className="font-semibold">{entry.title || entry.applicantName || "이름 미입력"}</span>
+              <td className="px-2"><label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center"><span className="sr-only">{reviewContactName(entry) || reviewEntryTitle(entry)} 대상 선택</span><input type="checkbox" className="h-5 w-5 accent-brand" disabled={loading || copying} checked={selected.has(String(entry.id))} onChange={event => { setCopied(""); setManualCopy(""); setSelected(current => { const next = new Set(current); if (event.target.checked) next.add(String(entry.id)); else next.delete(String(entry.id)); return next; }); }} /></label></td>
+              <th scope="row" className="max-w-[280px] px-4 py-4 font-normal"><span className="font-semibold">{reviewContactName(entry) || "이름 미입력"}</span>
                 <span className="mt-1 block break-all text-xs text-muted">{entry.originalFilename}</span></th>
               <td className="max-w-[180px] break-words px-4 py-4">{roleName}</td>
               <td className="whitespace-nowrap px-4 py-4">{contact.status === "FOUND" ? <span className="num select-all font-medium">{contact.phone}</span>
                 : <span className={contact.status === "ERROR" ? "text-fail" : "text-muted-strong"}>{contactLabels[contact.status]}</span>}</td>
               <td className="min-w-48 max-w-64 break-all px-4 py-4">{email.status === "FOUND" ? <span className="select-all font-medium">{email.email}</span>
                 : <span className={email.status === "ERROR" ? "text-fail" : "text-muted-strong"}>{emailLabels[email.status]}</span>}</td>
-              <td className="px-4 py-3"><SecondaryButton aria-label={`${entry.title || entry.applicantName || entry.originalFilename} 원본 PDF 보기`} onClick={() => { trackOriginalPdfClick(String(reviewId), String(entry.id), "passed_contacts"); setDocumentJobId(entry.jobId); }}>PDF 보기</SecondaryButton></td>
+              <td className="px-4 py-3"><SecondaryButton aria-label={`${reviewContactName(entry) || reviewEntryTitle(entry)} 원본 PDF 보기`} onClick={() => { trackOriginalPdfClick(String(reviewId), String(entry.id), "passed_contacts"); setDocumentJobId(entry.jobId); }}>PDF 보기</SecondaryButton></td>
             </tr>)}</tbody>
           </table>
         </div>}

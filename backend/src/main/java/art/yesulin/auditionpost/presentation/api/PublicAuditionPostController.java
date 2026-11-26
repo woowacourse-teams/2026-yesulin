@@ -1,6 +1,7 @@
 package art.yesulin.auditionpost.presentation.api;
 
 import art.yesulin.auditionpost.application.AuditionPostService;
+import art.yesulin.auditionpost.application.AuditionPostViewCountService;
 import art.yesulin.auditionpost.application.PublicAuditionPostPageResult;
 import art.yesulin.auditionpost.application.PublicAuditionPostResult;
 import art.yesulin.auditionpost.application.PublicAuditionPostView;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PublicAuditionPostController {
 
     private final AuditionPostService auditionPostService;
+    private final AuditionPostViewCountService viewCountService;
 
     @GetMapping
     public ResponseEntity<PublicAuditionPostPageResult> findAll(
@@ -37,7 +39,7 @@ public class PublicAuditionPostController {
     /** 상세 화면이 열릴 때 브라우저가 한 번 보낸다. 서버 렌더링과 메타데이터 조회는 세지 않는다. */
     @PostMapping("/{postId}/views")
     public ResponseEntity<Void> view(@PathVariable long postId) {
-        auditionPostService.increaseViewCount(postId);
+        viewCountService.record(postId);
         return ResponseEntity.noContent().build();
     }
 

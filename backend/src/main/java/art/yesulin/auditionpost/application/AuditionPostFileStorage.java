@@ -6,6 +6,7 @@ import art.yesulin.file.application.storage.ObjectStorage;
 import art.yesulin.file.application.storage.ObjectUpload;
 import art.yesulin.file.application.storage.PresignedUpload;
 import art.yesulin.file.application.storage.StoredObjectMetadata;
+import art.yesulin.file.application.thumbnail.PosterThumbnails;
 import java.io.InputStream;
 import java.time.Clock;
 import java.time.ZoneOffset;
@@ -38,6 +39,20 @@ public class AuditionPostFileStorage {
 
     private final ObjectStorage storage;
     private final Clock clock;
+    private final PosterThumbnails thumbnails;
+
+    public void enqueueCard(List<AuditionPostFile> images) {
+        firstImageKey(images).ifPresent(thumbnails::enqueue);
+    }
+
+    public void enqueueReplacedCard(List<AuditionPostFile> before, List<AuditionPostFile> after) {
+        Optional<String> previous = firstImageKey(before);
+        firstImageKey(after).filter(key -> !previous.equals(Optional.of(key))).ifPresent(thumbnails::enqueue);
+    }
+
+    private Optional<String> firstImageKey(List<AuditionPostFile> images) {
+        return images.stream().findFirst().map(AuditionPostFile::getObjectKey);
+    }
 
     /**
      * 서버가 받은 파일을 그대로 올린다. 첨부는 브라우저가 열지 않고 원래 이름으로 내려받게 한다.
@@ -102,14 +117,25 @@ public class AuditionPostFileStorage {
     /**
      * 저장소 객체 하나를 지운다. 실패는 기록만 하고, 호출자가 다음에 다시 시도할 수 있게 결과를 알려 준다.
      *
-     * @return 지웠으면 true
+     * @return 썸네일 정리 등록과 원본 삭제가 모두 성공했으면 true
      */
     public boolean tryDelete(String objectKey) {
+        boolean thumbnailRetired = retireThumbnail(objectKey);
         try {
             storage.delete(objectKey);
-            return true;
+            return thumbnailRetired;
         } catch (RuntimeException exception) {
             log.warn("공고 파일 정리 실패: {}", exception.getClass().getSimpleName());
+            return false;
+        }
+    }
+
+    private boolean retireThumbnail(String objectKey) {
+        try {
+            thumbnails.retire(objectKey);
+            return true;
+        } catch (RuntimeException exception) {
+            log.warn("공고 썸네일 정리 등록 실패: {}", exception.getClass().getSimpleName());
             return false;
         }
     }

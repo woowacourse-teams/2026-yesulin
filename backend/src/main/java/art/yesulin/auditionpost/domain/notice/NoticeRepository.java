@@ -8,13 +8,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface NoticeRepository extends JpaRepository<Notice, Long> {
 
+    @Transactional
     @Modifying(clearAutomatically = true)
-    @Query("update Notice n set n.openChatVisitCount = n.openChatVisitCount + 1"
+    @Query("update Notice n set n.openChatVisitCount = n.openChatVisitCount + :amount"
             + " where n.source = :source and n.externalId = :externalId")
-    int increaseOpenChatVisitCount(@Param("source") String source, @Param("externalId") String externalId);
+    int addOpenChatVisitCount(
+            @Param("source") String source, @Param("externalId") String externalId, @Param("amount") long amount);
 
     boolean existsBySourceAndExternalId(String source, String externalId);
 

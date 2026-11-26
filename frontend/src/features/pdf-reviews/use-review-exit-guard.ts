@@ -1,8 +1,13 @@
 "use client";
 import { useEffect, useEffectEvent } from "react";
 
-export function useReviewExitGuard(enabled: boolean, guard: (action: () => void) => void, push: (href: string) => void) {
+export function useReviewExitGuard(enabled: boolean, guard: (action: () => void) => void, push: (href: string) => void, stay?: () => void) {
   const exit = useEffectEvent((href: string) => guard(() => push(href)));
+  const reopen = useEffectEvent(() => {
+    if (!stay) return false;
+    guard(stay);
+    return true;
+  });
   useEffect(() => {
     if (!enabled) return;
     const click = (event: MouseEvent) => {
@@ -11,11 +16,16 @@ export function useReviewExitGuard(enabled: boolean, guard: (action: () => void)
       const link = event.target.closest<HTMLAnchorElement>("a[href]");
       if (!link || link.hasAttribute("download") || link.target && link.target !== "_self") return;
       const url = new URL(link.href, window.location.href);
-      if (url.origin !== window.location.origin || url.pathname === window.location.pathname && url.search === window.location.search) return;
+      if (url.origin !== window.location.origin) return;
+      if (samePage(url)) { if (!url.hash && reopen()) event.preventDefault(); return; }
       event.preventDefault(); event.stopPropagation();
       exit(url.pathname + url.search + url.hash);
     };
     document.addEventListener("click", click, true);
     return () => document.removeEventListener("click", click, true);
   }, [enabled]);
+}
+
+function samePage(url: URL) {
+  return url.pathname === window.location.pathname && url.search === window.location.search;
 }

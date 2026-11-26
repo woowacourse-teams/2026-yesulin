@@ -78,6 +78,24 @@ class AuditExtractionServiceTest {
     }
 
     @Test
+    void disabledAiMakesExtractedApplicantReadyWithoutReviewWarning() {
+        givenAiJob(job -> job.skip("DISABLED", NOW));
+
+        service.applyExtraction("job-1", OWNER, "이름: 가상배우");
+
+        assertEquals(AuditApplicantStatus.READY, applicant.getProcessingStatus());
+    }
+
+    @Test
+    void disabledAiStillAsksToCheckOriginalWhenNoTextWasExtracted() {
+        givenAiJob(job -> job.skip("DISABLED", NOW));
+
+        service.applyExtraction("job-1", OWNER, " ");
+
+        assertEquals(AuditApplicantStatus.NEEDS_REVIEW, applicant.getProcessingStatus());
+    }
+
+    @Test
     void failedExtractionMarksApplicantFailed() {
         givenAiJob(job -> job.skip("EXTRACTION_FAILED", NOW));
 

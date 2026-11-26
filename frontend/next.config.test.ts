@@ -61,7 +61,7 @@ describe("search exclusion outside production", () => {
     vi.stubEnv("VERCEL_ENV", vercelEnv);
     const { default: nextConfig } = await import("./next.config");
 
-    for (const path of ["/", "/posts/135", "/sitemap.xml", "/images/og-image.png"]) {
+    for (const path of ["/", "/posts/135", "/sitemap.xml", "/images/og-image-20261124-open-door.png"]) {
       const response = await unstable_getResponseFromNextConfig({ url: `https://dev.yesulin.art${path}`, nextConfig });
       expect(response.headers.get("x-robots-tag")).toBe("noindex");
     }

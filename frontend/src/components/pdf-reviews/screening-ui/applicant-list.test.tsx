@@ -6,7 +6,6 @@ import { screeningApplicant } from "@/features/pdf-reviews/screening-adapter";
 import type { ReviewDetail, ReviewEntry } from "@/features/pdf-reviews/types";
 import { ReviewUploadPanel } from "../review-upload-panel";
 import { ApplicantCards } from "./applicant-cards";
-import { ApplicantTable } from "./applicant-table";
 import { BoardProvider, type BoardContextValue } from "./board-context";
 
 let root: Root;
@@ -31,31 +30,26 @@ beforeEach(() => {
 });
 afterEach(() => { act(() => root.unmount()); vi.unstubAllGlobals(); });
 
-describe("PDF 심사 카드·표 목록", () => {
-  it("카드는 파일 이름을 제목으로 쓰고 자리 표시와 자동 추출 이름을 보이지 않는다", async () => {
+describe("PDF 심사 지원자 목록", () => {
+  it("카드는 기본 파일명 또는 수동 제목을 한 번만 표시한다", async () => {
     await render(<ApplicantCards rows={rows} />);
-    const titles = [...container.querySelectorAll("h3")].map(node => node.textContent);
-    expect(titles).toEqual(["plain.pdf", "named.pdf", "loading.pdf"]);
-    expect(container.textContent).toContain("가람 · 남주");
+    const titles = [...container.querySelectorAll("h2")].map(node => node.textContent);
+    expect(titles).toEqual(["plain.pdf", "가람", "loading.pdf"]);
+    const named = container.querySelectorAll("article")[1];
+    expect([...named.querySelectorAll("p span")].map(node => node.textContent)).toEqual(["남주"]);
     expect(container.textContent).not.toMatch(/이름 미입력|미배정|자동 추출 이름/);
     expect(container.textContent).toContain("업로드 중");
-  });
-
-  it("표는 파일 이름과 직접 적은 이름을 보이고 배정하지 않은 배역은 —로 둔다", async () => {
-    await render(<ApplicantTable rows={rows} />);
-    const cells = [...container.querySelectorAll("tbody tr")].map(row => [row.querySelector("th")?.textContent, row.querySelectorAll("td")[1]?.textContent]);
-    expect(cells[0]).toEqual(["plain.pdf", "—"]);
-    expect(cells[1]).toEqual(["named.pdf가람", "남주"]);
-    expect(cells[2][0]).toContain("업로드 중");
-    expect(container.textContent).not.toMatch(/이름 미입력|미배정|자동 추출 이름/);
   });
 
   it("업로드 버튼은 올리는 동안 진행 표시를 보인다", async () => {
     const props = { inputRef: createRef<HTMLInputElement>(), folderInputRef: createRef<HTMLInputElement>(), disabled: false, onChoose: vi.fn() };
     await render(<ReviewUploadPanel {...props} busy />);
-    expect(container.textContent).toContain("파일 준비·업로드 중…");
+    expect(container.textContent).toContain("파일 준비하고 올리는 중…");
     expect(container.querySelector(".animate-spin")).not.toBeNull();
     await render(<ReviewUploadPanel {...props} busy={false} />);
     expect(container.querySelector(".animate-spin")).toBeNull();
+    expect([...container.querySelectorAll('button')].map(button => [button.textContent, button.querySelector('svg')?.getAttribute('aria-hidden')])).toEqual([
+      ['폴더 선택', 'true'], ['PDF 추가', 'true'],
+    ]);
   });
 });

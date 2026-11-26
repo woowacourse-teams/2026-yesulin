@@ -2,7 +2,7 @@
 
 import { useEffect, useEffectEvent, useState } from "react";
 import type { PdfFit } from "@/components/pdf-extractions/pdf-canvas-viewer";
-import { PdfExpandableFrame, type PdfFrameState } from "@/components/pdf-extractions/pdf-expandable-frame";
+import { PdfExpandableFrame, type PdfFrameContent, type PdfFrameState } from "@/components/pdf-extractions/pdf-expandable-frame";
 import { PdfOriginalViewer } from "@/components/pdf-extractions/pdf-original-viewer";
 import { SecondaryButton } from "@/components/ui/controls";
 import { fetchPdfExtraction } from "@/features/pdf-extractions/api";
@@ -47,13 +47,13 @@ export function ReviewOriginalDocument({ jobId, onUnauthorized, frame }: Props) 
     const timer = setTimeout(() => setAttempt(value => value + 1), SOURCE_WAIT_MS);
     return () => clearTimeout(timer);
   }, [retryScheduled, current]);
-  const content = (fit: PdfFit) => {
-    if (source?.jobId === jobId && source.attempt === attempt) return <PdfOriginalViewer key={source.url} url={source.url} filename={source.filename} onRefresh={retry} fit={fit} />;
+  const content: PdfFrameContent = (fit: PdfFit, expanded = false, onPagerChange) => {
+    if (source?.jobId === jobId && source.attempt === attempt) return <PdfOriginalViewer key={source.url} url={source.url} filename={source.filename} onRefresh={retry} fit={fit} zoomScope={String(expanded)} onPagerChange={onPagerChange} />;
     if (waiting) return <LoadingStatus>원본 PDF를 올리는 중입니다…</LoadingStatus>;
     if (current) return <div className="p-6"><p role="alert" className="mb-3 text-sm text-fail">{current.message}</p><SecondaryButton onClick={retry}>원본 다시 불러오기</SecondaryButton></div>;
     return <LoadingStatus>원본 PDF를 불러오는 중입니다…</LoadingStatus>;
   };
-  if (!frame) return content("width");
+  if (!frame) return content("width", false);
   return <PdfExpandableFrame {...frame}>{content}</PdfExpandableFrame>;
 }
 

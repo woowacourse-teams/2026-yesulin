@@ -54,6 +54,7 @@ class OpenChatVisitServiceTest {
 
     @BeforeEach
     void setUp() {
+        service.flush();
         posts.deleteAll();
         notices.deleteAllInBatch();
     }
@@ -65,6 +66,7 @@ class OpenChatVisitServiceTest {
         service.recordPost(first);
         service.recordPost(first);
         service.recordPost(second);
+        service.flush();
 
         assertThat(service.findForAdmin(0, null, null).posts()).extracting("visitCount").containsExactly(2L, 1L);
     }
@@ -72,9 +74,10 @@ class OpenChatVisitServiceTest {
     @Test
     void pendingOtrIsIncludedButPrivateDirectAndMissingPostsAreRejected() {
         long id = saveOtr("123", AuditionPostStatus.PENDING);
-        AuditionPost direct = posts.saveAndFlush(AuditionPost.write(content(), List.of(), List.of(), 1L, NOW));
+        final AuditionPost direct = posts.saveAndFlush(AuditionPost.write(content(), List.of(), List.of(), 1L, NOW));
 
         service.recordPost(id);
+        service.flush();
 
         assertThat(posts.findById(id).orElseThrow().getOpenChatVisitCount()).isEqualTo(1);
         assertThatThrownBy(() -> service.recordPost(direct.getId())).isInstanceOf(BusinessException.class);
@@ -87,10 +90,45 @@ class OpenChatVisitServiceTest {
         service.recordOtr("123");
         long id = saveOtr("123", AuditionPostStatus.PUBLISHED);
         service.recordPost(id);
+        service.flush();
 
         assertThat(service.findForAdmin(0, null, null).posts().getFirst().visitCount()).isEqualTo(2);
         assertThat(notices.findBySourceAndExternalId("OTR", "123").orElseThrow().getOpenChatVisitCount())
                 .isEqualTo(1);
+    }
+
+    @Test
+    void visitsAreWrittenOnlyWhenFlushedAndAddUpExactly() {
+        long id = saveOtr("123", AuditionPostStatus.PUBLISHED);
+        notices.saveAndFlush(Notice.pending("OTR", "124"));
+        service.recordPost(id);
+        service.recordPost(id);
+        service.recordOtr("124");
+        service.recordOtr("124");
+        service.recordOtr("124");
+
+        assertThat(posts.findById(id).orElseThrow().getOpenChatVisitCount()).isZero();
+        assertThat(service.flush()).isEqualTo(2);
+        assertThat(posts.findById(id).orElseThrow().getOpenChatVisitCount()).isEqualTo(2);
+        assertThat(notices.findBySourceAndExternalId("OTR", "124").orElseThrow().getOpenChatVisitCount())
+                .isEqualTo(3);
+        assertThat(service.flush()).isZero();
+    }
+
+    @Test
+    void visitsOfPostNoLongerCountableBeforeFlushAreDropped() {
+        AuditionPost direct = AuditionPost.write(content(), List.of(), List.of(), 1L, NOW);
+        direct.changeStatus(AuditionPostStatus.PUBLISHED);
+        long id = posts.saveAndFlush(direct).getId();
+        service.recordPost(id);
+        AuditionPost hidden = posts.findById(id).orElseThrow();
+        hidden.changeStatus(AuditionPostStatus.HIDDEN);
+        posts.saveAndFlush(hidden);
+
+        service.flush();
+
+        assertThat(posts.findById(id).orElseThrow().getOpenChatVisitCount()).isZero();
+        assertThat(service.flush()).isZero();
     }
 
     @Test
@@ -106,6 +144,7 @@ class OpenChatVisitServiceTest {
                 result.get();
             }
         }
+        service.flush();
         assertThat(posts.findById(id).orElseThrow().getOpenChatVisitCount()).isEqualTo(8);
     }
 
@@ -114,6 +153,7 @@ class OpenChatVisitServiceTest {
         long id = saveOtr("123", AuditionPostStatus.PUBLISHED);
         AuditionPost stale = posts.findById(id).orElseThrow();
         service.recordPost(id);
+        service.flush();
         stale.changeStatus(AuditionPostStatus.HIDDEN);
         posts.saveAndFlush(stale);
 
@@ -155,6 +195,7 @@ class OpenChatVisitServiceTest {
         for (long id : List.of(before, first, last, after, undated)) {
             service.recordPost(id);
         }
+        service.flush();
 
         AdminOpenChatVisitsResult result = service.findForAdmin(0, start, end);
 
@@ -177,6 +218,7 @@ class OpenChatVisitServiceTest {
             long id = saveOtr(Integer.toString(index), AuditionPostStatus.PUBLISHED);
             service.recordPost(id);
         }
+        service.flush();
         LocalDate date = LocalDate.of(2026, 10, 22);
 
         AdminOpenChatVisitsResult first = service.findForAdmin(0, date, date);

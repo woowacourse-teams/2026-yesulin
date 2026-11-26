@@ -18,3 +18,15 @@ it('모바일 홈 같은 내부 링크는 진행 중 저장과 다음 메모 저
     await act(async()=>pending[1]('마지막 메모'));await saving;expect(push).toHaveBeenCalledExactlyOnceWith('/');
   } finally {act(()=>root.unmount());host.remove();store.dispose();window.history.replaceState({},'',previous);vi.unstubAllGlobals();}
 });
+it('같은 주소 링크는 저장을 거쳐 심사함 목록으로 돌아가고 메뉴 닫기 처리는 막지 않으며 본문 이동 링크는 그대로 둔다',async()=>{
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT',true);const previous=window.location.href;window.history.replaceState({},'', '/producers/pdf-reviews');
+  const push=vi.fn();const stay=vi.fn();const guard=vi.fn((action:()=>void)=>action());const onNavigate=vi.fn();
+  function Harness(){useReviewExitGuard(true,guard,push,stay);return <><a href="/producers/pdf-reviews" onClick={onNavigate}>PDF 지원서 심사</a><a href="#producer-main">본문으로 바로가기</a></>;}
+  const host=document.createElement('div');document.body.append(host);const root=createRoot(host);
+  try {
+    await act(async()=>root.render(<Harness/>));
+    const [menu,skip]=host.querySelectorAll('a');
+    await act(async()=>menu.click());expect(guard).toHaveBeenCalledOnce();expect(stay).toHaveBeenCalledOnce();expect(onNavigate).toHaveBeenCalledOnce();expect(push).not.toHaveBeenCalled();
+    await act(async()=>skip.click());expect(stay).toHaveBeenCalledOnce();expect(push).not.toHaveBeenCalled();
+  } finally {act(()=>root.unmount());host.remove();window.history.replaceState({},'',previous);vi.unstubAllGlobals();}
+});

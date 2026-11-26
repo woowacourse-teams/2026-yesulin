@@ -33,8 +33,13 @@ export type ReviewEntry = {
   readonly processingStatus?: "UPLOADING" | "EXTRACTING" | "ENRICHING" | "READY" | "NEEDS_REVIEW" | "FAILED";
 };
 
-export function reviewEntryName(entry: Pick<ReviewEntry, "title" | "applicantName">): string {
-  if (entry.title !== undefined) return entry.title;
+export function reviewEntryTitle(entry: Pick<ReviewEntry, "title" | "originalFilename">): string {
+  if (entry.title?.trim()) return entry.title;
+  return entry.originalFilename;
+}
+
+export function reviewContactName(entry: Pick<ReviewEntry, "title" | "originalFilename" | "applicantName">): string {
+  if (entry.title?.trim() && entry.title !== entry.originalFilename) return entry.title;
   return entry.applicantName ?? "";
 }
 
@@ -75,6 +80,11 @@ export type EntryFilter = "ALL" | "WAITING" | "NEEDS_CHECK" | { readonly roleId:
 
 export const sameKey = (a: ReviewKey | null | undefined, b: ReviewKey | null | undefined) =>
   a != null && b != null && String(a) === String(b);
+
+export function entryFilterKey(filter: EntryFilter) {
+  if (typeof filter === "object") return String(filter.roleId);
+  return filter;
+}
 
 /** 배역 ID로 수동 배정 여부를 구분한다. */
 export function matchesFilter(entry: ReviewEntry, filter: EntryFilter) {

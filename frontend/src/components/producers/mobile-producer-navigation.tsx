@@ -66,7 +66,7 @@ export function MobileProducerNavigation() {
       >
         <div id="mobile-producer-navigation" className="flex min-h-0 flex-1 flex-col">
           <ProducerSidebarHeader titleId={TITLE_ID} closeLabel="관리 메뉴 닫기" autoFocus onClose={closeDisclosure} />
-          <ProducerSidebarMenu onNavigate={closeDisclosure} />
+          <ProducerSidebarMenu onNavigate={closeDisclosure} reviewSlot="mobile" />
           <ProducerAccountPanel />
         </div>
       </ModalShell>

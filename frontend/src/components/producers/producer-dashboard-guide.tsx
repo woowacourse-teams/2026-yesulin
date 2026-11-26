@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { PiBookOpen, PiBookmarkSimple, PiCaretDown, PiFileText, PiLinkSimple, PiTicket, PiTray } from "react-icons/pi";
+import { PiBookOpen, PiBookmarkSimple, PiCaretDown, PiFileText, PiTicket, PiTray } from "react-icons/pi";
 import { actorBookmarkRoutes } from "@/features/actor-pages/bookmark-api";
 import { producerAuditionPostRoutes } from "@/features/audition-posts/types";
-import { otrAuditionRoutes } from "@/features/otr-auditions/types";
 import { PDF_REVIEW_LIST_PATH } from "@/features/producer-dashboard/activity";
 import { showRoutes } from "@/features/shows/types";
 import styles from "./producer-dashboard.module.css";
@@ -12,11 +11,6 @@ const guideItems = [
     title: "오디션 공고 올리기", icon: PiFileText,
     description: "공고를 작성하면 바로 공개돼요. 직접 올리거나 운영팀이 연결해 준 공고는 내 오디션 공고에서 수정할 수 있어요.",
     href: producerAuditionPostRoutes.create, action: "새 공고 작성하기",
-  },
-  {
-    title: "다른 사이트 공고로 지원서 받기", icon: PiLinkSimple,
-    description: "제휴 사이트에 올린 공고를 등록하고, 발급된 지원 링크를 원래 공고에 붙이세요. 지원서는 예술in으로 들어와요.",
-    href: otrAuditionRoutes.create, action: "지원 링크 만들기",
   },
   {
     title: "받아둔 PDF 지원서 심사하기", icon: PiTray,

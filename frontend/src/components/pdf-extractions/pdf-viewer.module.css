@@ -1,5 +1,13 @@
 .reader { position: relative; height: max(480px, calc(100dvh - 260px)); max-height: 1200px; min-width: 0; overflow: auto; background: white; scrollbar-gutter: stable; overscroll-behavior: contain; outline-offset: -2px; }
 .document { display: flex; flex-direction: column; align-items: center; min-width: 100%; width: max-content; background: white; }
+.pageRow { display: flex; justify-content: center; align-items: flex-start; gap: 8px; min-width: 100%; width: max-content; }
+.reader[data-pdf-fit="page"] { scroll-snap-type: y proximity; }
+.reader[data-pdf-fit="page"]:not(.expanded *) { background: #eef1f6; }
+.reader[data-pdf-fit="page"] .document { gap: 16px; padding: 8px 16px; background: transparent; }
+.reader[data-pdf-fit="page"] .page { box-shadow: 0 1px 4px rgb(15 23 42 / 14%); }
+.reader[data-pdf-fit="page"] .pageRow { scroll-snap-align: start; }
+.reader[data-pdf-paged="true"] { scroll-snap-type: y mandatory; }
+.reader[data-pdf-paged="true"]:not([data-pdf-zoom="1"]) { scroll-snap-type: none; }
 .page { position: relative; flex: none; overflow: hidden; background: white; }
 .page canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
 .page canvas[aria-hidden="true"] { visibility: hidden; }
@@ -13,7 +21,6 @@
 .expandable .page { cursor: zoom-in; }
 .expanded { position: fixed; inset: 0; z-index: 1000; background: #14171c; }
 .expanded .reader { position: absolute; top: calc(64px + env(safe-area-inset-top, 0px)); right: 0; bottom: 0; left: 0; height: auto; min-height: 0; max-height: none; background: transparent; }
-.expanded .document { gap: 16px; padding-block: 0 16px; background: transparent; }
 .expandButton { position: absolute; top: 12px; right: 24px; z-index: 2; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid rgb(15 23 42 / 12%); border-radius: 12px; background: rgb(255 255 255 / 94%); color: #111722; font-size: 13px; font-weight: 700; box-shadow: 0 2px 8px rgb(15 23 42 / 12%); cursor: pointer; }
 .expandButton kbd { font: inherit; font-size: 11px; font-weight: 600; color: #64748b; }
 .expanded .expandButton { top: max(10px, env(safe-area-inset-top)); right: max(24px, env(safe-area-inset-right)); }

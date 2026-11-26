@@ -8,6 +8,7 @@ import { logout } from "@/features/auth/session-api";
 import { formatDateTime } from "./admin-format";
 import { AdminSessionEnded } from "./admin-session-ended";
 import { AdminOpenChatVisits } from "./admin-openchat-visits";
+import { AdminOpenChatReminder } from "./admin-openchat-reminder";
 import { AdminActionButton, AdminShell } from "./admin-shell";
 
 type Phase = "loading" | "ready" | "unauthorized" | "failed";
@@ -115,7 +116,7 @@ export function AdminAlertChatMembers() {
     <AdminShell
       current="openchat"
       title="오픈채팅방 관리"
-      description="공고 알림 오픈채팅방의 인원을 기록하고, 공유한 공고 링크의 방문 수를 확인해요."
+      description="마감 안내를 만들고, 공고 링크 방문 수와 오픈채팅방 인원을 확인해요."
       actions={(
         <>
           <AdminActionButton onClick={refresh}>새로고침</AdminActionButton>
@@ -131,6 +132,7 @@ export function AdminAlertChatMembers() {
       ) : null}
       {phase === "loading" ? <p role="status" className="text-sm text-muted">오픈채팅방 인원을 불러오는 중이에요.</p> : null}
 
+      {members && <AdminOpenChatReminder refreshToken={reloadToken} />}
       <AdminOpenChatVisits key={reloadToken} onUnauthorized={endSession} />
 
       {members ? (
