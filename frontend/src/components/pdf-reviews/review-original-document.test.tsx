@@ -3,6 +3,8 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PdfCanvasViewer } from "@/components/pdf-extractions/pdf-canvas-viewer";
+import type { ReviewDetail, ReviewEntry } from "@/features/pdf-reviews/types";
+import { ScreeningBoard } from "./screening-board";
 import { PdfOriginalViewer } from "@/components/pdf-extractions/pdf-original-viewer";
 import { fetchPdfExtraction } from "@/features/pdf-extractions/api";
 import type { PdfExtractionJob } from "@/features/pdf-extractions/types";
@@ -39,6 +41,34 @@ beforeEach(() => {
   root = createRoot(container);
 });
 afterEach(() => { act(() => root.unmount()); vi.unstubAllGlobals(); });
+
+describe("심사 상세의 원본 다운로드", () => {
+  it.each(["PENDING", "FAILED", "READY"] as const)("%s 상태에서 내부 메모 바로 위에만 표시하고 권한 상실 시 제거한다", async previewStatus => {
+    const filename = "검증.hwp";
+    let previewUrl = null;
+    if (previewStatus === "READY") previewUrl = "https://example.test/preview.pdf";
+    const document = { ...job(previewUrl), originalFilename: filename, originalUrl: "https://example.test/original", previewStatus };
+    vi.mocked(fetchPdfExtraction).mockResolvedValueOnce(document)
+      .mockRejectedValueOnce(Object.assign(new Error("접근 거부"), { status: 403 }));
+    const entry: ReviewEntry = { id: "entry", jobId: document.jobId, originalFilename: filename, applicantName: null,
+      roleId: null, matchStatus: "WAITING", memo: "기존 메모", matchEvidence: null, decision: "PENDING", processingStatus: "READY" };
+    const review: ReviewDetail = { id: "review", title: "배치 검증", createdAt: "2026-11-27", roles: [], entries: [entry] };
+    await act(async () => root.render(<ScreeningBoard review={review} entries={review.entries} decision="PENDING"
+      focusedId={String(entry.id)} onFocusChange={vi.fn()} lastDecision={null} onLastDecisionChange={vi.fn()}
+      refreshKey={0} onSaved={vi.fn()} onDirtyChange={vi.fn()} onUnauthorized={unauthorized} navigate={action => action()} />));
+
+    const memo = container.querySelector("aside textarea");
+    const slot = memo?.parentElement?.previousElementSibling;
+    const button = slot?.querySelector("button");
+    expect(button?.textContent).toBe("원본 다운로드");
+    expect(container.textContent?.match(/원본 다운로드/g)).toHaveLength(1);
+    expect(fetchPdfExtraction).toHaveBeenCalledTimes(1);
+    if (previewStatus === "READY") expect(container.textContent).toContain("사진이나 표 배치가 달라질 수 있습니다");
+    await act(async () => button!.click());
+    expect(slot?.childElementCount).toBe(0);
+    expect(container.querySelector<HTMLTextAreaElement>("aside textarea")?.value).toBe("기존 메모");
+  });
+});
 
 describe("원본 PDF 서명 주소", () => {
   it("자동 원본 표시는 원본 클릭 분석 이벤트를 만들지 않는다", async () => {

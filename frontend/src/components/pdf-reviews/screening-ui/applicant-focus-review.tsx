@@ -32,6 +32,7 @@ type ContentProps = {
 function FocusReviewContent({ applicant, rows, index, onMove, documentExpanded, onDocumentExpandedChange }: ContentProps) {
   const boardState = useBoard();
   const { reviewId, saveError, requestNavigation, onNoteDirty, onApplicantOpened, onBasicAction, saving, reviewLocked, reviewFocused, renderDocument, roleOptions, currentRole, changeRole, saveMemo, registerNavigationSave, pagerSlot, lastDecision, onLastDecisionChange } = boardState;
+  const [downloadSlot, setDownloadSlot] = useState<HTMLDivElement | null>(null);
   const [deciding, setDeciding] = useState(false);
   const [stamp, setStamp] = useState<DecidedStatus | null>(null);
   const decisionPending = useRef(false);
@@ -107,9 +108,10 @@ function FocusReviewContent({ applicant, rows, index, onMove, documentExpanded, 
     {placePager(pager, pagerSlot)}
     <div className="grid min-w-0 items-start gap-4 md:grid-cols-[minmax(0,1fr)_240px] xl:grid-cols-[minmax(0,1fr)_280px]">
       <div className="min-w-0 overflow-hidden rounded-card border border-border bg-card">{renderDocument?.(applicant, { expanded: documentExpanded, onExpandedChange: onDocumentExpandedChange, dock,
-        caption: <FullscreenCaption name={heading} status={applicant.review.status} position={index + 1} total={rows.length} error={fullscreenError(draft, saveError)} /> })}</div>
+        caption: <FullscreenCaption name={heading} status={applicant.review.status} position={index + 1} total={rows.length} error={fullscreenError(draft, saveError)} /> }, downloadSlot)}</div>
       <aside className="min-w-0 space-y-5 rounded-card border border-border bg-card p-4 md:sticky md:top-20 md:z-10 md:max-h-[calc(100dvh-6rem)] lg:top-4 lg:max-h-[calc(100dvh-2rem)] md:overflow-y-auto md:overscroll-contain" aria-label="지원자 심사">
         {!!roleOptions?.length && changeRole && <ReviewRoleSelect label="배역 배정" roles={roleOptions} value={currentRole?.(applicant.id) ?? null} disabled={disabled} onChange={roleId => void navigate(() => changeRole(applicant.id, roleId))} />}
+        <div ref={setDownloadSlot} className="empty:hidden" />
         <div><label htmlFor="pdf-review-memo" className="mb-2 block text-sm font-semibold">내부 메모</label><textarea aria-invalid={draft.errorField === "memo"} aria-describedby={errorIds.memo} id="pdf-review-memo" value={draft.memo} maxLength={500} disabled={disabled || reviewLocked} rows={10} onChange={event => draft.change("memo", event.target.value)} onBlur={() => void flush()} onCompositionStart={() => draft.compose("memo", true)} onCompositionEnd={event => draft.compose("memo", false, event.currentTarget.value)} className="h-56 w-full resize-y md:h-[clamp(14rem,36dvh,24rem)] rounded-control border border-border bg-surface p-3 text-sm" /></div>
         {draft.status === "error" && <div id="pdf-review-save-error" role="alert" className="text-xs text-fail"><span>{draft.error}</span><button type="button" onClick={() => void flush()} className="mt-1 block min-h-11 text-sm font-semibold text-brand">저장 재시도</button></div>}
         <div role="group" aria-label="지원자 심사 판정" className="sticky bottom-0 -mx-4 -mb-4 grid grid-cols-3 gap-2 rounded-b-card border-t border-border-soft bg-card p-4 md:static md:m-0 md:border-0 md:p-0">{decisionOptions.map(option => <button key={option.status} type="button" aria-label={`${option.label} (${option.key})`} aria-pressed={applicant.review.status === option.status} disabled={disabled || reviewLocked} onClick={() => void save(option.status)} className={`flex min-h-12 items-center justify-center gap-1.5 rounded-control border bg-card px-2 py-3 text-sm font-bold hover:bg-surface aria-pressed:bg-surface aria-pressed:ring-2 aria-pressed:ring-current disabled:opacity-50 ${decisionColors[option.status]}`}>{option.label}<kbd aria-hidden="true" className="hidden rounded border border-current px-1 text-[11px] font-semibold opacity-60 xl:inline">{option.key}</kbd></button>)}</div>

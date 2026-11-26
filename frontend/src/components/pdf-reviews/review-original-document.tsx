@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { PdfFit } from "@/components/pdf-extractions/pdf-canvas-viewer";
 import { PdfExpandableFrame, type PdfFrameContent, type PdfFrameState } from "@/components/pdf-extractions/pdf-expandable-frame";
 import { PdfOriginalViewer } from "@/components/pdf-extractions/pdf-original-viewer";
@@ -12,7 +13,7 @@ import { isUnauthorized } from "@/features/pdf-reviews/api";
 import { acceptsDocument, LEGACY_EXTENSIONS } from "@/features/pdf-reviews/upload-selection";
 import { LoadingStatus } from "./loading-status";
 
-type Props = { readonly reviewId: string; readonly jobId: string; readonly filename: string; readonly onUnauthorized: () => void; readonly frame?: PdfFrameState };
+type Props = { readonly reviewId: string; readonly jobId: string; readonly filename: string; readonly onUnauthorized: () => void; readonly frame?: PdfFrameState; readonly downloadSlot?: HTMLElement | null };
 export const SOURCE_WAIT_MS = 1500;
 export const SOURCE_WAIT_LIMIT = 40;
 
@@ -44,7 +45,7 @@ function unavailableCopy(job: PdfExtractionJob) {
   return "지원서 미리보기가 아직 준비되지 않았습니다.";
 }
 
-export function ReviewOriginalDocument({ reviewId, jobId, filename, onUnauthorized, frame }: Props) {
+export function ReviewOriginalDocument({ reviewId, jobId, filename, onUnauthorized, frame, downloadSlot }: Props) {
   const [reload, setReload] = useState(0);
   const [snapshot, setSnapshot] = useState<Snapshot>();
   const activeLookup = useRef<AbortController | null>(null);
@@ -109,12 +110,16 @@ export function ReviewOriginalDocument({ reviewId, jobId, filename, onUnauthoriz
     if (!frame || (!frame.expanded && !job?.sourceUrl)) return content("width", false);
     return <PdfExpandableFrame {...frame}>{content}</PdfExpandableFrame>;
   }
+  const download = current?.originalFilename && <OriginalDownload key={jobId} reviewId={reviewId} jobId={jobId} filename={current.originalFilename} onAccessLost={revokeOriginal} />;
+  const inlineDownload = downloadSlot === undefined && download;
+  const layoutWarning = current?.originalFilename && job?.sourceUrl && acceptsDocument(job.originalFilename, ["hwp", "hwpx"]);
   return <>
-    {current?.originalFilename && <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 px-3 py-2">
-      {job?.sourceUrl && acceptsDocument(job.originalFilename, ["hwp", "hwpx"]) && <p className="mr-auto min-w-0 flex-1 basis-48 text-sm text-muted-strong">
+    {download && downloadSlot && createPortal(download, downloadSlot)}
+    {(layoutWarning || inlineDownload) && <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 px-3 py-2">
+      {layoutWarning && <p className="mr-auto min-w-0 flex-1 basis-48 text-sm text-muted-strong">
         한글 미리보기는 사진이나 표 배치가 달라질 수 있습니다. 정확한 배치는 원본을 확인해 주세요.
       </p>}
-      <OriginalDownload key={jobId} reviewId={reviewId} jobId={jobId} filename={current.originalFilename} onAccessLost={revokeOriginal} />
+      {inlineDownload}
     </div>}
     {viewer()}
   </>;

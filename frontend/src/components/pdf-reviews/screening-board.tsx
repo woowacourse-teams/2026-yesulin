@@ -83,7 +83,7 @@ export function ScreeningBoard({ review, entries, decision, focusedId, onFocusCh
     onBasicAction: (id, action, input) => trackReviewAction(reviewId, id, action, input),
     onApplicantOpened, lastDecision, onLastDecisionChange, pagerSlot,
     reviewFocused: (id, status, _memo, note) => save(id, status, note),
-    renderDocument: (applicant, frame) => { const entry = entryFor(applicant.id); if (!entry) return null; return <ReviewOriginalDocument key={`${entry.jobId}:${refreshKey}`} reviewId={reviewId} jobId={entry.jobId} filename={entry.originalFilename} onUnauthorized={onUnauthorized} frame={frame} />; },
+    renderDocument: (applicant, frame, downloadSlot) => { const entry = entryFor(applicant.id); if (!entry) return null; return <ReviewOriginalDocument key={`${entry.jobId}:${refreshKey}`} reviewId={reviewId} jobId={entry.jobId} filename={entry.originalFilename} onUnauthorized={onUnauthorized} frame={frame} downloadSlot={downloadSlot} />; },
   }}>
     {error && <p role="alert" className="mb-3 rounded-control bg-fail-bg p-3 text-sm text-fail">{error}</p>}
     <p role="status" className="sr-only">{saving ? "저장 중…" : savedMessage}</p>
