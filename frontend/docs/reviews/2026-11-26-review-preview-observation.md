@@ -31,3 +31,5 @@
 | E02 | F01 | FIXED | 2026-11-26T21:44:24+09:00 | PENDING |
 
 전체 검증은 Node 24에서 테스트 1,276건, lint, 타입 검사, 프로덕션 빌드 통과. Gradle 전체 빌드에서 백엔드 테스트 1,576건 통과(실패·건너뜀 0).
+
+2026-11-26 최초 게시. 이 작업의 F01 최초 기록 PR은 [#638](https://github.com/woowacourse-teams/2026-yesulin/pull/638)이다. 위 사건의 PENDING은 게시 전 기록이다.

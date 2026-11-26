@@ -51,3 +51,5 @@
 | E06 | F03 | FIXED | 2026-11-26T21:51:12+09:00 | PENDING |
 
 이 작업의 게시 전 누적 집계는 발견 3, 해결 3, 미해결 0. P0 0 / P1 0 / P2 2 / P3 1. PRECHECK 0 / INDEPENDENT_REVIEW 2 / POST_FIX_CHECK 1 / EXTERNAL 0. 오탐 0. R8의 한글 배치 판정은 FAIL이다.
+
+2026-11-26 최초 게시. 이 작업의 F01, F02, F03 최초 기록 PR은 [#638](https://github.com/woowacourse-teams/2026-yesulin/pull/638)이다. 위 사건의 PENDING은 게시 전 기록이다.
