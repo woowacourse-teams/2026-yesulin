@@ -17,9 +17,12 @@
 | --- | --- | --- |
 | `2026-11-28-pdf-job-transfers-F01` | INDEPENDENT_REVIEW, P1, FLOW, INTRODUCED. 처음 변환할 프리뷰를 HEAD해 부재를 404로 판정하면 ListBucket 권한이 없는 환경에서는 403으로 끝날 수 있었다. | FIXED. PENDING 최초 PREVIEW_READ는 빈 결과를 보내며 PREVIEW_RECOVER는 412 후 존재하는 객체를 확인한다. 최초 등록·동시 PUT·콜백 전 중단의 재시도 검증을 통과했다. |
 
-최초 검토 당일 수정·확인했다. 신규 발견 1 / 해결 1 / 미해결 0. P0 0 / P1 1 / P2 0 / P3 0. PRECHECK 0 / INDEPENDENT_REVIEW 1 / POST_FIX_CHECK 0 / EXTERNAL 0. 오탐 0. 운영 파일별 서식 충실도와 대량 처리량은 이번 코드 검증 범위에 포함하지 않았다.
+| `2026-11-28-pdf-job-transfers-F02` | POST_FIX_CHECK, P2, TEST, INTRODUCED. 전체 백엔드 회귀에서 배우 동시성 테스트의 Spring 컨텍스트가 초기화되지 않아 같은 원인으로 6건 실패했다. 기존 저장소 인터페이스만 모킹하여 새 전송 포트로 사용할 수 없었다. | FIXED. 테스트가 두 포트를 제공하는 실제 저장소 타입을 모킹하도록 필드와 import를 변경했다. 배우 테스트 6개와 미리보기 테스트 14개 재실행 통과. |
+
+최초 검토 당일 수정·확인했다. 신규 발견 2 / 해결 2 / 미해결 0. P0 0 / P1 1 / P2 1 / P3 0. PRECHECK 0 / INDEPENDENT_REVIEW 1 / POST_FIX_CHECK 1 / EXTERNAL 0. 오탐 0. 운영 파일별 서식 충실도와 대량 처리량은 이번 코드 검증 범위에 포함하지 않았다.
 
 ## 상태 이력
 
 - 2026-11-28T01:23:05+09:00, F01 수정 코드·회귀 테스트를 독립 대조해 FIXED로 확정했다. 최초 기록 PR PENDING. 운영 실파일 T6은 배포 전 미확인.
 - 2026-11-28 KST, 최초 기록 [개발 #645](https://github.com/woowacourse-teams/2026-yesulin/pull/645), 운영 [#646](https://github.com/woowacourse-teams/2026-yesulin/pull/646). F01은 동일 이슈다. 두 브랜치의 기능 변경 19경로가 Git 객체 단위로 일치했다. 운영 후보에서 심사·PDF 전체 233개 테스트를 다시 실행해 실패·건너뜀 0건을 확인했다.
+- 2026-11-28T01:34:56+09:00, 전체 회귀에서 발견한 F02의 테스트 대역 수정과 표적 20건 재검증을 확인했다. 최초 기록 개발 #645, 운영 #646. 두 브랜치에 같은 수정을 적용했다.
