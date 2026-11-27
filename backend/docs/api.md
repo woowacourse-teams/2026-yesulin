@@ -137,9 +137,28 @@ PUT 완료가 Lambda 완료를 뜻하지 않는다. completion은 업로드만 �
 ### Lambda 결과 전달
 
 `POST /internal/v1/pdf-extractions/completions`는 `/api/v1`과 별도 보안 체인(`/internal/v1/pdf-extractions/**`, 전체 메서드)이며
-세션을 쓰지 않고 CSRF 예외는 추출 및 미리보기 완료 POST 두 경로에만 적용한다. 모든 요청은 `Authorization: Bearer <secret>`을 요구하고, secret은 `YESULIN_PDF_EXTRACTION_CALLBACK_SECRET`
+이 체인은 세션을 쓰지 않고 CSRF 예외를 추출 및 미리보기 완료 POST 두 경로로 제한한다. 모든 요청은 `Authorization: Bearer <secret>`을 요구하고, secret은 `YESULIN_PDF_EXTRACTION_CALLBACK_SECRET`
 (`yesulin.pdf-extraction.callback-secret`)과 상수 시간으로 비교한다. 32자 미만이거나 미설정이면 모든 요청을 거부한다.
 인증 실패는 본문 없는 `401`이며 secret과 본문은 기록하지 않는다. 로컬 프로필의 값은 가짜 토큰이다.
+
+운영 변환 워커는 `POST /internal/v1/pdf-extractions/preview-transfers`로 파일 한 건의 전송 주소를 발급받는다.
+이 경로는 별도 보안 체인을 사용하며 해당 POST만 CSRF 예외다. 전용 Bearer인 `YESULIN_PREVIEW_TRANSFER_SECRET`이
+미설정, 32자 미만, 공백 포함 또는 완료 콜백 secret과 같으면 발급을 거부한다. 서명 주소 유효 시간은 5분이다.
+요청은 `{jobId, originalFileKey, sourceETag, operation, size?, sha256?}`다. 매번 DB의 심사 원본 경로·크기·SHA-256 및
+S3 HEAD의 크기·형식·체크섬·ETag를 확인한다. 삭제·미존재는 `404 PDF_EXTRACTION_NOT_FOUND`다.
+
+| operation | 응답 |
+| --- | --- |
+| SOURCE | 원본에 대한 If-Match GET |
+| PREVIEW_READ | READY이면 확정된 변환 PDF의 If-Match GET. 아직 확정 전이면 S3 미리보기를 조회하지 않고 204 |
+| PREVIEW_RECOVER | 미리보기 조건부 PUT이 412일 때 이미 저장된 PDF의 형식·크기·체크섬을 확인하고 If-Match GET |
+| PREVIEW_WRITE | PENDING 상태에서 조건부 PDF PUT. READY 재전송은 확정 해시·크기가 같아야 한다 |
+| INPUT_WRITE | READY의 DB·S3 변환본과 같은 해시·크기의 추출 입력에 조건부 PUT |
+| INPUT_VERIFY | READY 변환본 및 추출 입력의 형식·크기·체크섬이 같으면 204, 아직 확인되지 않으면 409 |
+
+두 WRITE와 INPUT_VERIFY는 `size`와 소문자 64자리 hex `sha256`를 요구한다. 주소 발급 응답은
+`{url, method, headers, size, sha256}`와 `Cache-Control: no-store`를 보낸다. 워커는 응답 헤더까지 그대로 전송한다.
+PUT은 `If-None-Match: *`, Content-Length, PDF Content-Type, SHA-256으로 서명한다.
 
 미리보기 워커는 `POST /internal/v1/pdf-extractions/previews`에
 `{jobId,originalFileKey,originalSha256,status,previewSha256}`를 보낸다. READY는 64자리 소문자 hex PDF 해시를 요구하고 FAILED는 null을 요구한다.
