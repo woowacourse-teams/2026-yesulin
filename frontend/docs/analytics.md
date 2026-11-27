@@ -53,6 +53,8 @@ PostHog는 GA와 별도 수집 경로다. `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLI
 
 프로필에는 `https://yesulin.art/?src=instagram`을 사용한다. 분석을 켠 브라우저가 이 표시로 홈페이지에 도착하고
 PostHog 컨텍스트가 준비되면 공고 조회 없이 `instagram_profile_landed`를 문서당 한 번 보낸다. 원문 주소와 쿼리는 보내지 않는다.
+첫 컨텍스트 요청이 네트워크 오류나 HTTP 5xx로 실패하면 1초 뒤 한 번 재시도한다. 분석을 끄거나 컨텍스트가
+무효화되면 대기 중인 이전 요청의 재시도를 중단한다.
 `utm_source=instagram`만 있는 링크와 인스타그램 도메인에서 이어진 방문은 기존 유입 경로 표에서 확인한다.
 
 `01 예술in 한눈에 보기`의 프로필 링크 카드는 선택 기간의 운영 이벤트에서 `person_id` 고유 수를 표시한다.

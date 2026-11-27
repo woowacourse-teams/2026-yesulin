@@ -17,6 +17,7 @@ let instagramProfileLandingPending: boolean | undefined;
 const pending = new Set<string>();
 const VIEW_HISTORY = "yesulin:posthog:visit:v1";
 const OPENCHAT_ENTRY = "yesulin:posthog:openchat-entry:v1";
+const INSTAGRAM_CONTEXT_RETRY_DELAY_MS = 1_000;
 
 /** 주소 정리·OTR 리디렉션보다 먼저, 해당 공고에 한정한 출처를 잠시 보관한다. */
 export function rememberOpenchatEntry(kind: "post" | "otr", id: string) {
@@ -61,6 +62,16 @@ export function refreshProductContext() {
   pending.clear();
 }
 
+async function fetchProductContext(version: number) {
+  const request = () => fetch("/api/analytics/context", { credentials: "same-origin", cache: "no-store" });
+  const response = await request().catch(() => undefined);
+  if (response?.ok || (response && response.status < 500)) return response;
+  if (!instagramProfileLandingPending || version !== generation || !enabled()) return response;
+  await new Promise<void>(resolve => window.setTimeout(resolve, INSTAGRAM_CONTEXT_RETRY_DELAY_MS));
+  if (version !== generation || !enabled()) return;
+  return request();
+}
+
 export async function startProductAnalytics() {
   if (!enabled()) return false;
   instagramProfileLandingPending ??= window.location.pathname === "/"
@@ -69,8 +80,8 @@ export async function startProductAnalytics() {
   if (starting) return starting;
   const version = generation;
   const attempt = (async () => {
-    const response = await fetch("/api/analytics/context", { credentials: "same-origin", cache: "no-store" });
-    if (!response.ok) return false;
+    const response = await fetchProductContext(version);
+    if (!response?.ok) return false;
     const next = await response.json() as AnalyticsContext;
     if (version !== generation || !enabled() || !next.enabled) return false;
     context = next;
