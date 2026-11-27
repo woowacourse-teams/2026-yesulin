@@ -22,3 +22,4 @@
 ## 상태 이력
 
 - 2026-11-28T01:23:05+09:00, F01 수정 코드·회귀 테스트를 독립 대조해 FIXED로 확정했다. 최초 기록 PR PENDING. 운영 실파일 T6은 배포 전 미확인.
+- 2026-11-28 KST, 최초 기록 [개발 #645](https://github.com/woowacourse-teams/2026-yesulin/pull/645), 운영 [#646](https://github.com/woowacourse-teams/2026-yesulin/pull/646). F01은 동일 이슈다. 두 브랜치의 기능 변경 19경로가 Git 객체 단위로 일치했다. 운영 후보에서 심사·PDF 전체 233개 테스트를 다시 실행해 실패·건너뜀 0건을 확인했다.
