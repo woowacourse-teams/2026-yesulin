@@ -64,7 +64,7 @@ export type ProductProperties = {
 export const PRODUCT_EVENTS = [
   "review_basic_action", "review_original_pdf_clicked", "review_document_preview_observed", "review_document_original_download_requested",
   "review_progress_v2", "review_save_attempted", "review_save_result", "pdf_processing_observed",
-  "audition_post_viewed", "openchat_landed", "another_post_viewed", "attachment_download_clicked",
+  "audition_post_viewed", "openchat_landed", "instagram_profile_landed", "another_post_viewed", "attachment_download_clicked",
   "home_banner_clicked",
   "show_viewed", "booking_started", "booking_succeeded", "booking_failed", "external_booking_clicked",
   "producer_post_published", "producer_show_published", "review_saved", "review_item_viewed",
