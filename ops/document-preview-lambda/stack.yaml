@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Convert private audition documents from an existing S3 bucket to review PDFs.
+Parameters:
+  Bucket:
+    Type: String
+    Description: Existing private upload bucket in the same Region.
+    AllowedPattern: '[a-z0-9][a-z0-9.-]+'
+  StorageRoot:
+    Type: String
+    Description: Physical prefix ending in private/pdf-extractions/ for this environment.
+    AllowedPattern: '([a-zA-Z0-9_-]+/)*private/pdf-extractions/'
+  ImageUri:
+    Type: String
+    Description: x86_64 Lambda image in ECR, pinned by digest.
+    AllowedPattern: '.+@sha256:[0-9a-f]{64}'
+  CallbackUrl:
+    Type: String
+    AllowedPattern: 'https://[^/]+/internal/v1/pdf-extractions/previews'
+  CallbackSecret:
+    Type: String
+    Description: Name or ARN of a Secrets Manager secret containing the raw Spring callback token.
+Resources:
+  DeadLetters:
+    Type: AWS::SQS::Queue
+    Properties:
+      SqsManagedSseEnabled: true
+      MessageRetentionPeriod: 1209600
+  Documents:
+    Type: AWS::SQS::Queue
+    Properties:
+      SqsManagedSseEnabled: true
+      VisibilityTimeout: 1080
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DeadLetters.Arn
+        maxReceiveCount: 5
+  AllowBucket:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [!Ref Documents]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: s3.amazonaws.com}
+            Action: sqs:SendMessage
+            Resource: !GetAtt Documents.Arn
+            Condition:
+              ArnEquals: {aws:SourceArn: !Sub 'arn:${AWS::Partition}:s3:::${Bucket}'}
+              StringEquals: {aws:SourceAccount: !Ref 'AWS::AccountId'}
+  WorkerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ReviewDocuments
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes]
+                Resource: !GetAtt Documents.Arn
+              - Effect: Allow
+                Action: [s3:GetObject, s3:GetObjectVersion]
+                Resource: !Sub 'arn:${AWS::Partition}:s3:::${Bucket}/${StorageRoot}originals/*/*/source.*'
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:s3:::${Bucket}/${StorageRoot}previews/*/*/preview.pdf'
+                  - !Sub 'arn:${AWS::Partition}:s3:::${Bucket}/${StorageRoot}inputs/*/*/source.pdf'
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub 'arn:${AWS::Partition}:s3:::${Bucket}'
+                Condition:
+                  StringLike: {s3:prefix: !Sub '${StorageRoot}previews/*/*/preview.pdf'}
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !GetAtt WorkerLogs.Arn
+  WorkerLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}'
+      RetentionInDays: 14
+  Worker:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref AWS::StackName
+      PackageType: Image
+      Architectures: [x86_64]
+      Code: {ImageUri: !Ref ImageUri}
+      Role: !GetAtt WorkerRole.Arn
+      MemorySize: 1769
+      EphemeralStorage: {Size: 3072}
+      Timeout: 180
+      ReservedConcurrentExecutions: 2
+      Environment:
+        Variables:
+          PDF_BUCKET: !Ref Bucket
+          DOCUMENT_ORIGINAL_PREFIX: !Sub '${StorageRoot}originals/'
+          DOCUMENT_PREVIEW_PREFIX: !Sub '${StorageRoot}previews/'
+          PDF_INPUT_PREFIX: !Sub '${StorageRoot}inputs/'
+          DOCUMENT_PREVIEW_CALLBACK_URL: !Ref CallbackUrl
+          DOCUMENT_PREVIEW_CALLBACK_TOKEN: !Sub '{{resolve:secretsmanager:${CallbackSecret}:SecretString}}'
+  Events:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref Worker
+      EventSourceArn: !GetAtt Documents.Arn
+      BatchSize: 1
+      FunctionResponseTypes: [ReportBatchItemFailures]
+      ScalingConfig: {MaximumConcurrency: 2}
+Outputs:
+  QueueArn: {Value: !GetAtt Documents.Arn}
+  DeadLetterQueueUrl: {Value: !Ref DeadLetters}
+  WorkerRoleArn: {Value: !GetAtt WorkerRole.Arn}

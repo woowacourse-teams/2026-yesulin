@@ -65,7 +65,7 @@ class AuditServiceTest {
                         new PdfExtractionStorage.UploadTarget("http://localhost/upload", "PUT",
                                 NOW.plusSeconds(600), Map.of())));
         service = new AuditService(reviewRepository, entryRepository, extraction,
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                Clock.fixed(NOW, ZoneOffset.UTC), new ReviewDocumentFormats(""));
         art.yesulin.pdfextraction.application.ai.PdfAiQueueService aiQueue =
                 mock(art.yesulin.pdfextraction.application.ai.PdfAiQueueService.class);
         when(aiQueue.enqueue(anyString(), anyString(), anyLong(), any(), any(), any())).thenAnswer(call -> {

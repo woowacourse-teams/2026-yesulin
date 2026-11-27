@@ -104,6 +104,14 @@ jobs:
         working-directory: .
         run: python3 -B -m unittest discover -s scripts/ci -v
 
+      - name: Test document preview worker
+        if: steps.changes.outputs.backend == 'true'
+        working-directory: ops/document-preview-lambda
+        run: |
+          python3 -m venv "$RUNNER_TEMP/preview-tests"
+          "$RUNNER_TEMP/preview-tests/bin/python" -m pip install 'boto3==1.39.10' 'olefile==0.47'
+          "$RUNNER_TEMP/preview-tests/bin/python" -B -m unittest discover -s tests -v
+
       - name: Check Flyway migration order
         if: steps.changes.outputs.backend == 'true' && github.event_name == 'pull_request'
         run: sh deploy/scripts/check_flyway_migration_order.sh "${{ github.event.pull_request.base.sha }}"

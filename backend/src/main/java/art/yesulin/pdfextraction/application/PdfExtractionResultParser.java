@@ -39,14 +39,15 @@ public class PdfExtractionResultParser {
         requireValid(root != null && root.isObject(), "PDF 추출 결과가 올바르지 않습니다.");
         requireValid(mapper.writeValueAsBytes(root).length <= MAX_RESULT_BYTES, "PDF 추출 결과가 너무 큽니다.");
         String status = root.path("status").asText();
-        requireValid(job.getSourceSha256() == null || job.getSourceSha256().equals(
+        requireValid(!job.requiresConversion() || job.getPreviewSha256() != null, "변환 PDF가 준비되지 않았습니다.");
+        requireValid(job.extractionInputSha256() == null || job.extractionInputSha256().equals(
                 root.path("source").path("sha256").asText()), "PDF 원본의 체크섬이 일치하지 않습니다.");
         requireValid(job.getId().equals(command.jobId())
                 && PIPELINE_VERSION.equals(command.pipelineVersion())
-                && storage.sourceFileKey(job).equals(command.sourceFileKey())
+                && storage.extractionInputFileKey(job).equals(command.sourceFileKey())
                 && job.getId().equals(root.path("jobId").asText())
                 && PIPELINE_VERSION.equals(root.path("pipelineVersion").asText())
-                && storage.sourceFileKey(job).equals(root.path("source").path("key").asText())
+                && storage.extractionInputFileKey(job).equals(root.path("source").path("key").asText())
                 && FINAL_STATUSES.contains(status), "PDF 추출 결과의 작업 식별 정보가 올바르지 않습니다.");
         List<PdfExtractionResult.Page> pages = pages(job, root.path("pages"));
         List<String> warnings = new ArrayList<>();

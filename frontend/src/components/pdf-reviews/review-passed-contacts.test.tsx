@@ -69,11 +69,11 @@ describe("합격자 연락처 복사", () => {
 
 it("연락처 원본 클릭은 내용 없이 별도 경로로 기록하고 닫기·재렌더는 제외한다", async () => {
   await render(); expect(capture).not.toHaveBeenCalled();
-  await act(async () => button("PDF 보기").click());
+  await act(async () => button("지원서 보기").click());
   expect(capture).toHaveBeenCalledExactlyOnceWith("review_original_pdf_clicked", {
     metric_version: 1, workflow: "producer_pdf", review_id: "1", item_id: "1", pdf_open_source: "passed_contacts",
   });
   await act(async () => [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find(b => b.textContent === "닫기")!.click());
   await render(); expect(capture).toHaveBeenCalledTimes(1);
-  await act(async () => button("PDF 보기").click()); expect(capture).toHaveBeenCalledTimes(2);
+  await act(async () => button("지원서 보기").click()); expect(capture).toHaveBeenCalledTimes(2);
 });

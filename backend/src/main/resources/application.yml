@@ -113,6 +113,7 @@ yesulin:
       open-duration: ${YESULIN_PDF_AI_CIRCUIT_OPEN_DURATION:PT60S}
       max-open-duration: ${YESULIN_PDF_AI_CIRCUIT_MAX_OPEN_DURATION:PT5M}
   pdf-extraction:
+    review-document-extensions: ${YESULIN_REVIEW_DOCUMENT_EXTENSIONS:}
     enabled: ${YESULIN_PDF_EXTRACTION_ENABLED:false}
   community:
     link-base-url: ${YESULIN_COMMUNITY_LINK_BASE_URL:}

@@ -100,9 +100,16 @@ public class PdfExtractionService {
 
     @Transactional(readOnly = true)
     public PdfExtractionView find(long ownerId, String id, boolean includeResult) {
+        return find(ownerId, id, includeResult, false);
+    }
+
+    @Transactional(readOnly = true)
+    public PdfExtractionView find(long ownerId, String id, boolean includeResult, boolean includeDocument) {
         PdfExtractionJob job = repository.findByIdAndOwnerIdAndPurpose(id, ownerId, REVIEW).orElseThrow(this::notFound);
-        PdfExtractionResult result = includeResult && job.isFinished() ? storedResult(job) : null;
-        return PdfExtractionView.of(job, pendingStatus(job), storage, result, includeResult);
+        if (includeResult && job.isFinished()) {
+            return PdfExtractionView.of(job, pendingStatus(job), storage, storedResult(job));
+        }
+        return PdfExtractionView.of(job, pendingStatus(job), storage, null, includeResult || includeDocument);
     }
 
     /** 저장한 결과를 서명한 이미지 주소와 함께 읽는다. 결과가 없으면 null이다. 배우 프로필 가져오기도 같은 결과를 읽는다. */

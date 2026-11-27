@@ -14,7 +14,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
-/** 프론트 세션과 무관하게 서버 간 callback 경로 전체를 Bearer secret으로만 보호하고, CSRF 예외는 완료 POST 하나로 좁힌다. */
+/** 프론트 세션과 무관하게 서버 간 callback 경로 전체를 Bearer secret으로만 보호하고, CSRF 예외는 완료 POST 경로로 좁힌다. */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(prefix = "yesulin.pdf-extraction", name = "enabled", havingValue = "true")
 public class PdfExtractionCallbackSecurityConfiguration {
@@ -36,7 +36,9 @@ public class PdfExtractionCallbackSecurityConfiguration {
                 .authorizeHttpRequests(authorize -> authorize.anyRequest()
                         .hasRole(PdfExtractionCallbackBearerFilter.WORKER_ROLE))
                 .csrf(csrf -> csrf.ignoringRequestMatchers(
-                        PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, COMPLETION_PATH)))
+                        PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, COMPLETION_PATH),
+                        PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST,
+                                "/internal/v1/pdf-extractions/previews")))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .requestCache(cache -> cache.disable())
                 .anonymous(anonymous -> anonymous.disable())
