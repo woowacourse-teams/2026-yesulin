@@ -1,7 +1,9 @@
 package art.yesulin.global.monitoring;
 
+import com.sun.management.OperatingSystemMXBean;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PreDestroy;
+import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.time.Duration;
 import java.util.Arrays;
@@ -54,8 +56,29 @@ public class RuntimeMetricPublisher {
 
     @EventListener(ApplicationReadyEvent.class)
     public void start() {
+        logStartupInfo();
         executor.scheduleWithFixedDelay(
                 this::publish, FIRST_SAMPLE_DELAY.toMillis(), publishInterval.toMillis(), TimeUnit.MILLISECONDS);
+    }
+
+    private void logStartupInfo() {
+        try {
+            OperatingSystemMXBean os = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
+            JvmStartupInfo info = new JvmStartupInfo(
+                    Runtime.version().toString(),
+                    ManagementFactory.getGarbageCollectorMXBeans().stream()
+                            .map(GarbageCollectorMXBean::getName).toList(),
+                    Runtime.getRuntime().maxMemory(),
+                    Runtime.getRuntime().availableProcessors(),
+                    os.getTotalMemorySize(),
+                    os.getTotalSwapSpaceSize(),
+                    ManagementFactory.getRuntimeMXBean().getInputArguments());
+            LoggingEventBuilder event = LOGGER.atInfo();
+            info.toEvent(environment).forEach(event::addKeyValue);
+            event.log("JVM 기동 정보");
+        } catch (RuntimeException exception) {
+            LOGGER.atWarn().setCause(exception).log("JVM 기동 정보를 남기지 못했습니다.");
+        }
     }
 
     public void publish() {
