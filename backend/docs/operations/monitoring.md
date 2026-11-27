@@ -22,7 +22,7 @@ Agent 바이너리는 미설치일 때만 AWS 공식 Ubuntu ARM64 패키지로 �
 `/var/lib/yesulin-monitoring/backend-install-failed` 표식을 남기고 계속 진행한다.
 이 경우 API 정상과 수집 정상을 혼동하지 말고 hook 출력/Agent 상태를 점검한다. 다음 성공 설치는 표식을 지운다.
 
-수집 이벤트는 `HTTP_REQUEST`, `UNEXPECTED_ERROR`, `UNEXPECTED_SERVICE_ERROR`, `SLOW_SERVICE`,
+수집 이벤트는 `HTTP_REQUEST`, `JVM_STARTUP_INFO`, `UNEXPECTED_ERROR`, `UNEXPECTED_SERVICE_ERROR`, `SLOW_SERVICE`,
 `RUNTIME_METRICS`, `RUNTIME_METRICS_FAILURE`다. 요청 본문·Cookie·사용자 식별자를 추가로 기록하지 않는다.
 DEV는 message가 `PDF_FLOW ` 또는 `PDF_AI_FAILED `로 시작하는 PDF 처리 로그도 수집한다.
 흐름 로그는 작업 ID·단계·결과 코드·소요 시간을 기록한다. dev 실험용 `AI_PROVIDER_RESPONSE`는
@@ -48,6 +48,9 @@ MemAvailable은 reclaim 가능한 cache를 포함한다. 파일이 없거나 읽
 별도 암호화 설정 변경 없이 기본 활성화되어 dev 배포 검증 후 main의 prod 배포에도 같은 코드가 적용된다.
 Tomcat MBean registry는 `server.tomcat.mbeanregistry.enabled=true`로 켠다.
 
+- 앱 시작 완료 시 `JVM_STARTUP_INFO` 한 줄을 남긴다. Java 버전, GC 이름(SerialGC는 `Copy,MarkSweepCompact`,
+  G1은 `G1 ...`), 힙 상한, CPU 수, 호스트 메모리·swap 크기, `-Xm`·`-Xss`·`-XX:` 시작 옵션만 담는다.
+  `-D` 시스템 속성은 비밀값이 섞일 수 있어 넣지 않는다.
 - 앱 시작 완료 후 30초부터 전용 daemon 스레드 1개로 실행하며, 완료 후 `YESULIN_MONITORING_PUBLISH_INTERVAL`만큼 기다린다.
   기본값은 60초(`PT60S`)이고 DEV·PROD는 바꾸지 않는다. 1초보다 짧은 값은 1초로 올려 쓰고, 빈 값은 기본값으로 본다.
   Servlet 요청 스레드나 기존 Spring 예약 작업의 실행 스레드를 공유하지 않는다. 종료할 때 스레드를 정리한다.
