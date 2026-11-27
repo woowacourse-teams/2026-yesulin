@@ -53,7 +53,7 @@ def dependencies(target, directory):
 
 def write_package(path, wheels, output):
     with ZipFile(output, "w") as target:
-        for name in ("worker.py", "renderer.py"):
+        for name in ("worker.py", "renderer.py", "signed_storage.py"):
             write(target, name, (SERVICE_DIR / name).read_bytes())
         write(target, "zip_runtime.py", (ZIP_DIR / "runtime.py").read_bytes())
         for command in ("soffice", "pdfinfo", "prlimit"):

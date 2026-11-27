@@ -10,6 +10,6 @@ RUN test "$(dpkg --print-architecture)" = amd64 && mkdir -p /opt/ahwp && \
     tar xzf /tmp/ahwp.tar.gz -C /opt/ahwp && rm /tmp/ahwp.tar.gz && \
     /opt/ahwp/ahwp --version && fc-cache -f
 RUN pip install --no-cache-dir awslambdaric==3.1.1 boto3==1.39.10 olefile==0.47
-COPY worker.py renderer.py ./
+COPY worker.py renderer.py signed_storage.py ./
 ENTRYPOINT ["python", "-m", "awslambdaric"]
 CMD ["worker.handler"]

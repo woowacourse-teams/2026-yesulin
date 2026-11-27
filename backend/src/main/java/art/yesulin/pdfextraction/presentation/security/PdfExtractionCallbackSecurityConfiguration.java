@@ -22,6 +22,28 @@ public class PdfExtractionCallbackSecurityConfiguration {
     private static final Logger LOGGER = LoggerFactory.getLogger(PdfExtractionCallbackSecurityConfiguration.class);
     private static final String COMPLETION_PATH = "/internal/v1/pdf-extractions/completions";
 
+    private static final String TRANSFER_PATH = "/internal/v1/pdf-extractions/preview-transfers";
+
+    @Bean
+    @Order(-1)
+    public SecurityFilterChain documentPreviewTransferSecurityFilterChain(
+            HttpSecurity http,
+            @Value("${yesulin.pdf-extraction.preview-transfer-secret:}") String transferSecret,
+            @Value("${yesulin.pdf-extraction.callback-secret:}") String callbackSecret
+    ) throws Exception {
+        String secret = transferSecret.equals(callbackSecret) ? "" : transferSecret;
+        var post = PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, TRANSFER_PATH);
+        http.securityMatcher(TRANSFER_PATH)
+                .authorizeHttpRequests(authorize -> authorize.requestMatchers(post)
+                        .hasRole(PdfExtractionCallbackBearerFilter.WORKER_ROLE).anyRequest().denyAll())
+                .csrf(csrf -> csrf.ignoringRequestMatchers(post))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .requestCache(cache -> cache.disable())
+                .anonymous(anonymous -> anonymous.disable())
+                .addFilterBefore(new PdfExtractionCallbackBearerFilter(secret), AuthorizationFilter.class);
+        return http.build();
+    }
+
     @Bean
     @Order(0)
     public SecurityFilterChain pdfExtractionCallbackSecurityFilterChain(
