@@ -51,6 +51,49 @@ describe("PostHog 수집 경계", () => {
     expect(sdk.capture).toHaveBeenCalledTimes(3);
   });
 
+  it("비PDF 첫 열람 상태와 브라우저 원본 요청을 별도 집계하고 파일명과 URL을 전송하지 않는다", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({
+      enabled: true, internal: true, actor: "producer", testObjects: ["review_id:review"], formAttachments: {},
+    }) })));
+    const { observeReviewDocumentPreview, trackReviewDocumentDownload } = await import("./review-document");
+    const pending = {
+      jobId: "job", extension: "hwpx", previewStatus: "PENDING" as const, originalFilename: "private-name.hwpx",
+      uploadedAt: "2026-11-26T01:02:03Z", status: "QUEUED" as const,
+      originalUrl: "https://private.test/signed", sourceSha256: "private-checksum",
+    };
+    const ready = { ...pending, previewStatus: "READY" as const };
+    for (const job of [
+      { ...pending, uploadedAt: null, status: "UPLOADING" as const },
+      { ...pending, uploadedAt: null, status: "UPLOAD_EXPIRED" as const },
+    ]) {
+      await observeReviewDocumentPreview("review", job);
+      await trackReviewDocumentDownload("review", job);
+    }
+    expect(sdk.capture).not.toHaveBeenCalled();
+    await observeReviewDocumentPreview("review", { ...pending, extension: "pdf" });
+    await observeReviewDocumentPreview("review", { ...pending, previewStatus: undefined });
+    await observeReviewDocumentPreview("review", pending);
+    await observeReviewDocumentPreview("review", ready);
+    await trackReviewDocumentDownload("review", ready);
+    await trackReviewDocumentDownload("review", ready);
+    expect(sdk.capture.mock.calls.map(([event, data]) => [event, data.preview_status])).toEqual([
+      ["review_document_preview_observed", "PENDING"], ["review_document_original_download_requested", "READY"],
+      ["review_document_original_download_requested", "READY"],
+    ]);
+    const props = sdk.capture.mock.calls[0][1];
+    expect(props).toMatchObject({ workflow: "producer_pdf", operation_id: "job", review_id: "review",
+      document_format: "hwpx", environment: "development", internal: true, test_object: true });
+    expect(JSON.stringify(props)).not.toContain("private-");
+    expect(props).not.toHaveProperty("uploadedAt");
+    const sanitize = init.mock.calls[0][1].before_send;
+    expect(sanitize({ event: "review_document_preview_observed", properties: {
+      document_format: "private-name.hwpx", preview_status: "free-form", filename: "subject", sourceUrl: pending.originalUrl,
+    } }).properties).toEqual({});
+    localStorage.setItem("yesulin:analytics-consent:v1", "denied");
+    await trackReviewDocumentDownload("review", ready);
+    expect(sdk.capture).toHaveBeenCalledTimes(3);
+  });
+
   it("원본 PDF 클릭은 매번 기록하며 내부·테스트·개발 표시와 거부를 유지한다", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ enabled: true, internal: true, actor: "producer", testObjects: ["review_id:review"], formAttachments: {} }) })));
     const { trackProductEvent, resetProductAnalytics } = await import("./product-analytics");

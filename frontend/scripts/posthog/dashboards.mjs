@@ -154,7 +154,7 @@ ORDER BY \`주 시작일\` WITH FILL STEP INTERVAL 1 WEEK` },
       name: "03 PDF · 실제 활용과 조작 편의", description: descriptions + " ① 기능 막힘 ② 실제 심사 활용 ③ 기본 조작 부담 순서로 봅니다. 시간은 참고용입니다. 새 지표는 배포 후 수집하며 브라우저 관측 결과입니다. PDF 원문·이름·연락처·심사 메모는 수집하지 않습니다.",
       insights: [
         table("① PDF 기능은 어느 단계에서 막히나요?", `SELECT if(properties.workflow='actor_pdf', '배우 PDF', '공연사 PDF') AS \`기능\`, multiIf(properties.step='upload','업로드',properties.step='extract','추출',properties.step='apply','결과 적용','프로필 저장') AS \`단계\`, multiIf(properties.outcome='failure','실패',properties.step='extract' AND properties.extraction_status='PARTIAL','일부 추출','성공') AS \`결과\`, uniq(person_id) AS \`사용자 수\`, uniq(properties.operation_id) AS \`관측된 PDF 작업 수\` FROM events WHERE event IN ('pdf_step_completed','pdf_step_failed') AND (properties.workflow='actor_pdf' OR properties.step='upload') AND ${base} AND {filters} GROUP BY \`기능\`, \`단계\`, \`결과\``, "현재 이용 공연사부터 기능의 막힘을 확인합니다. 배우는 업로드→추출→적용→저장, 공연사는 업로드 결과입니다. 단계별 건수이며 순차 전환율은 아닙니다. 공연사 추출·AI 정리는 별도 단계 표에서 확인하세요. 브라우저에서 관측한 작업만 포함하며 전체 서버 처리 성공률은 아닙니다. 실패 전 작업 ID가 없으면 작업 수에 빠질 수 있습니다."),
-        table("② 공연사가 실제로 열어보고 판정을 저장하나요?", `SELECT properties.review_id AS \`심사 번호\`, uniqIf(properties.operation_id, event='pdf_step_completed' AND properties.step='upload') AS \`업로드 PDF 수\`, uniqIf(properties.item_id, event='review_item_viewed') AS \`열람 지원자 수\`, uniqIf(properties.item_id, event='review_saved' AND properties.eligible=true) AS \`결과 저장 지원자 수\` FROM events WHERE properties.workflow='producer_pdf' AND event IN ('pdf_step_completed','review_item_viewed','review_saved') AND ${base} AND {filters} GROUP BY properties.review_id`, "현재 이용 공연사의 실제 업무 활용을 확인합니다. 선택 기간 내 심사별 업로드·개별 열람·저장 인원이며 순차 전환율이 아닙니다. 보류 포함, 재저장은 한 명으로 셉니다. 기간 전 업로드는 빠질 수 있습니다. 현재 판정은 현황 표를 보세요."),
+        table("② 공연사가 실제로 열어보고 판정을 저장하나요?", `SELECT properties.review_id AS \`심사 번호\`, uniqIf(properties.operation_id, event='pdf_step_completed' AND properties.step='upload') AS \`업로드 PDF 수\`, uniqIf(properties.item_id, event='review_item_viewed') AS \`열람 지원자 수\`, uniqIf(properties.item_id, event='review_saved' AND properties.eligible=true) AS \`결과 저장 지원자 수\` FROM events WHERE properties.workflow='producer_pdf' AND event IN ('pdf_step_completed','review_item_viewed','review_saved') AND ${base} AND {filters} GROUP BY properties.review_id`, "업로드는 원본 PDF 접수 건수이고 열람·결과 저장은 비PDF를 포함한 모든 지원서의 인원입니다. 이 수치를 서로 나누어 전환율로 해석할 수 없습니다. 보류 포함, 재저장은 한 명으로 셉니다. 기간 전 업로드는 빠질 수 있습니다. 현재 판정은 현황 표를 보세요."),
         table("③ 기본 심사 작업에 버튼을 몇 번 누르나요?", `SELECT properties.review_id AS \`심사 번호\`, properties.metric_version AS \`측정 버전\`, multiIf(properties.review_view='list','지원자 목록에서 진입',properties.review_view='single','한 명씩',properties.review_view='card','카드에서 진입','표에서 진입') AS \`작업 방식\`, uniq(properties.item_id) AS \`조작 대상 지원자 수\`, countIf(properties.input_method='button') AS \`버튼 조작 수\`, countIf(properties.input_method='shortcut') AS \`단축키 수\`, round(1.0*countIf(properties.input_method='button')/nullIf(uniq(properties.item_id),0),1) AS \`지원자 1명당 평균\` FROM events WHERE event='review_basic_action' AND properties.metric_version IN (1,2) AND properties.review_action!='decision_undo' AND ${base} AND {filters} GROUP BY properties.review_id, properties.metric_version, properties.review_view`, "클릭·터치·버튼 키보드 활성화를 셉니다. 상세 열기·판정·이전/다음 이동을 포함합니다. 자동 이동·판정 되돌리기·원본 조작·메모는 제외합니다. 분모는 조작 대상 고유 지원자이며 미완료도 포함합니다. 화면을 고르던 v1과 지원자 목록이 기본인 v2는 각각 집계합니다."),
         table("버튼 조작은 어떤 작업에 쓰이나요?", `SELECT properties.metric_version AS \`측정 버전\`, multiIf(properties.review_action='open','상세 열기',properties.review_action='decision_save','판정 선택·저장',properties.review_action='decision_undo','판정 되돌리기',properties.review_action='next','다음 지원자','이전 지원자') AS \`작업\`, countIf(properties.input_method='button') AS \`버튼 조작 수\`, countIf(properties.input_method='shortcut') AS \`단축키 수\` FROM events WHERE event='review_basic_action' AND properties.metric_version IN (1,2) AND ${base} AND {filters} GROUP BY properties.metric_version, properties.review_action`, "판정 선택과 저장은 하나의 버튼이므로 1회로 셉니다. 저장 실패도 조작 시도에는 포함되며 성공 여부는 저장 요청 표에서 확인합니다. 기존 보기와 지원자 목록은 측정 버전별로 표시합니다."),
         table("참고 · 개별 지원자 화면에 머문 시간", `SELECT coalesce(properties.metric_version,1) AS \`측정 버전\`, properties.workflow AS \`심사 종류\`, properties.review_id AS \`심사 번호\`, uniq(properties.item_id) AS \`관측 지원자 수\`, round(sum(toFloat(properties.active_ms))/60000,1) AS \`합산 작업 시간(분)\`, round(sum(toFloat(properties.active_ms))/1000/nullIf(uniq(properties.item_id),0),1) AS \`지원자당 평균(초)\` FROM events WHERE event='review_active_time' AND ${base} AND {filters} GROUP BY coalesce(properties.metric_version,1), properties.workflow, properties.review_id`, "v1과 v2는 별도로 집계합니다. 개별 지원자 화면만 측정합니다. 카드·표 비교 시간은 제외하고 화면 내 로딩 대기는 포함될 수 있습니다. 전체 업무 시간·단축 성과가 아닙니다. 다른 탭·포커스 이탈·2분 이상 무조작 제외. 재열람 시간은 누적합니다. 여러 심사위원의 시간은 인시 합계이며 경과 시간이 아닙니다. 판정을 고민한 시간도 섞이므로 길다고 불편하거나 짧다고 개선된 것은 아닙니다."),
@@ -213,6 +213,34 @@ ORDER BY \`주 시작일\` WITH FILL STEP INTERVAL 1 WEEK` },
     "2026-11-01 구현·배포 이후 v1 기록만 집계. 원본 자동 표시 심사의 상세 열람 v2는 기존 수동 열기 비율에서 제외. 클릭은 원본 열기 시도이며 표시·독서 성공이 아닙니다. 비율=같은 기간·심사자의 상세 열람과 상세 화면 원본 클릭이 모두 있는 지원자/상세 열람 지원자. 총 클릭은 합격자 연락처도 포함. 지원자는 심사별 중복 제거. 반복은 같은 심사자·지원자의 첫 클릭을 뺀 추가 횟수이며 기간을 바꾸면 달라집니다. PDF 닫기·뷰어 내부 새 창/다운로드·기본 심사 버튼 수와 분리합니다. 빈 비율은 분모 없음."));
 
   dashboards[2].insights.splice(5, 0, table("원본 PDF 버튼은 어디에서 누르나요?", `SELECT properties.review_id AS \`심사 번호\`, if(properties.pdf_open_source='passed_contacts','합격자 연락처','심사 상세') AS \`버튼 위치\`, count() AS \`원본 클릭 횟수\` FROM events WHERE event='review_original_pdf_clicked' AND properties.metric_version=1 AND ${base} AND {filters} GROUP BY properties.review_id, properties.pdf_open_source`, "심사 상세의 원본 PDF·사진 미추출 안내 버튼과 합격자 연락처의 PDF 보기 버튼을 구분합니다. 새 창·다운로드 등 뷰어 내부 조작은 제외합니다. 클릭 횟수이며 PDF 표시 성공이 아닙니다."));
+  const documentPreviewAvailability = table("비PDF 지원서는 첫 열람에 준비됐나요?", `
+    WITH first_open AS (
+      SELECT properties.review_id AS review_key, properties.operation_id AS job_key,
+        min(timestamp) AS first_opened,
+        argMin(properties.preview_status, timestamp) AS first_status,
+        argMin(properties.document_format, timestamp) AS format
+      FROM events
+      WHERE event='review_document_preview_observed' AND properties.metric_version=1
+        AND properties.workflow='producer_pdf' AND ${base}
+      GROUP BY review_key, job_key
+      HAVING {filters(first_opened AS timestamp)}
+    ), downloads AS (
+      SELECT properties.review_id AS review_key, properties.operation_id AS job_key,
+        max(timestamp) AS last_requested, count() AS requests
+      FROM events
+      WHERE event='review_document_original_download_requested' AND properties.metric_version=1
+        AND properties.workflow='producer_pdf' AND ${base} AND {filters}
+      GROUP BY review_key, job_key
+    )
+    SELECT o.format AS \`제출 형식\`, count() AS \`첫 열람 지원서 수\`,
+      countIf(o.first_status='READY') AS \`준비 완료\`, countIf(o.first_status='PENDING') AS \`준비 중\`,
+      countIf(o.first_status='FAILED') AS \`변환 실패\`,
+      round(100.0*countIf(o.first_status='READY')/nullIf(count(),0),1) AS \`준비율 퍼센트\`,
+      countIf(d.requests>0 AND d.last_requested>=o.first_opened) AS \`원본 다운로드 요청 지원서 수\`
+    FROM first_open o LEFT JOIN downloads d ON o.review_key=d.review_key AND o.job_key=d.job_key
+    GROUP BY o.format ORDER BY o.format`,
+    "분모는 선택 기간에 서버의 접수 확인 이후 뷰어에서 첫 성공 응답을 관측한 고유 비PDF 지원서입니다. 접수 전 조회, 업로드 기한 만료, 미열람, 조회·수집 실패는 제외합니다. 원본 요청은 첫 관측 이후 같은 기간에 원본 주소를 발급받아 브라우저에 다운로드를 요청한 지원서 수입니다. 파일 저장 완료나 누른 이유를 의미하지 않습니다. 환경별 기능 배포 이후부터 집계합니다.");
+  dashboards[2].insights.push(documentPreviewAvailability);
   dashboards.push({
     name: "05 익명게시판", description: descriptions + " 글·댓글 번호, 본문, 익명 번호는 수집하지 않으므로 글별 지표는 없습니다. 2026-11 이벤트 추가 이후 기록만 집계합니다.",
     insights: [
@@ -230,7 +258,7 @@ ORDER BY \`주 시작일\` WITH FILL STEP INTERVAL 1 WEEK` },
   });
   if (environment === "development") {
     return [{ ...dashboards[3], name: "개발 전용 · 측정 점검", description: "개발 사이트와 로컬 테스트 기록만 확인합니다. 운영 성과에 합산하지 않습니다.",
-      insights: [...dashboards[3].insights, homeBannerClicks].map(insight => ({ ...insight, name: `개발 · ${insight.name}` })) }];
+      insights: [...dashboards[3].insights, homeBannerClicks, documentPreviewAvailability].map(insight => ({ ...insight, name: `개발 · ${insight.name}` })) }];
   }
   return dashboards;
 }

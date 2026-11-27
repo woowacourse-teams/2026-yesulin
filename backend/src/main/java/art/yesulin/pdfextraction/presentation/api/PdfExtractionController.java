@@ -62,10 +62,11 @@ public class PdfExtractionController {
     public ResponseEntity<PdfExtractionView> find(
             @LoginMember(roles = MemberType.PRODUCER, statuses = MemberStatus.ACTIVE) MemberPrincipal principal,
             @PathVariable UUID jobId,
-            @RequestParam(defaultValue = "false") boolean includeResult
+            @RequestParam(defaultValue = "false") boolean includeResult,
+            @RequestParam(defaultValue = "false") boolean includeDocument
     ) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-                .body(service.find(principal.memberId(), jobId.toString(), includeResult));
+                .body(service.find(principal.memberId(), jobId.toString(), includeResult, includeDocument));
     }
 
     public record JobsResponse(List<PdfExtractionView> jobs) {

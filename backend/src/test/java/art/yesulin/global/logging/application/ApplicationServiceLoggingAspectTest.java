@@ -15,7 +15,9 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
@@ -33,13 +35,14 @@ class ApplicationServiceLoggingAspectTest {
     private static final String SECRET = "sensitive-service-value";
 
     private final Logger logger = (Logger) LoggerFactory.getLogger(ApplicationServiceLoggingAspect.class);
-    private final ListAppender<ILoggingEvent> appender = new ListAppender<>();
+    private ListAppender<ILoggingEvent> appender;
     private Level previousLevel;
 
     @BeforeEach
     void setUp() {
         previousLevel = logger.getLevel();
         logger.setLevel(Level.DEBUG);
+        appender = captureCurrentThread();
         appender.start();
         logger.addAppender(appender);
     }
@@ -59,7 +62,7 @@ class ApplicationServiceLoggingAspectTest {
         String result = service.succeed(SECRET);
 
         assertEquals("sensitive-result", result);
-        ILoggingEvent event = appender.list.getFirst();
+        ILoggingEvent event = onlyEvent();
         assertEquals(Level.DEBUG, event.getLevel());
         assertEquals("SERVICE_CALL", fields(event).get("event"));
         assertEquals("TestService", fields(event).get("class"));
@@ -76,7 +79,7 @@ class ApplicationServiceLoggingAspectTest {
 
         service.succeed("input");
 
-        ILoggingEvent event = appender.list.getFirst();
+        ILoggingEvent event = onlyEvent();
         assertEquals(Level.WARN, event.getLevel());
         assertEquals("SLOW_SERVICE", fields(event).get("event"));
         assertEquals("SUCCESS", fields(event).get("outcome"));
@@ -99,7 +102,7 @@ class ApplicationServiceLoggingAspectTest {
 
         assertThrows(BusinessException.class, () -> service.reject(SECRET));
 
-        ILoggingEvent event = appender.list.getFirst();
+        ILoggingEvent event = onlyEvent();
         assertEquals(Level.WARN, event.getLevel());
         assertEquals("SLOW_SERVICE", fields(event).get("event"));
         assertEquals("FAILURE", fields(event).get("outcome"));
@@ -124,7 +127,7 @@ class ApplicationServiceLoggingAspectTest {
 
         assertThrows(IllegalStateException.class, () -> service.fail(SECRET));
 
-        ILoggingEvent event = appender.list.getFirst();
+        ILoggingEvent event = onlyEvent();
         assertEquals(Level.ERROR, event.getLevel());
         assertEquals("UNEXPECTED_SERVICE_ERROR", fields(event).get("event"));
         assertEquals("TestService", fields(event).get("class"));
@@ -142,7 +145,7 @@ class ApplicationServiceLoggingAspectTest {
 
         assertThrows(IllegalStateException.class, () -> service.fail(SECRET));
 
-        ILoggingEvent event = appender.list.getFirst();
+        ILoggingEvent event = onlyEvent();
         assertEquals(Level.WARN, event.getLevel());
         assertEquals("SLOW_SERVICE", fields(event).get("event"));
         assertEquals("FAILURE", fields(event).get("outcome"));
@@ -156,10 +159,39 @@ class ApplicationServiceLoggingAspectTest {
 
         service.findRecent();
 
-        ILoggingEvent event = appender.list.getFirst();
+        ILoggingEvent event = onlyEvent();
         assertEquals(Level.DEBUG, event.getLevel());
         assertEquals("SERVICE_CALL", fields(event).get("event"));
         assertEquals("AdminLogService", fields(event).get("class"));
+    }
+
+    @Test
+    void capturesEveryLocalCallWhileAnotherThreadUsesTheSameAspect() {
+        TestService background = createProxy(0L);
+        assertEquals("sensitive-result", CompletableFuture.supplyAsync(() -> background.succeed(SECRET)).join());
+
+        createAdminLogProxy(0L).findRecent();
+        createProxy(499L).succeed(SECRET);
+
+        assertEquals(List.of("findRecent", "succeed"),
+                appender.list.stream().map(event -> fields(event).get("method")).toList());
+    }
+
+    private ListAppender<ILoggingEvent> captureCurrentThread() {
+        Thread testThread = Thread.currentThread();
+        return new ListAppender<>() {
+            @Override
+            protected void append(ILoggingEvent event) {
+                if (Thread.currentThread() == testThread) {
+                    super.append(event);
+                }
+            }
+        };
+    }
+
+    private ILoggingEvent onlyEvent() {
+        assertEquals(1, appender.list.size());
+        return appender.list.getFirst();
     }
 
     private TestService createProxy(long elapsedMillis) {

@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { extractedSocialLinks, socialLink } from "./social-links";
 import { matchesDecision, type ReviewDecision } from "./types";
-import { collectDroppedPdfs, folderPdfs } from "./upload-selection";
+import { collectDroppedDocuments, folderDocuments } from "./upload-selection";
 
 describe("PDF 심사 피드백", () => {
   it("대기와 보류를 겹치지 않는 네 분류로 나눈다", () => {
@@ -21,10 +21,18 @@ describe("PDF 심사 피드백", () => {
     expect(extractedSocialLinks('@sample.actor QR 코드')).toEqual([]);
   });
 
+  it("서버에서 허용한 형식만 폴더에 포함하고 대소문자와 마지막 확장자를 확인한다", () => {
+    const names = ["a.HWP", "b.hwpx", "c.DoCx", "d.PPTX", "e.pdf", "f.hwp.exe", "g.doc", "h.ppt"];
+    const files = names.map(name => new File(["fixture"], name));
+    const enabled = ["pdf", "hwp", "hwpx", "docx", "pptx"];
+    expect(folderDocuments(files, enabled).map(file => file.name)).toEqual(names.slice(0, 5));
+    expect(folderDocuments(files, ["pdf"]).map(file => file.name)).toEqual(["e.pdf"]);
+  });
+
   it("폴더 안의 PDF만 300개까지 선택하고 301개는 부분 접수하지 않는다", () => {
     const files = Array.from({ length: 300 }, (_, i) => new File(['fixture'], `synthetic-${i}.pdf`));
-    expect(folderPdfs([...files, new File(['fixture'], 'photo.png')])).toHaveLength(300);
-    expect(() => folderPdfs([...files, new File(['fixture'], 'overflow.pdf')])).toThrow('300개');
+    expect(folderDocuments([...files, new File(['fixture'], 'photo.png')], ['pdf'])).toHaveLength(300);
+    expect(() => folderDocuments([...files, new File(['fixture'], 'overflow.pdf')], ['pdf'])).toThrow('300개');
   });
 
   it("폴더의 첫 묶음 이후 PDF도 빈 묶음이 나올 때까지 읽는다", async () => {
@@ -39,7 +47,7 @@ describe("PDF 심사 피드백", () => {
       } }),
     };
     const transfer = { items: [{ kind: 'file', webkitGetAsEntry: () => directory }], files: [] } as unknown as DataTransfer;
-    expect(await collectDroppedPdfs(transfer)).toHaveLength(205);
+    expect(await collectDroppedDocuments(transfer, ["pdf"])).toHaveLength(205);
     expect(batch).toBe(4);
   });
 });

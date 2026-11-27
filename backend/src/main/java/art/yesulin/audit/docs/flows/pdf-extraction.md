@@ -6,3 +6,6 @@
 미확인/만료 작업은 같은 jobId로 이어 올린다. 이후 [공용 PDF 흐름](../../../pdfextraction/docs/flows/pdf-extraction.md)을 따른다.
 콜백의 PdfExtractionCompletedEvent를 AuditExtractionEventHandler가 동기로 받아 규칙·AI 작업을 연결한다.
 자세한 저장·중복·오류 정책은 [공용 PDF 정책](../../../pdfextraction/docs/policies/pdf-processing.md)을 따른다.
+
+비PDF는 접수와 판정 상태를 유지한 채 별도 워커가 변환한다. 서버가 불변 미리보기의 SHA를 확정하면 워커가 같은 바이트를 공용 PDF 추출 경로에 게시한다.
+원본 파일과 변환본 열람 URL은 소유 공연사의 상세 조회에서 발급한다. 변환 실패는 지원자의 처리 상태만 종료한다.

@@ -13,6 +13,18 @@ class PdfExtractionJobTest {
     private static final Instant NOW = Instant.parse("2026-10-23T00:00:00Z");
 
     @Test
+    void officeDocumentsAreOnlyAllowedForReviewBoundJobs() {
+        for (String filename : java.util.List.of("a.docx", "a.pptx", "a.hwp", "a.HWPX")) {
+            assertThrows(BusinessException.class, () -> job(filename, 100));
+            assertThrows(BusinessException.class, () -> PdfExtractionJob.forActorProfile(1L, filename, 100, NOW,
+                    NOW.plusSeconds(600)));
+            PdfExtractionJob accepted = new PdfExtractionJob(1L, filename, 100, NOW, NOW.plusSeconds(600),
+                    java.util.UUID.randomUUID().toString());
+            assertEquals(DocumentPreviewStatus.PENDING, accepted.previewStatus());
+        }
+    }
+
+    @Test
     void rejectsEmptyOversizedAndNonPdfUploads() {
         assertThrows(BusinessException.class, () -> job("a.pdf", 0));
         assertThrows(BusinessException.class, () -> job("a.pdf", PdfExtractionJob.MAX_FILE_BYTES + 1));

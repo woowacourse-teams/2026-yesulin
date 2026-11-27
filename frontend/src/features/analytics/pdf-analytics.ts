@@ -10,6 +10,8 @@ const reviews = new Map<string, string>();
 export function registerPdfReviewJob(jobId: string, reviewId: string) { reviews.set(jobId, reviewId); }
 
 export function observePdfExtraction(job: import("@/features/pdf-extractions/types").PdfExtractionJob) {
+  // 같은 바이트를 다른 확장자로 올려도 서버는 처음 접수한 작업을 반환한다.
+  if (job.extension && job.extension !== "pdf") return;
   const reviewId = reviews.get(job.jobId);
   if (!reviewId || !["COMPLETED", "PARTIAL", "FAILED", "UPLOAD_EXPIRED"].includes(job.status)) return;
   const info = job.result?.applicantInfo;

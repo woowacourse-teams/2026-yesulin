@@ -1,6 +1,7 @@
 package art.yesulin.audit.presentation.event;
 
 import art.yesulin.audit.application.AuditExtractionService;
+import art.yesulin.pdfextraction.application.DocumentPreviewFailedEvent;
 import art.yesulin.pdfextraction.application.PdfExtractionCompletedEvent;
 import art.yesulin.pdfextraction.application.PdfExtractionUploadedEvent;
 import art.yesulin.pdfextraction.application.ai.PdfAiCompletedEvent;
@@ -22,6 +23,11 @@ public class AuditExtractionEventHandler {
     @EventListener
     public void handle(PdfExtractionCompletedEvent event) {
         service.applyExtraction(event.jobId(), event.ownerId(), event.text(), event.applicantInfo());
+    }
+
+    @EventListener
+    public void previewFailed(DocumentPreviewFailedEvent event) {
+        service.failConversion(event.jobId());
     }
 
     @EventListener

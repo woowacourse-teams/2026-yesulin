@@ -1,9 +1,22 @@
 import { ACQUISITION_CHANNELS, type AcquisitionChannel } from "./acquisition";
 import { isReminderCampaign, type ReminderCampaign } from "@/features/audition-posts/openchat-reminder-tag";
 
+const REVIEW_DOCUMENT_FORMATS = ["docx", "pptx", "hwp", "hwpx"] as const;
+const REVIEW_PREVIEW_STATUSES = ["PENDING", "READY", "FAILED"] as const;
+
+export function reviewPreviewStatus(value: unknown) {
+  return REVIEW_PREVIEW_STATUSES.find(status => status === value);
+}
+
+export function reviewDocumentFormat(extension: unknown) {
+  return REVIEW_DOCUMENT_FORMATS.find(format => format === extension);
+}
+
 /** PostHog에만 쓰는 계약. GA dataLayer에는 식별자를 전달하지 않는다. */
 export type ProductProperties = {
   banner_id?: "audition-alert" | "producer-partnership";
+  document_format?: typeof REVIEW_DOCUMENT_FORMATS[number];
+  preview_status?: typeof REVIEW_PREVIEW_STATUSES[number];
   pdf_open_source?: "review_detail" | "passed_contacts";
   review_action?: "open" | "decision_save" | "decision_undo" | "next" | "previous";
   input_method?: "button" | "shortcut";
@@ -49,7 +62,7 @@ export type ProductProperties = {
 };
 
 export const PRODUCT_EVENTS = [
-  "review_basic_action", "review_original_pdf_clicked",
+  "review_basic_action", "review_original_pdf_clicked", "review_document_preview_observed", "review_document_original_download_requested",
   "review_progress_v2", "review_save_attempted", "review_save_result", "pdf_processing_observed",
   "audition_post_viewed", "openchat_landed", "another_post_viewed", "attachment_download_clicked",
   "home_banner_clicked",
@@ -83,7 +96,7 @@ export function environmentMatchesHost(environment: string | undefined, hostname
 
 const PROPERTY_KEYS = new Set<keyof ProductProperties>([
   "banner_id",
-  "pdf_open_source", "review_action", "input_method", "review_view",
+  "document_format", "preview_status", "pdf_open_source", "review_action", "input_method", "review_view",
   "metric_version", "pending_count", "held_count", "final_count", "save_kind", "processing_stage",
   "post_id", "show_id", "review_id", "item_id", "operation_id", "attachment_index", "attachment_kind",
   "has_application_form", "source", "reminder_campaign", "workflow", "step", "outcome", "error_code", "duration_ms", "active_ms",
@@ -96,6 +109,8 @@ const PROPERTY_KEYS = new Set<keyof ProductProperties>([
 export function safeProductProperties(properties: ProductProperties): ProductProperties {
   return Object.fromEntries(Object.entries(properties).filter(([key, value]) => {
     if (!PROPERTY_KEYS.has(key as keyof ProductProperties)) return false;
+    if (key === "document_format") return reviewDocumentFormat(value) !== undefined;
+    if (key === "preview_status") return reviewPreviewStatus(value) !== undefined;
     if (key === "banner_id") return value === "audition-alert" || value === "producer-partnership";
     if (key === "acquisition_channel") return ACQUISITION_CHANNELS.includes(value as AcquisitionChannel);
     if (key === "reminder_campaign") return isReminderCampaign(value);

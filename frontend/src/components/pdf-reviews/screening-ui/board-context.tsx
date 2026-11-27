@@ -14,7 +14,7 @@ export type BoardContextValue = {
   changeRole?: (id: SubmissionId, roleId: string | null) => void;
   saveMemo?: (id: SubmissionId, memo: string) => Promise<string | null>;
   registerNavigationSave?: (flush: () => Promise<boolean>) => () => void;
-  renderDocument?: (applicant: Applicant, frame: PdfFrameState) => ReactNode;
+  renderDocument?: (applicant: Applicant, frame: PdfFrameState, downloadSlot: HTMLElement | null) => ReactNode;
   requestNavigation?: (action: () => void) => void;
   onNoteDirty?: (dirty: boolean) => void;
   onApplicantOpened?: () => void;

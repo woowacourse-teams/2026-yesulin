@@ -47,6 +47,9 @@ public class PdfExtractionJob {
     @Column(length = 64)
     private String sourceSha256;
 
+    @Column(length = 64)
+    private String previewSha256;
+
     private Instant uploadedAt;
 
     @Column(length = 36, updatable = false)
@@ -85,6 +88,9 @@ public class PdfExtractionJob {
         this.id = UUID.randomUUID().toString();
         this.ownerId = ownerId;
         this.fileMetadata = new PdfFileMetadata(filename, size);
+        if (reviewId == null && requiresConversion()) {
+            throw new BusinessException(INVALID_PDF, "이 업로드는 PDF 파일만 지원합니다.");
+        }
         this.createdAt = Objects.requireNonNull(now);
         this.uploadExpiresAt = Objects.requireNonNull(expiresAt);
         this.reviewId = reviewId == null ? null : UUID.fromString(reviewId).toString();
@@ -101,6 +107,36 @@ public class PdfExtractionJob {
         job.purpose = PdfExtractionPurpose.ACTOR_PROFILE;
         job.ownerType = PdfExtractionOwnerType.APPLICANT;
         return job;
+    }
+
+    public boolean requiresConversion() {
+        return fileMetadata.getType() != PdfSourceFileType.PDF;
+    }
+
+    public DocumentPreviewStatus previewStatus() {
+        if (previewSha256 != null || (!requiresConversion() && uploadedAt != null)) {
+            return DocumentPreviewStatus.READY;
+        }
+        if (requiresConversion() && status == PdfExtractionStatus.FAILED) {
+            return DocumentPreviewStatus.FAILED;
+        }
+        return DocumentPreviewStatus.PENDING;
+    }
+
+    public void acceptPreview(String digest, Instant now) {
+        if (previewStatus() != DocumentPreviewStatus.PENDING || !requiresConversion()
+                || digest == null || !digest.matches("[0-9a-f]{64}")) {
+            throw new BusinessException(INVALID_PDF, "변환 PDF의 체크섬 또는 작업 상태가 올바르지 않습니다.");
+        }
+        confirmUpload(now);
+        previewSha256 = digest;
+    }
+
+    public String extractionInputSha256() {
+        if (requiresConversion()) {
+            return previewSha256;
+        }
+        return sourceSha256;
     }
 
     public String getOriginalFilename() {
