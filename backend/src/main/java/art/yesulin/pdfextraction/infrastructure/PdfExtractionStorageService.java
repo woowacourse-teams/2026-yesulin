@@ -5,13 +5,17 @@ import static art.yesulin.pdfextraction.domain.PdfExtractionErrorCode.PDF_UPLOAD
 
 import art.yesulin.global.exception.BusinessException;
 import art.yesulin.infrastructure.storage.S3PrivateObjects;
+import art.yesulin.pdfextraction.application.DocumentPreviewTransferStorage;
 import art.yesulin.pdfextraction.application.PdfExtractionResultParser;
 import art.yesulin.pdfextraction.application.PdfExtractionStorage;
 import art.yesulin.pdfextraction.domain.PdfExtractionJob;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.HexFormat;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -22,11 +26,51 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "yesulin.pdf-extraction", name = "enabled", havingValue = "true")
-public class PdfExtractionStorageService implements PdfExtractionStorage {
+public class PdfExtractionStorageService implements PdfExtractionStorage, DocumentPreviewTransferStorage {
 
     private static final String ROOT = "private/pdf-extractions/";
 
+    private static final Duration WORKER_TRANSFER_TTL = Duration.ofMinutes(5);
+
     private final S3PrivateObjects objects;
+
+    @Override
+    public String canonicalOriginalKey(PdfExtractionJob job) {
+        return objects.physicalKey(originalKey(job));
+    }
+
+    @Override
+    public Optional<ObjectInfo> inspect(PdfExtractionJob job, File file) {
+        return objects.inspectWithChecksum(transferKey(job, file)).map(meta -> new ObjectInfo(meta.contentType(),
+                meta.size(), meta.base64Sha256() == null ? null
+                        : HexFormat.of().formatHex(Base64.getDecoder().decode(meta.base64Sha256())), meta.etag()));
+    }
+
+    @Override
+    public Transfer read(PdfExtractionJob job, File file, ObjectInfo info) {
+        String url = objects.downloadUrlIfMatch(transferKey(job, file), info.etag(), WORKER_TRANSFER_TTL);
+        return new Transfer(url, "GET", Map.of("If-Match", info.etag()), info.size(), info.sha256());
+    }
+
+    @Override
+    public Transfer writePdfOnce(PdfExtractionJob job, File file, long size, String sha256) {
+        if (file == File.ORIGINAL) {
+            throw new IllegalArgumentException("변환 작업은 원본에 쓸 수 없습니다.");
+        }
+        S3PrivateObjects.Upload upload = objects.createOnce(transferKey(job, file), "application/pdf", size,
+                sha256, WORKER_TRANSFER_TTL);
+        Map<String, String> headers = new HashMap<>(upload.headers());
+        headers.put("Content-Length", Long.toString(size));
+        return new Transfer(upload.url(), upload.method(), Map.copyOf(headers), size, sha256);
+    }
+
+    private String transferKey(PdfExtractionJob job, File file) {
+        return switch (file) {
+            case ORIGINAL -> originalKey(job);
+            case PREVIEW -> previewKey(job);
+            case INPUT -> sourceKey(job);
+        };
+    }
 
     @Override
     public UploadTarget prepare(PdfExtractionJob job) {

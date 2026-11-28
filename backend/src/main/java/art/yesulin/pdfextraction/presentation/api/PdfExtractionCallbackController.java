@@ -1,6 +1,8 @@
 package art.yesulin.pdfextraction.presentation.api;
 
 import art.yesulin.pdfextraction.application.DocumentPreviewReceiver;
+import art.yesulin.pdfextraction.application.DocumentPreviewTransferStorage.Transfer;
+import art.yesulin.pdfextraction.application.DocumentPreviewTransfers;
 import art.yesulin.pdfextraction.application.PdfExtractionResultReceiver;
 import art.yesulin.pdfextraction.application.ReceivePdfExtractionResultCommand;
 import jakarta.validation.Valid;
@@ -22,6 +24,15 @@ public class PdfExtractionCallbackController {
     private final PdfExtractionResultReceiver receiver;
 
     private final DocumentPreviewReceiver previews;
+
+    private final DocumentPreviewTransfers transfers;
+
+    @PostMapping("/preview-transfers")
+    public ResponseEntity<Transfer> prepareTransfer(@Valid @RequestBody DocumentPreviewTransfers.Request request) {
+        return transfers.prepare(request).map(transfer -> ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(transfer)).orElseGet(() -> ResponseEntity.noContent().cacheControl(CacheControl.noStore())
+                .build());
+    }
 
     @PostMapping("/previews")
     public ResponseEntity<Void> acceptPreview(@Valid @RequestBody CompleteDocumentPreviewRequest request) {

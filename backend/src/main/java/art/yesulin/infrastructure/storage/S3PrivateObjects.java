@@ -58,6 +58,10 @@ public class S3PrivateObjects {
     }
 
     public Upload createOnce(String logicalKey, String contentType, long size, String sourceSha256) {
+        return createOnce(logicalKey, contentType, size, sourceSha256, uploadExpiration);
+    }
+
+    public Upload createOnce(String logicalKey, String contentType, long size, String sourceSha256, Duration ttl) {
         PutObjectRequest.Builder put = PutObjectRequest.builder().bucket(bucket).key(physicalKey(logicalKey))
                 .contentType(contentType).contentLength(size).ifNoneMatch("*");
         Map<String, String> headers = new HashMap<>(Map.of("Content-Type", contentType, "If-None-Match", "*"));
@@ -67,7 +71,7 @@ public class S3PrivateObjects {
             headers.put("x-amz-checksum-sha256", checksum);
         }
         PresignedPutObjectRequest signed = presigner.presignPutObject(PutObjectPresignRequest.builder()
-                .signatureDuration(uploadExpiration).putObjectRequest(put.build()).build());
+                .signatureDuration(ttl).putObjectRequest(put.build()).build());
         return new Upload(signed.url().toString(), "PUT", signed.expiration(),
                 Map.copyOf(headers));
     }
@@ -90,7 +94,7 @@ public class S3PrivateObjects {
             HeadObjectResponse response = client.headObject(HeadObjectRequest.builder()
                     .bucket(bucket).key(physicalKey(logicalKey)).checksumMode(ChecksumMode.ENABLED).build());
             return Optional.of(new VerifiedMetadata(response.contentType(), response.contentLength(),
-                    response.checksumSHA256()));
+                    response.checksumSHA256(), response.eTag()));
         } catch (S3Exception exception) {
             if (exception.statusCode() == 404) {
                 return Optional.empty();
@@ -159,6 +163,13 @@ public class S3PrivateObjects {
                 .responseCacheControl("no-store").build();
         return presigner.presignGetObject(GetObjectPresignRequest.builder()
                 .signatureDuration(downloadExpiration).getObjectRequest(get).build()).url().toString();
+    }
+
+    public String downloadUrlIfMatch(String logicalKey, String etag, Duration ttl) {
+        GetObjectRequest get = GetObjectRequest.builder().bucket(bucket).key(physicalKey(logicalKey))
+                .responseCacheControl("no-store").ifMatch(etag).build();
+        return presigner.presignGetObject(GetObjectPresignRequest.builder()
+                .signatureDuration(ttl).getObjectRequest(get).build()).url().toString();
     }
 
     public String physicalKey(String logicalKey) {
@@ -249,7 +260,7 @@ public class S3PrivateObjects {
     public record Upload(String url, String method, Instant expiresAt, Map<String, String> headers) {
     }
 
-    public record VerifiedMetadata(String contentType, long size, String base64Sha256) {
+    public record VerifiedMetadata(String contentType, long size, String base64Sha256, String etag) {
     }
 
     public record Metadata(String contentType, long size) {

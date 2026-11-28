@@ -2,7 +2,8 @@
 
 1. 소비 기능이 소유권과 목적을 확인하고 PdfExtractionJob을 만든다. Audit 업로드는 AuditApplicant도 같은 트랜잭션에서 만든다.
 2. 파일별 presigned PUT을 발급한다. 브라우저가 S3에 직접 올린다. PDF 원본은 inputs/, 이미지·캐시는 results/에 저장한다. 공연사 심사의 비PDF 원본은 originals/에 보존한다.
-3. 비PDF 원본의 생성 이벤트는 SQS를 거쳐 변환 Lambda에 전달된다. 파생 PDF를 previews/에 저장하고 서버에 해시를 확정한 다음 같은 파일을 inputs/에 게시한다. inputs/의 PDF 생성 이벤트가 기존 추출 Lambda를 실행한다. 브라우저 completion은 업로드 확인이며 Lambda를 호출하지 않는다.
+3. 비PDF 원본의 S3 생성 이벤트가 변환 Lambda를 호출한다. 운영 변환기는 이벤트의 작업 ID·원본 키·ETag를 서버에 제출하여 원본과 파생 파일 각각에 대한 5분 전송 주소를 받는다. 파생 PDF를 previews/에 저장하고 서버에 해시를 확정한 다음 같은 파일을 inputs/에 게시한다. inputs/의 PDF 생성 이벤트가 기존 추출 Lambda를 실행한다. 브라우저 completion은 업로드 확인이며 Lambda를 호출하지 않는다.
+   최초 변환은 미리보기 존재 조회 없이 시작한다. 조건부 저장에서 412를 받으면 이미 저장된 미리보기를 읽어 콜백을 보낸다. DB에서 미리보기가 확정된 중복 이벤트는 바로 그 PDF를 읽는다.
    두 신호의 순서는 고정하지 않는다. completion 전 결과 도착도 수신한다.
 4. Lambda의 PDFium이 텍스트·이미지를 추출하고 이미지/result.json을 S3에 저장한다. 모델을 호출하지 않는다.
 5. 인증된 완료 API로 작업 ID·문자·이미지 키를 직접 POST한다. Spring은 payload를 저장하고 목적별 후처리와 AI 작업을 연결한다.
