@@ -118,6 +118,9 @@ ORDER BY \`주 시작일\` WITH FILL STEP INTERVAL 1 WEEK` },
         ) SELECT uniqIf(person_id, landed = 1) AS \`알림 유입자\`, uniqIf(person_id, landed = 1 AND explored = 1) AS \`다른 공고 탐색자\`,
           round(100.0 * uniqIf(person_id, landed = 1 AND explored = 1) / nullIf(uniqIf(person_id, landed = 1), 0), 1) AS \`탐색률 퍼센트\` FROM visits`,
           "선택 기간 알림 유입 중 동일 방문에서 다른 공고를 연 사람의 비율. 새로고침은 다른 공고 탐색으로 세지 않습니다."),
+        table("인스타그램 프로필 링크로 몇 명이 들어오나요?", `SELECT uniqExact(person_id) AS \`프로필 링크 방문자\`
+          FROM events WHERE event = 'instagram_profile_landed' AND ${base} AND {filters}`,
+          "선택 기간에 프로필용 링크(yesulin.art/?src=instagram)로 홈에 도착한 고유 방문자입니다. 반복 방문은 한 명으로 세며, 같은 링크를 다른 곳에 공유하면 그 방문도 포함됩니다. 새 이벤트 수집이 시작된 뒤의 방문부터 집계합니다.", "-30d"),
       ],
     },
     {

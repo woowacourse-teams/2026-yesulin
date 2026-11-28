@@ -22,9 +22,108 @@ beforeEach(() => {
   init.mockReturnValue(sdk); sdk.get_property.mockReturnValue(undefined);
   vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ enabled: true, internal: false, actor: "anonymous", testObjects: [], formAttachments: { "10": [0] } }) })));
 });
-afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe("PostHog 수집 경계", () => {
+  it("인스타그램 프로필 주소로 도착하면 초기화 중 페이지를 이동해도 한 번만 기록한다", async () => {
+    window.history.replaceState(null, "", "/?src=instagram&fbclid=private");
+    localStorage.setItem("yesulin:analytics-internal:v1", "true");
+    const { startProductAnalytics, refreshProductContext } = await import("./product-analytics");
+    const first = startProductAnalytics();
+    window.history.replaceState(null, "", "/auditions");
+    await Promise.all([first, startProductAnalytics()]);
+    refreshProductContext();
+    await startProductAnalytics();
+
+    expect(sdk.capture.mock.calls).toEqual([["instagram_profile_landed", {
+      acquisition_channel: "instagram", attribution_version: 1, environment: "development",
+      internal: true, actor: "anonymous", test_object: false, schema_version: 1,
+    }]]);
+    const properties = sdk.capture.mock.calls[0][1];
+    const clean = init.mock.calls[0][1].before_send({ event: "instagram_profile_landed", properties: {
+      ...properties, $current_url: "https://yesulin.art/?src=instagram&fbclid=private", $referrer: "https://l.instagram.com/",
+    } });
+    expect(clean.properties).toEqual(properties);
+  });
+
+  it.each(["/", "/?utm_source=instagram", "/posts/10?src=instagram"])(
+    "일반 인스타그램 유입인 %s는 프로필 도착으로 기록하지 않는다",
+    async path => {
+      window.history.replaceState(null, "", path);
+      const referrer = vi.spyOn(document, "referrer", "get").mockReturnValue("https://l.instagram.com/");
+      const { startProductAnalytics } = await import("./product-analytics");
+      expect(await startProductAnalytics()).toBe(true);
+      referrer.mockRestore();
+      expect(sdk.capture).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ["서버 오류", () => Promise.resolve(new Response(null, { status: 503 }))],
+    ["네트워크 오류", () => Promise.reject(new TypeError("network"))],
+  ])("프로필 방문의 첫 컨텍스트 %s 뒤에 화면 이동 없이 자동 재시도한다", async (_, fail) => {
+    vi.useFakeTimers();
+    window.history.replaceState(null, "", "/?src=instagram");
+    vi.mocked(fetch).mockImplementationOnce(fail);
+    const { startProductAnalytics } = await import("./product-analytics");
+    const ready = Promise.all([startProductAnalytics(), startProductAnalytics()]);
+    await vi.advanceTimersByTimeAsync(999);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(sdk.capture).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await ready).toEqual([true, true]);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(sdk.capture.mock.calls.map(([event]) => event)).toEqual(["instagram_profile_landed"]);
+  });
+
+  it("프로필 방문에서 자동 재시도도 실패하면 추가 자동 요청을 보내지 않는다", async () => {
+    vi.useFakeTimers();
+    window.history.replaceState(null, "", "/?src=instagram");
+    vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 503 }));
+    const { startProductAnalytics } = await import("./product-analytics");
+    const ready = startProductAnalytics();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(await ready).toBe(false);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(sdk.capture).not.toHaveBeenCalled();
+  });
+
+  it.each([["/", 503], ["/?src=instagram", 403]])(
+    "%s의 HTTP %s 응답을 자동으로 재시도하지 않는다",
+    async (path, status) => {
+      vi.useFakeTimers();
+      window.history.replaceState(null, "", path);
+      vi.mocked(fetch).mockResolvedValue(new Response(null, { status }));
+      const { startProductAnalytics } = await import("./product-analytics");
+      const ready = startProductAnalytics();
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(await ready).toBe(false);
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(sdk.capture).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ["분석 거부로 변경", () => localStorage.setItem("yesulin:analytics-consent:v1", "denied")],
+    ["컨텍스트 무효화", (analytics: typeof import("./product-analytics")) => analytics.refreshProductContext()],
+    ["분석 초기화", (analytics: typeof import("./product-analytics")) => analytics.resetProductAnalytics()],
+  ])("%s 후에는 대기 중인 프로필 방문 재시도를 중단한다", async (_, invalidate) => {
+    vi.useFakeTimers();
+    window.history.replaceState(null, "", "/?src=instagram");
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 503 }));
+    const analytics = await import("./product-analytics");
+    const ready = analytics.startProductAnalytics();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    invalidate(analytics);
+
+    await vi.advanceTimersByTimeAsync(500);
+    expect(await ready).toBe(false);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(sdk.capture).not.toHaveBeenCalled();
+  });
+
   it("홈 배너 클릭은 반복을 포함해 기록하고 허용된 배너 이름만 보낸다", async () => {
     const { trackProductEvent, setInternalBrowser } = await import("./product-analytics");
     const alert = { banner_id: "audition-alert" as const };
@@ -156,9 +255,12 @@ describe("PostHog 수집 경계", () => {
   });
   it("거부한 브라우저에서는 세션 조회와 SDK 초기화도 하지 않는다", async () => {
     localStorage.setItem("yesulin:analytics-consent:v1", "denied");
-    const { trackProductEvent } = await import("./product-analytics");
+    window.history.replaceState(null, "", "/?src=instagram");
+    const { startProductAnalytics, trackProductEvent } = await import("./product-analytics");
+    expect(await startProductAnalytics()).toBe(false);
     expect(await trackProductEvent("audition_post_viewed", { post_id: "10" })).toBe(false);
     expect(fetch).not.toHaveBeenCalled(); expect(init).not.toHaveBeenCalled();
+    expect(sdk.capture).not.toHaveBeenCalled();
     expect(sessionStorage.getItem("yesulin:acquisition:v1")).toBeNull();
   });
   it("운영 키 설정으로 localhost에서 수집하지 않는다", async () => {
