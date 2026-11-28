@@ -15,14 +15,10 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from renderer import InvalidDocument, MAX_FILE, render
+from signed_storage import DeletedJob, JobStorage, NoRedirect, Transfers
 
 UUID = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 JOB_KEY = re.compile(rf"({UUID})/({UUID})/source\.(docx|pptx|hwpx|hwp)")
-
-
-class NoRedirect(request.HTTPRedirectHandler):
-    def redirect_request(self, *args):
-        return None
 
 
 class Callback:
@@ -78,7 +74,7 @@ class Routes:
         review, job_id, extension = match.groups()
         scope = f"{review}/{job_id}/"
         return Job(job_id, extension, key, obj.get("versionId"), self.preview + scope + "preview.pdf",
-                   self.extraction + scope + "source.pdf")
+                   self.extraction + scope + "source.pdf", obj.get("eTag"), obj.get("size"))
 
 
 @dataclass(frozen=True)
@@ -89,6 +85,8 @@ class Job:
     version: str | None
     preview: str
     extraction: str
+    etag: str | None = None
+    size: int | None = None
 
     def payload(self, original_sha, status, preview_sha=None):
         return {"jobId": self.job_id, "originalFileKey": self.original, "originalSha256": original_sha,
@@ -187,6 +185,16 @@ def process(job, storage, notify, remaining_ms, convert=render):
             storage.publish(job.extraction, pdf, digest)
 
 
+def process_record(record, routes, storage, notify, remaining_ms):
+    job = routes.job(record)
+    if isinstance(storage, Transfers):
+        storage = JobStorage(storage, job)
+    try:
+        process(job, storage, notify, remaining_ms)
+    except DeletedJob:
+        return
+
+
 def consume(event, routes, storage, notify, remaining_ms):
     failures = []
     for message in event["Records"]:
@@ -197,7 +205,7 @@ def consume(event, routes, storage, notify, remaining_ms):
             if body.get("Event") == "s3:TestEvent":
                 continue
             for record in body["Records"]:
-                process(routes.job(record), storage, notify, remaining_ms)
+                process_record(record, routes, storage, notify, remaining_ms)
         except Exception as exc:
             print(json.dumps({"event": "DOCUMENT_PREVIEW_RETRY", "errorType": type(exc).__name__}))
             failures.append({"itemIdentifier": message["messageId"]})
@@ -209,9 +217,16 @@ def services():
                     validated_prefix("DOCUMENT_PREVIEW_PREFIX"), validated_prefix("PDF_INPUT_PREFIX"))
     if len({routes.original, routes.preview, routes.extraction}) != 3:
         raise ValueError("OVERLAPPING_STORAGE_PREFIX")
+    notify = Callback(os.environ["DOCUMENT_PREVIEW_CALLBACK_URL"], os.environ["DOCUMENT_PREVIEW_CALLBACK_TOKEN"])
+    mode = os.environ.get("DOCUMENT_PREVIEW_STORAGE_MODE")
+    token = os.environ.get("DOCUMENT_PREVIEW_TRANSFER_TOKEN", "")
+    if mode == "presigned" or (mode is None and "DOCUMENT_PREVIEW_TRANSFER_TOKEN" in os.environ):
+        transfers = Transfers(notify, token, routes.bucket, os.environ["AWS_REGION"])
+        return routes, transfers, notify
+    if mode not in (None, "direct") or "DOCUMENT_PREVIEW_TRANSFER_TOKEN" in os.environ:
+        raise ValueError("INVALID_PREVIEW_STORAGE_MODE")
     client = boto3.client("s3", config=Config(connect_timeout=3, read_timeout=15,
                                              retries={"total_max_attempts": 2, "mode": "standard"}))
-    notify = Callback(os.environ["DOCUMENT_PREVIEW_CALLBACK_URL"], os.environ["DOCUMENT_PREVIEW_CALLBACK_TOKEN"])
     return routes, Storage(client, routes.bucket), notify
 
 
@@ -227,4 +242,4 @@ def direct_handler(event, context):
         raise ValueError("MISSING_S3_RECORDS")
     routes, storage, notify = services()
     for record in event["Records"]:
-        process(routes.job(record), storage, notify, context.get_remaining_time_in_millis)
+        process_record(record, routes, storage, notify, context.get_remaining_time_in_millis)

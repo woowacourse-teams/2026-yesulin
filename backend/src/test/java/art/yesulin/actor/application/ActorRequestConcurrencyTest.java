@@ -29,7 +29,7 @@ import art.yesulin.global.exception.BusinessException;
 import art.yesulin.global.exception.ErrorCode;
 import art.yesulin.infrastructure.storage.S3PrivateObjects;
 import art.yesulin.pdfextraction.application.FakePdfExtractionStorage;
-import art.yesulin.pdfextraction.application.PdfExtractionStorage;
+import art.yesulin.pdfextraction.infrastructure.PdfExtractionStorageService;
 import art.yesulin.support.ObjectStorageTestConfiguration;
 import java.time.Instant;
 import java.util.List;
@@ -79,7 +79,7 @@ class ActorRequestConcurrencyTest {
     @Autowired
     private PlatformTransactionManager transactionManager;
     @MockitoBean
-    private PdfExtractionStorage storage;
+    private PdfExtractionStorageService storage;
     @MockitoBean
     private S3PrivateObjects pdfPrivateObjects;
 

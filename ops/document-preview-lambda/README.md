@@ -36,6 +36,20 @@ python3 zip/build.py yesulin-office-ahwp-combined.zip wheels review-documents.zi
 핸들러는 S3 테스트 이벤트를 수락하고, 잘못된 경로·일시적 실패에는 예외를 반환해 Lambda의 비동기 재시도를 유도한다.
 같은 원본을 다시 받으면 이미 저장한 미리보기와 체크섬을 재사용한다. dev 전용 스토리지 권한과 인증된 Spring 콜백이 필요하다.
 
+### 운영 변환기의 작업별 S3 접근
+
+`worker.direct_handler`는 S3 원본 생성 이벤트를 받는다. 운영 함수에 `DOCUMENT_PREVIEW_STORAGE_MODE=presigned`와
+`DOCUMENT_PREVIEW_TRANSFER_TOKEN`을 설정한다. Spring의 전송 API에도 같은 토큰을 설정하고, 기존 완료 콜백 토큰은 별도로 유지한다.
+`PDF_BUCKET`과 세 경로는 해당 버킷의 실제 키를 기준으로 설정한다. 서명 URL에는 Lambda와 같은 리전의 S3 엔드포인트를 사용한다.
+
+1. 함수가 완료 콜백과 같은 서버의 `/internal/v1/pdf-extractions/preview-transfers`에 작업 ID, 원본 키, 생성 이벤트의 ETag를 보낸다.
+2. Spring이 DB의 지원서와 원본 객체를 확인하고, 해당 파일 하나와 요청 동작에만 유효한 URL을 발급한다. 함수가 원본을 내려받아 크기와 SHA-256을 확인한다.
+3. READY인 작업은 확정된 미리보기를 재사용한다. PENDING인 작업은 변환된 PDF를 조건부 PUT으로 `previews/`에 저장한다. 이미 저장한 파일이 있어 412를 받으면 `PREVIEW_RECOVER`로 그 파일을 읽어 사용한다.
+4. READY 콜백에 성공하면 같은 PDF 바이트를 `inputs/`에 게시한다. 재시도에서 이미 게시된 입력은 해시와 크기가 일치하는지 확인한다.
+
+이 모드에서는 Spring의 서명 역할이 파일별 접근을 발급하므로 변환 함수의 실행 역할에 S3 객체 권한을 추가할 필요가 없다.
+인증 실패, 잘못된 파일 메타데이터, 전송 장애는 호출 실패로 반환된다. 삭제된 지원서는 서버의 전용 404 코드로 확인한 후 종료한다.
+
 ## 기존 버킷 연결
 
 1. 기존 추출기가 사용하는 리전·계정의 비공개 버킷, 환경별 실제 prefix, Spring 콜백 URL과 같은 인증 값을 담은 Secrets Manager 문자열을 준비한다. DB 마이그레이션과 서버·프론트 버전을 배포한다. 새 형식의 발급은 환경별 설정으로 연다.
