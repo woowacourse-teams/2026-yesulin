@@ -13,9 +13,11 @@ let client: PostHog | undefined;
 let starting: Promise<boolean> | undefined;
 let context: AnalyticsContext | undefined;
 let generation = 0;
+let instagramProfileLandingPending: boolean | undefined;
 const pending = new Set<string>();
 const VIEW_HISTORY = "yesulin:posthog:visit:v1";
 const OPENCHAT_ENTRY = "yesulin:posthog:openchat-entry:v1";
+const INSTAGRAM_CONTEXT_RETRY_DELAY_MS = 1_000;
 
 /** 주소 정리·OTR 리디렉션보다 먼저, 해당 공고에 한정한 출처를 잠시 보관한다. */
 export function rememberOpenchatEntry(kind: "post" | "otr", id: string) {
@@ -44,6 +46,7 @@ function enabled() {
 
 /** 분석 거부·로그아웃 시 대기 중인 전송도 중단한다. */
 export function resetProductAnalytics() {
+  instagramProfileLandingPending = false;
   clearAcquisition();
   refreshProductContext();
   client?.reset(true);
@@ -59,14 +62,26 @@ export function refreshProductContext() {
   pending.clear();
 }
 
+async function fetchProductContext(version: number) {
+  const request = () => fetch("/api/analytics/context", { credentials: "same-origin", cache: "no-store" });
+  const response = await request().catch(() => undefined);
+  if (response?.ok || (response && response.status < 500)) return response;
+  if (!instagramProfileLandingPending || version !== generation || !enabled()) return response;
+  await new Promise<void>(resolve => window.setTimeout(resolve, INSTAGRAM_CONTEXT_RETRY_DELAY_MS));
+  if (version !== generation || !enabled()) return;
+  return request();
+}
+
 export async function startProductAnalytics() {
   if (!enabled()) return false;
+  instagramProfileLandingPending ??= window.location.pathname === "/"
+    && new URLSearchParams(window.location.search).get("src") === "instagram";
   observeAcquisition();
   if (starting) return starting;
   const version = generation;
-  starting = (async () => {
-    const response = await fetch("/api/analytics/context", { credentials: "same-origin", cache: "no-store" });
-    if (!response.ok) return false;
+  const attempt = (async () => {
+    const response = await fetchProductContext(version);
+    if (!response?.ok) return false;
     const next = await response.json() as AnalyticsContext;
     if (version !== generation || !enabled() || !next.enabled) return false;
     context = next;
@@ -104,9 +119,16 @@ export async function startProductAnalytics() {
     if (identified && identified !== next.identity) client.reset(true);
     // 식별자는 서버 HMAC이다. 이름·이메일·원문 회원 ID를 보내지 않는다.
     if (next.identity) client.identify(next.identity);
+    if (instagramProfileLandingPending) {
+      captureProductEvent(client, next, "instagram_profile_landed", {});
+      instagramProfileLandingPending = false;
+    }
     return true;
   })().catch(() => false);
-  return starting;
+  starting = attempt;
+  const ready = await attempt;
+  if (!ready && starting === attempt) starting = undefined;
+  return ready;
 }
 
 export async function trackProductEvent(event: ProductEvent, properties: ProductProperties = {}, onceKey?: string) {
@@ -119,13 +141,17 @@ export async function trackProductEvent(event: ProductEvent, properties: Product
     if (onceKey) pending.delete(onceKey);
     return false;
   }
-  const safe = safeProductProperties({ ...properties, acquisition_channel: observeAcquisition(), attribution_version: 1 });
-  client.capture(event, {
-    ...safe, environment: process.env.NEXT_PUBLIC_POSTHOG_ENV,
-    internal: context.internal || isInternalBrowser(), actor: context.actor,
-    test_object: isTestObject(safe, context.testObjects), schema_version: 1,
-  });
+  captureProductEvent(client, context, event, properties);
   return true;
+}
+
+function captureProductEvent(sdk: PostHog, analyticsContext: AnalyticsContext, event: ProductEvent, properties: ProductProperties) {
+  const safe = safeProductProperties({ ...properties, acquisition_channel: observeAcquisition(), attribution_version: 1 });
+  sdk.capture(event, {
+    ...safe, environment: process.env.NEXT_PUBLIC_POSTHOG_ENV,
+    internal: analyticsContext.internal || isInternalBrowser(), actor: analyticsContext.actor,
+    test_object: isTestObject(safe, analyticsContext.testObjects), schema_version: 1,
+  });
 }
 
 type Visit = { at: number; source: "openchat" | "other"; firstPost?: string };
